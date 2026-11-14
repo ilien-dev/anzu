@@ -113,6 +113,58 @@ pub fn run_streaming(mut cmd: Command, on_line: &mut dyn FnMut(&str)) -> Result<
     Ok(child.wait()?.code().unwrap_or(-1))
 }
 
+const HIDDEN: &str = "[oculto]";
+/// Etiquetas tras las que el archiver imprime secretos de la cuenta o claves de libros.
+const SECRET_MARKERS: [&str; 6] = ["secret", "serial_number", "found key", "token", "password", "cookie"];
+const MIN_BLOB: usize = 32;
+
+/// Quita de una línea del archiver los secretos de la cuenta y las claves.
+///
+/// El archiver imprime el número de serie del dispositivo, el secreto de la cuenta y las
+/// claves de cada libro. Nada de eso debe llegar a la pantalla ni al registro.
+pub fn redact(line: &str) -> String {
+    let lower = line.to_ascii_lowercase();
+    let marker_end = SECRET_MARKERS.iter().filter_map(|m| lower.find(m).map(|i| i + m.len())).min();
+    if let Some(end) = marker_end {
+        let keep = line[end..].find([':', ',']).map_or(end, |i| end + i + 1);
+        return format!("{} {HIDDEN}", &line[..keep]);
+    }
+
+    let is_blob_char = |c: char| c.is_ascii_alphanumeric() || c == '+' || c == '=';
+    let mut out = String::with_capacity(line.len());
+    let mut run = String::new();
+    let flush = |run: &mut String, out: &mut String| {
+        if run.len() >= MIN_BLOB {
+            out.push_str(HIDDEN);
+        } else {
+            out.push_str(run);
+        }
+        run.clear();
+    };
+    for c in line.chars() {
+        if is_blob_char(c) {
+            run.push(c);
+        } else {
+            flush(&mut run, &mut out);
+            out.push(c);
+        }
+    }
+    flush(&mut run, &mut out);
+    out
+}
+
+/// Como [`run_streaming`], pero cada línea pasa por [`redact`] antes de salir de aquí.
+/// Devuelve el código de salida y el registro ya filtrado.
+pub fn run_redacted(cmd: Command, on_line: &mut dyn FnMut(&str)) -> Result<(i32, Vec<String>), Error> {
+    let mut log = Vec::new();
+    let code = run_streaming(cmd, &mut |line| {
+        let safe = redact(line);
+        on_line(&safe);
+        log.push(safe);
+    })?;
+    Ok((code, log))
+}
+
 /// Decide el resultado de una ejecución a partir de su código de salida y de lo que produjo.
 pub fn outcome(code: i32, log: &[String], outputs: Vec<(String, PathBuf)>) -> Result<Vec<(String, PathBuf)>, Error> {
     if code != 0 && outputs.is_empty() {
@@ -140,11 +192,7 @@ pub fn unlock_with(
         std::fs::create_dir_all(parent)?;
     }
 
-    let mut log = Vec::new();
-    let code = run_streaming(build_command(req), &mut |line| {
-        log.push(line.to_string());
-        on_line(line);
-    })?;
+    let (code, log) = run_redacted(build_command(req), on_line)?;
     let produced = outcome(code, &log, collect_outputs(req.out_dir))?;
     store_outputs(produced, data_dir)
 }
@@ -284,5 +332,70 @@ mod tests {
     #[test]
     fn clean_exit_without_outputs_is_an_empty_result() {
         assert!(outcome(0, &[], Vec::new()).unwrap().is_empty());
+    }
+
+    fn q() -> String {
+        String::from('"')
+    }
+
+    #[test]
+    fn hides_account_secrets() {
+        let line = "Working secret: " .to_string() + &q() + "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=" + &q();
+        assert_eq!(redact(&line), "Working secret: [oculto]");
+    }
+
+    #[test]
+    fn hides_the_device_serial() {
+        const Q: char = '"';
+        let line = format!("{Q}device_serial_number{Q}:{Q}0123456789ABCDEF0123456789ABCDEF{Q}");
+        let out = redact(&line);
+        assert!(!out.contains("0123456789ABCDEF"), "{out}");
+        assert!(out.ends_with("[oculto]"), "{out}");
+        assert!(out.contains("device_serial_number"), "{out}");
+    }
+
+    #[test]
+    fn hides_book_keys() {
+        let out = redact("Found key in map, 00112233445566778899aabbccddeeff ");
+        assert_eq!(out, "Found key in map, [oculto]");
+    }
+
+    #[test]
+    fn hides_long_blobs_even_without_a_known_label() {
+        assert_eq!(redact("blob 00112233445566778899aabbccddeeff00 end"), "blob [oculto] end");
+        assert_eq!(redact("x QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo="), "x [oculto]");
+    }
+
+    #[test]
+    fn leaves_ordinary_progress_lines_alone() {
+        for line in [
+            "Read file of 871790 bytes",
+            "Decrypting DRMION... ",
+            "Current keyid amzn1.drm-key.v1.4d3c7674-dc00-4b3b-95b2-07d47e91cede",
+            "DRMION decrypted and saved.",
+            "File B0GRCGCPMZ_EBOK.kfx-zip already exists in the output folder",
+            "",
+        ] {
+            assert_eq!(redact(line), line);
+        }
+    }
+
+    #[test]
+    fn redaction_survives_non_ascii_text() {
+        assert_eq!(redact("contraseña — Working secret: abc"), "contraseña — Working secret: [oculto]");
+    }
+
+    #[test]
+    fn process_output_is_redacted_before_anyone_sees_it() {
+        let mut cmd = crate::kindle::quiet_command("cmd");
+        cmd.args(["/C", "echo Working secret: hunter2& echo listo"]);
+        let mut seen = Vec::new();
+
+        let (code, log) = run_redacted(cmd, &mut |l| seen.push(l.trim().to_string())).unwrap();
+
+        assert_eq!(code, 0);
+        assert!(seen.iter().chain(log.iter()).all(|l| !l.contains("hunter2")), "{seen:?} {log:?}");
+        assert!(seen.iter().any(|l| l == "listo"));
+        assert_eq!(seen.len(), log.len());
     }
 }
