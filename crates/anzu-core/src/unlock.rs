@@ -49,7 +49,7 @@ pub fn collect_outputs(out_dir: &Path) -> Vec<(String, PathBuf)> {
     let Ok(entries) = std::fs::read_dir(out_dir) else { return Vec::new() };
     let mut found: Vec<(String, PathBuf)> = entries
         .flatten()
-        .filter(|e| e.path().is_file())
+        .filter(|e| e.metadata().is_ok_and(|m| m.is_file() && m.len() > 0))
         .filter_map(|e| {
             let name = e.file_name().into_string().ok()?;
             let asin = name.strip_suffix(OUTPUT_SUFFIX).filter(|a| !a.is_empty())?.to_string();
@@ -80,8 +80,20 @@ pub fn store_outputs(outputs: Vec<(String, PathBuf)>, data_dir: &Path) -> Result
     Ok(stored)
 }
 
+/// Tiempo máximo sin salida antes de dar la herramienta por colgada.
+pub const IDLE_LIMIT: std::time::Duration = std::time::Duration::from_secs(600);
+
 /// Lanza el proceso, entrega cada línea de stdout y stderr a `on_line` y devuelve su código de salida.
-pub fn run_streaming(mut cmd: Command, on_line: &mut dyn FnMut(&str)) -> Result<i32, Error> {
+pub fn run_streaming(cmd: Command, on_line: &mut dyn FnMut(&str)) -> Result<i32, Error> {
+    run_streaming_with(cmd, IDLE_LIMIT, on_line)
+}
+
+/// Como [`run_streaming`], deteniendo el proceso si pasa `idle` sin escribir nada.
+pub fn run_streaming_with(
+    mut cmd: Command,
+    idle: std::time::Duration,
+    on_line: &mut dyn FnMut(&str),
+) -> Result<i32, Error> {
     let mut child = cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()?;
     let (tx, rx) = mpsc::channel::<String>();
     let mut readers = Vec::new();
@@ -104,8 +116,18 @@ pub fn run_streaming(mut cmd: Command, on_line: &mut dyn FnMut(&str)) -> Result<
         }));
     }
     drop(tx);
-    for line in rx {
-        on_line(&line);
+    loop {
+        match rx.recv_timeout(idle) {
+            Ok(line) => on_line(&line),
+            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                // Los hilos lectores no se esperan: un proceso nieto puede retener la tubería.
+                let _ = child.kill();
+                return Err(Error::Other(
+                    "la herramienta de desbloqueo dejó de responder y se detuvo".to_string(),
+                ));
+            }
+        }
     }
     for r in readers {
         let _ = r.join();
@@ -114,23 +136,37 @@ pub fn run_streaming(mut cmd: Command, on_line: &mut dyn FnMut(&str)) -> Result<
 }
 
 const HIDDEN: &str = "[oculto]";
-/// Etiquetas tras las que el archiver imprime secretos de la cuenta o claves de libros.
-const SECRET_MARKERS: [&str; 6] = ["secret", "serial_number", "found key", "token", "password", "cookie"];
-const MIN_BLOB: usize = 32;
+/// Lo que se muestra en lugar de una línea que el filtro no reconoce.
+pub const WITHHELD: &str = "[línea de la herramienta omitida por seguridad]";
+const MIN_BLOB: usize = 24;
+/// Comienzos de las líneas de progreso que se sabe que no llevan secretos.
+const SAFE_PREFIXES: [&str; 10] = [
+    "Read file of",
+    "Decrypting DRMION",
+    "DRMION decrypted",
+    "Current keyid",
+    "Could not open",
+    "Skipping",
+    "Found keyless book",
+    "File ",
+    "WARNING",
+    "Error",
+];
 
-/// Quita de una línea del archiver los secretos de la cuenta y las claves.
+/// Filtra una línea de la herramienta antes de mostrarla o guardarla.
 ///
-/// El archiver imprime el número de serie del dispositivo, el secreto de la cuenta y las
-/// claves de cada libro. Nada de eso debe llegar a la pantalla ni al registro.
+/// La herramienta imprime el número de serie del dispositivo, secretos de la cuenta y
+/// claves de libros en muchos formatos distintos. Por eso el filtro es una lista blanca:
+/// solo pasan las líneas de progreso conocidas, y aun en ellas se oculta cualquier
+/// cadena larga que parezca una clave. Todo lo demás se sustituye por [`WITHHELD`].
 pub fn redact(line: &str) -> String {
-    let lower = line.to_ascii_lowercase();
-    let marker_end = SECRET_MARKERS.iter().filter_map(|m| lower.find(m).map(|i| i + m.len())).min();
-    if let Some(end) = marker_end {
-        let keep = line[end..].find([':', ',']).map_or(end, |i| end + i + 1);
-        return format!("{} {HIDDEN}", &line[..keep]);
+    if line.trim().is_empty() {
+        return line.to_string();
     }
-
-    let is_blob_char = |c: char| c.is_ascii_alphanumeric() || c == '+' || c == '=';
+    if !SAFE_PREFIXES.iter().any(|p| line.starts_with(p)) {
+        return WITHHELD.to_string();
+    }
+    let is_blob_char = |c: char| c.is_ascii_alphanumeric() || matches!(c, '+' | '=' | '/' | '-' | '_');
     let mut out = String::with_capacity(line.len());
     let mut run = String::new();
     let flush = |run: &mut String, out: &mut String| {
@@ -154,15 +190,34 @@ pub fn redact(line: &str) -> String {
 }
 
 /// Como [`run_streaming`], pero cada línea pasa por [`redact`] antes de salir de aquí.
-/// Devuelve el código de salida y el registro ya filtrado.
+/// Varias líneas omitidas seguidas se muestran una sola vez.
 pub fn run_redacted(cmd: Command, on_line: &mut dyn FnMut(&str)) -> Result<(i32, Vec<String>), Error> {
-    let mut log = Vec::new();
+    let mut log: Vec<String> = Vec::new();
     let code = run_streaming(cmd, &mut |line| {
         let safe = redact(line);
+        if safe == WITHHELD && log.last().is_some_and(|l| l == WITHHELD) {
+            return;
+        }
         on_line(&safe);
         log.push(safe);
     })?;
     Ok((code, log))
+}
+
+/// Deja en `out_dir` un marcador vacío por cada libro que ya está desbloqueado, para que
+/// la herramienta lo omita en lugar de rehacerlo. Devuelve cuántos marcó.
+pub fn seed_placeholders(out_dir: &Path, data_dir: &Path) -> Result<usize, Error> {
+    let Ok(entries) = std::fs::read_dir(data_dir.join("unlocked")) else { return Ok(0) };
+    let mut seeded = 0;
+    for entry in entries.flatten() {
+        let Ok(name) = entry.file_name().into_string() else { continue };
+        let Some(asin) = name.strip_suffix(".kfx-zip").filter(|a| !a.is_empty()) else { continue };
+        if entry.metadata().is_ok_and(|m| m.is_file() && m.len() > 0) {
+            std::fs::write(out_dir.join(format!("{asin}{OUTPUT_SUFFIX}")), b"")?;
+            seeded += 1;
+        }
+    }
+    Ok(seeded)
 }
 
 /// Decide el resultado de una ejecución a partir de su código de salida y de lo que produjo.
@@ -187,6 +242,7 @@ pub fn unlock_with(
         std::fs::remove_dir_all(req.out_dir)?;
     }
     std::fs::create_dir_all(req.out_dir)?;
+    seed_placeholders(req.out_dir, data_dir)?;
     std::fs::create_dir_all(req.work_dir.join("runtime"))?;
     if let Some(parent) = req.keyfile.parent() {
         std::fs::create_dir_all(parent)?;
@@ -334,46 +390,31 @@ mod tests {
         assert!(outcome(0, &[], Vec::new()).unwrap().is_empty());
     }
 
-    fn q() -> String {
-        String::from('"')
+    #[test]
+    fn lines_the_filter_does_not_recognise_are_withheld() {
+        for line in [
+            "Working secret: QUJD",
+            "device_serial_number:0123456789ABCDEF0123456789ABCDEF",
+            "Found key in map, 00112233445566778899aabbccddeeff ",
+            "DSN: G000ABCDEF",
+            "Md5: 0011 Value: hunter2",
+            "Got key: 0011",
+            "some_setting : short-value",
+            "key 00112233445566778899aabbccddeeff secret: x",
+            "Writing DSN and secrets into somewhere",
+        ] {
+            assert_eq!(redact(line), WITHHELD, "{line}");
+        }
     }
 
     #[test]
-    fn hides_account_secrets() {
-        let line = "Working secret: " .to_string() + &q() + "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=" + &q();
-        assert_eq!(redact(&line), "Working secret: [oculto]");
-    }
-
-    #[test]
-    fn hides_the_device_serial() {
-        const Q: char = '"';
-        let line = format!("{Q}device_serial_number{Q}:{Q}0123456789ABCDEF0123456789ABCDEF{Q}");
-        let out = redact(&line);
-        assert!(!out.contains("0123456789ABCDEF"), "{out}");
-        assert!(out.ends_with("[oculto]"), "{out}");
-        assert!(out.contains("device_serial_number"), "{out}");
-    }
-
-    #[test]
-    fn hides_book_keys() {
-        let out = redact("Found key in map, 00112233445566778899aabbccddeeff ");
-        assert_eq!(out, "Found key in map, [oculto]");
-    }
-
-    #[test]
-    fn hides_long_blobs_even_without_a_known_label() {
-        assert_eq!(redact("blob 00112233445566778899aabbccddeeff00 end"), "blob [oculto] end");
-        assert_eq!(redact("x QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo="), "x [oculto]");
-    }
-
-    #[test]
-    fn leaves_ordinary_progress_lines_alone() {
+    fn known_progress_lines_pass() {
         for line in [
             "Read file of 871790 bytes",
-            "Decrypting DRMION... ",
-            "Current keyid amzn1.drm-key.v1.4d3c7674-dc00-4b3b-95b2-07d47e91cede",
+            "Decrypting DRMION... añö",
             "DRMION decrypted and saved.",
-            "File B0GRCGCPMZ_EBOK.kfx-zip already exists in the output folder",
+            "Skipping",
+            "Found keyless book, packing it for completion",
             "",
         ] {
             assert_eq!(redact(line), line);
@@ -381,21 +422,57 @@ mod tests {
     }
 
     #[test]
-    fn redaction_survives_non_ascii_text() {
-        assert_eq!(redact("contraseña — Working secret: abc"), "contraseña — Working secret: [oculto]");
+    fn long_tokens_are_masked_even_in_known_lines() {
+        assert_eq!(
+            redact("Current keyid amzn1.drm-key.v1.4d3c7674-dc00-4b3b-95b2-07d47e91cede"),
+            "Current keyid amzn1.drm-key.v1.[oculto]"
+        );
+        assert_eq!(redact("Could not open QUJDREVGR0hJSktM/TU5PUFFSU1RVVldYWVo="), "Could not open [oculto]");
+        assert_eq!(redact("Read file of 00112233445566778899aabb bytes"), "Read file of [oculto] bytes");
     }
 
     #[test]
-    fn process_output_is_redacted_before_anyone_sees_it() {
+    fn process_output_is_filtered_and_withheld_runs_collapse() {
         let mut cmd = crate::kindle::quiet_command("cmd");
-        cmd.args(["/C", "echo Working secret: hunter2& echo listo"]);
+        cmd.args(["/C", "echo Working secret: hunter2& echo DSN: abc& echo Skipping"]);
         let mut seen = Vec::new();
 
-        let (code, log) = run_redacted(cmd, &mut |l| seen.push(l.trim().to_string())).unwrap();
+        let (code, log) = run_redacted(cmd, &mut |l| seen.push(l.to_string())).unwrap();
 
         assert_eq!(code, 0);
-        assert!(seen.iter().chain(log.iter()).all(|l| !l.contains("hunter2")), "{seen:?} {log:?}");
-        assert!(seen.iter().any(|l| l == "listo"));
-        assert_eq!(seen.len(), log.len());
+        assert_eq!(seen, vec![WITHHELD.to_string(), "Skipping".to_string()]);
+        assert_eq!(seen, log);
+    }
+
+    #[test]
+    fn a_tool_that_goes_silent_is_stopped() {
+        let mut cmd = crate::kindle::quiet_command("cmd");
+        cmd.args(["/C", "echo Skipping& ping -n 9 127.0.0.1 >nul"]);
+        let started = std::time::Instant::now();
+
+        let result = run_streaming_with(cmd, std::time::Duration::from_secs(1), &mut |_| {});
+
+        assert!(matches!(result, Err(Error::Other(_))), "{result:?}");
+        assert!(started.elapsed() < std::time::Duration::from_secs(6));
+    }
+
+    #[test]
+    fn books_already_unlocked_are_not_redone() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (out, data) = (tmp.path().join("out"), tmp.path().join("data"));
+        fs::create_dir_all(&out).unwrap();
+        let kept = crate::library::unlocked_path(&data, "B0AAA");
+        fs::create_dir_all(kept.parent().unwrap()).unwrap();
+        fs::write(&kept, b"ya desbloqueado").unwrap();
+
+        assert_eq!(seed_placeholders(&out, &data).unwrap(), 1);
+
+        assert_eq!(fs::metadata(out.join("B0AAA_EBOK.kfx-zip")).unwrap().len(), 0);
+        assert!(collect_outputs(&out).is_empty(), "un marcador vacío no es un libro");
+        fs::write(out.join("B0BBB_EBOK.kfx-zip"), b"nuevo").unwrap();
+        let stored = store_outputs(collect_outputs(&out), &data).unwrap();
+        assert_eq!(stored.len(), 1);
+        assert_eq!(stored[0].0, "B0BBB");
+        assert_eq!(fs::read(&kept).unwrap(), b"ya desbloqueado");
     }
 }

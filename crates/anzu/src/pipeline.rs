@@ -18,6 +18,9 @@ use anzu_kfx::Converted;
 
 use crate::app::{self, Health, RunPlan};
 
+/// Cuántos avisos de conversión de un libro se muestran en el registro.
+const MAX_WARNINGS_SHOWN: usize = 20;
+
 /// Las operaciones del sistema que necesita el flujo.
 pub trait Backend {
     fn detect_kindle(&self) -> Option<KindleInstall>;
@@ -179,8 +182,11 @@ pub fn run(
                 Ok(result) => {
                     backend.mark_converted(asin, &result.path);
                     converted += 1;
-                    if !result.warnings.is_empty() {
-                        send(Msg::Log(format!("{}: convertido con {} avisos", result.title, result.warnings.len())));
+                    for warning in result.warnings.iter().take(MAX_WARNINGS_SHOWN) {
+                        send(Msg::Log(format!("aviso: {warning}")));
+                    }
+                    if result.warnings.len() > MAX_WARNINGS_SHOWN {
+                        send(Msg::Log(format!("… y {} avisos más", result.warnings.len() - MAX_WARNINGS_SHOWN)));
                     }
                     send(Msg::Log(format!("EPUB guardado: {}", result.path.display())));
                     send(Msg::BookProgress { asin: asin.clone(), state: BookState::Converted });
@@ -277,6 +283,7 @@ mod tests {
         unlock: Result<Vec<&'static str>, Error>,
         unlock_log: Vec<&'static str>,
         failing_conversions: Vec<&'static str>,
+        conversion_warnings: Vec<&'static str>,
     }
 
     impl Fake {
@@ -291,6 +298,7 @@ mod tests {
                 unlock: Ok(vec!["A"]),
                 unlock_log: vec![],
                 failing_conversions: vec![],
+                conversion_warnings: vec![],
             }
         }
 
@@ -383,7 +391,7 @@ mod tests {
             if self.failing_conversions.contains(&asin.as_str()) {
                 return Err(anzu_kfx::Error::NotKfx);
             }
-            Ok(Converted { path: out_dir.join(format!("{asin}.epub")), title: format!("Libro {asin}"), warnings: vec![] })
+            Ok(Converted { path: out_dir.join(format!("{asin}.epub")), title: format!("Libro {asin}"), warnings: self.conversion_warnings.iter().map(|w| w.to_string()).collect() })
         }
 
         fn mark_converted(&self, asin: &str, epub: &Path) {
@@ -611,6 +619,13 @@ mod tests {
         let messages = run_with(&fake, &plan(&["A"], true), true);
         assert!(messages.contains(&Msg::Log("Decrypting DRMION...".into())));
         assert!(messages.contains(&Msg::Log("listo".into())));
+    }
+
+    #[test]
+    fn conversion_warnings_are_shown_in_the_log() {
+        let fake = Fake { conversion_warnings: vec!["tipo de nodo desconocido $276"], ..Fake::ready() };
+        let messages = run_with(&fake, &plan(&["B"], false), true);
+        assert!(messages.contains(&Msg::Log("aviso: tipo de nodo desconocido $276".into())), "{messages:?}");
     }
 
     #[test]

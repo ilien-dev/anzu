@@ -49,7 +49,8 @@ pub fn scan(content_dir: &Path, data_dir: &Path, settings: &Settings) -> Vec<Boo
                 (None, Some(_)) => BookState::Unlocked,
                 (None, None) => BookState::Locked,
             };
-            Some(Book { asin, title: None, source, size, state, unlocked, epub })
+            let title = settings.titles.get(&asin).cloned();
+            Some(Book { asin, title, source, size, state, unlocked, epub })
         })
         .collect();
     books.sort_by(|a, b| a.asin.cmp(&b.asin));
@@ -155,6 +156,20 @@ mod tests {
         let mut settings = Settings::default();
         settings.converted.insert("B0AAA".into(), f.out.join("gone.epub"));
         assert_eq!(scan(&f.content, &f.data, &settings)[0].state, BookState::Locked);
+    }
+
+    #[test]
+    fn known_titles_are_shown() {
+        let f = fixture();
+        add_book(&f.content, "B0AAA", 10);
+        add_book(&f.content, "B0BBB", 10);
+        let mut settings = Settings::default();
+        settings.titles.insert("B0AAA".into(), "Mi libro".into());
+
+        let books = scan(&f.content, &f.data, &settings);
+
+        assert_eq!(books[0].title.as_deref(), Some("Mi libro"));
+        assert_eq!(books[1].title, None);
     }
 
     #[test]

@@ -84,8 +84,33 @@ pub fn install_from_zip(zip_bytes: &[u8], expected_sha256: &str, tag: &str, cach
         std::fs::write(dir.join(&name), data)?;
     }
     let exe_names = list_exes(&dir)?;
-    std::fs::write(dir.join(OK_MARKER), expected_sha256.trim())?;
+    // El manifiesto se escribe al final: huella del zip y huella de cada ejecutable.
+    let mut manifest = format!("{}\n", expected_sha256.trim().to_ascii_lowercase());
+    for name in &exe_names {
+        manifest.push_str(&format!("{}  {name}\n", sha256_hex(&std::fs::read(dir.join(name))?)));
+    }
+    std::fs::write(dir.join(OK_MARKER), manifest)?;
     Ok(Tool { tag: tag.to_string(), dir, exe_names })
+}
+
+/// Los ejecutables de una caché que sigue siendo la que se verificó: su manifiesto es de
+/// esta misma descarga y cada ejecutable conserva su huella. `None` si algo no cuadra.
+fn trusted_cache(dir: &Path, expected_sha256: &str) -> Option<Vec<String>> {
+    let manifest = std::fs::read_to_string(dir.join(OK_MARKER)).ok()?;
+    let mut lines = manifest.lines();
+    if !lines.next()?.trim().eq_ignore_ascii_case(expected_sha256.trim()) {
+        return None;
+    }
+    let mut names = Vec::new();
+    for line in lines.filter(|l| !l.trim().is_empty()) {
+        let (digest, name) = line.split_once("  ")?;
+        let name = root_exe_name(name)?;
+        if !verify_sha256(&std::fs::read(dir.join(name)).ok()?, digest) {
+            return None;
+        }
+        names.push(name.to_string());
+    }
+    Some(names)
 }
 
 /// Devuelve la herramienta de esa publicación, descargándola si no está en caché.
@@ -96,8 +121,8 @@ pub fn ensure_tool(release: &Release, cache: &Path) -> Result<Tool, Error> {
         return Err(Error::Other(format!("etiqueta de publicación no válida: {:?}", release.tag)));
     }
     let dir = cache.join(&release.tag);
-    if dir.join(OK_MARKER).is_file() {
-        return Ok(Tool { tag: release.tag.clone(), exe_names: list_exes(&dir)?, dir });
+    if let Some(exe_names) = trusted_cache(&dir, expected) {
+        return Ok(Tool { tag: release.tag.clone(), exe_names, dir });
     }
     let bytes = download(&asset.url)?;
     install_from_zip(&bytes, expected, &release.tag, cache)
@@ -223,24 +248,54 @@ mod tests {
         assert!(matches!(ensure_tool(&r, cache.path()), Err(Error::NoRelease)));
     }
 
+    fn cached(cache: &Path) -> String {
+        let zip = sample_zip();
+        let digest = sha(&zip);
+        install_from_zip(&zip, &digest, "v9", cache).unwrap();
+        digest
+    }
+
     #[test]
     fn cached_tool_is_reused_without_network() {
+        let cache = tempfile::tempdir().unwrap();
+        let digest = cached(cache.path());
+        let tool = ensure_tool(&release(Some(&digest)), cache.path()).unwrap();
+        assert_eq!(tool.exe_names, vec!["a.exe".to_string()]);
+    }
+
+    #[test]
+    fn cache_made_for_another_digest_is_not_trusted() {
+        let cache = tempfile::tempdir().unwrap();
+        cached(cache.path());
+        let other = "0".repeat(64);
+        // La URL de prueba no responde: llegar a la red demuestra que no se usó la caché.
+        assert!(matches!(ensure_tool(&release(Some(&other)), cache.path()), Err(Error::Network(_))));
+    }
+
+    #[test]
+    fn tampered_cached_executable_is_not_trusted() {
+        let cache = tempfile::tempdir().unwrap();
+        let digest = cached(cache.path());
+        std::fs::write(cache.path().join("v9").join("a.exe"), b"MZ-otro").unwrap();
+        assert!(matches!(ensure_tool(&release(Some(&digest)), cache.path()), Err(Error::Network(_))));
+    }
+
+    #[test]
+    fn executables_dropped_into_the_cache_are_ignored() {
+        let cache = tempfile::tempdir().unwrap();
+        let digest = cached(cache.path());
+        std::fs::write(cache.path().join("v9").join("MSIXKFXArchiver_x64_1_9999.exe"), b"MZ").unwrap();
+        let tool = ensure_tool(&release(Some(&digest)), cache.path()).unwrap();
+        assert_eq!(tool.exe_names, vec!["a.exe".to_string()]);
+    }
+
+    #[test]
+    fn marker_without_a_manifest_is_not_trusted() {
         let cache = tempfile::tempdir().unwrap();
         let dir = cache.path().join("v9");
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("x.exe"), b"MZ").unwrap();
         std::fs::write(dir.join(".ok"), b"").unwrap();
-        let tool = ensure_tool(&release(Some("00")), cache.path()).unwrap();
-        assert_eq!(tool.exe_names, vec!["x.exe".to_string()]);
-    }
-
-    #[test]
-    fn incomplete_cache_is_not_trusted() {
-        let cache = tempfile::tempdir().unwrap();
-        let dir = cache.path().join("v9");
-        std::fs::create_dir_all(&dir).unwrap();
-        std::fs::write(dir.join("x.exe"), b"MZ").unwrap();
-        // Sin `.ok`: se intenta descargar, y la URL de prueba no responde.
         assert!(matches!(ensure_tool(&release(Some("00")), cache.path()), Err(Error::Network(_))));
     }
 }

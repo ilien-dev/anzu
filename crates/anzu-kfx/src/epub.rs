@@ -921,6 +921,17 @@ mod tests {
         }
 
         #[test]
+        fn title_is_read_without_converting() {
+            let tmp = tempfile::tempdir().unwrap();
+            let input = tmp.path().join("in.kfx");
+            std::fs::write(&input, tiny_kfx(Some("Un libro"))).unwrap();
+            assert_eq!(crate::read_title(&input).as_deref(), Some("Un libro"));
+            std::fs::write(&input, tiny_kfx(None)).unwrap();
+            assert_eq!(crate::read_title(&input), None);
+            assert_eq!(crate::read_title(&tmp.path().join("no-existe.kfx")), None);
+        }
+
+        #[test]
         fn untitled_book_still_converts() {
             let tmp = tempfile::tempdir().unwrap();
             let input = tmp.path().join("in.kfx");

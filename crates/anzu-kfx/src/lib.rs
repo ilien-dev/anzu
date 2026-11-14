@@ -54,3 +54,8 @@ pub fn convert(input: &std::path::Path, out_dir: &std::path::Path) -> Result<Con
     epub::write_epub(&book, &path)?;
     Ok(Converted { path, title: book.meta.title, warnings: book.warnings })
 }
+
+/// El título de un KFX sin DRM, o `None` si no se puede leer o no lo declara.
+pub fn read_title(input: &std::path::Path) -> Option<String> {
+    book::title(&container::open(input).ok()?)
+}

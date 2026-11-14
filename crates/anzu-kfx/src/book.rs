@@ -117,6 +117,23 @@ pub fn build(fragments: &Fragments) -> Result<Book, Error> {
     Ok(Book { meta, chapters: builder.chapters, toc, images: builder.images, cover, warnings: builder.warnings })
 }
 
+/// Solo el título del libro, sin construir el resto del modelo.
+pub fn title(fragments: &Fragments) -> Option<String> {
+    for fragment in fragments.of_type(F_BOOK_METADATA) {
+        let FragmentValue::Ion(value) = &fragment.value else { continue };
+        for category in value.field(META_CATEGORIES).and_then(items).unwrap_or(&[]) {
+            for entry in category.field(META_ENTRIES).and_then(items).unwrap_or(&[]) {
+                if entry.field(META_KEY).and_then(string) == Some("title")
+                    && let Some(text) = entry.field(META_VALUE).and_then(string).map(str::trim).filter(|t| !t.is_empty())
+                {
+                    return Some(text.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 fn as_int(v: &Ion) -> Option<i64> {
     match v.unannotated() {
         Ion::Int(i) => Some(*i),
@@ -295,21 +312,21 @@ impl<'a> Builder<'a> {
             Some(Ion::Symbol(sid)) => Some(*sid),
             _ => None,
         };
-        match kind {
-            Some(NODE_IMAGE) => self.image_node(node, chapter, position),
-            Some(NODE_TEXT) | Some(NODE_CONTAINER) | None => {
-                let emitted = node.field(CONTENT).is_some_and(|r| self.text_node(node, r, chapter, position));
-                if !emitted && let Some(p) = position {
-                    self.pending.push(p);
-                }
-                for child in node.field(CONTENT_LIST).and_then(items).unwrap_or(&[]) {
-                    self.node(child, chapter);
-                }
-            }
-            Some(other) => {
-                let name = self.symbol_name(other);
-                self.warn(format!("tipo de nodo desconocido {name}; se omite"));
-            }
+        if kind == Some(NODE_IMAGE) {
+            self.image_node(node, chapter, position);
+            return;
+        }
+        if let Some(other) = kind.filter(|k| *k != NODE_TEXT && *k != NODE_CONTAINER) {
+            // Listas, tablas y demás: se pierde la estructura, pero no el texto que contienen.
+            let name = self.symbol_name(other);
+            self.warn(format!("tipo de nodo desconocido {name}; se conserva solo su texto"));
+        }
+        let emitted = node.field(CONTENT).is_some_and(|r| self.text_node(node, r, chapter, position));
+        if !emitted && let Some(p) = position {
+            self.pending.push(p);
+        }
+        for child in node.field(CONTENT_LIST).and_then(items).unwrap_or(&[]) {
+            self.node(child, chapter);
         }
     }
 
@@ -862,6 +879,31 @@ mod tests {
         assert_eq!(texts, vec!["Uno", "Dos"]);
         assert_eq!(book.warnings.len(), 1);
         assert!(book.warnings[0].contains("$999"), "{:?}", book.warnings);
+    }
+
+    #[test]
+    fn text_under_an_unknown_node_type_is_kept() {
+        let mut t = T::new();
+        t.content("k", &["Uno", "Dos"]);
+        let a = t.text(10, "k", 0);
+        let item = t.text(12, "k", 1);
+        let list_like = st(vec![(POSITION_ID, int(11)), (NODE_TYPE, sym(999)), (CONTENT_LIST, list(vec![item]))]);
+        t.section("c0", "l0", vec![a, list_like]);
+        t.order(&["c0"]);
+
+        let book = t.build().unwrap();
+
+        let texts: Vec<String> = book.chapters[0].blocks.iter().map(text_of).collect();
+        assert_eq!(texts, vec!["Uno", "Dos"], "se pierde la estructura, no las palabras");
+        assert_eq!(book.warnings.len(), 1);
+    }
+
+    #[test]
+    fn title_can_be_read_on_its_own() {
+        let mut t = T::simple(&["Uno"]);
+        assert_eq!(title(&t.b.fragments), None);
+        t.metadata(&[("title", "Mi libro")]);
+        assert_eq!(title(&t.b.fragments).as_deref(), Some("Mi libro"));
     }
 
     #[test]
