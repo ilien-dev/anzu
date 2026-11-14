@@ -1,7 +1,10 @@
 //! Lector de KFX sin DRM y escritor de EPUB 3.
 
+pub mod container;
 pub mod ion;
 pub mod symbols;
+#[cfg(test)]
+mod testkit;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
