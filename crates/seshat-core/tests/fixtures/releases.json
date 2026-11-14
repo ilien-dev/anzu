@@ -1,0 +1,84 @@
+[
+ {
+  "tag_name": "v10.0.35",
+  "prerelease": true,
+  "published_at": "2026-11-08T04:14:11Z",
+  "body": "Changes:\r\n\r\n- Calibre plugin now picks up DSN from MSIX Kindle registered data, thanks to @jadehawk\r\n- Calibre plugin now tries to _save_ keys for books in keyfile, in case login data is lost in the future. Be aware that keyfile may change.\r\n- Support for 1.5634 MSIX Kindle added. ",
+  "assets": [
+   {
+    "name": "DeDRM_tools.zip",
+    "browser_download_url": "https://github.com/Satsuoni/DeDRM_tools/releases/download/v10.0.35/DeDRM_tools.zip",
+    "digest": "sha256:5c85cce954b17836c2b421d6ae8b313f0aaeb190a9a3f81881636dbc80e25bc3"
+   },
+   {
+    "name": "kfxdedrmmobi.zip",
+    "browser_download_url": "https://github.com/Satsuoni/DeDRM_tools/releases/download/v10.0.35/kfxdedrmmobi.zip",
+    "digest": "sha256:8de08c8a8f1b68fba5151f8df59ff534479349c9df0f0b5232eb5682692874bb"
+   }
+  ]
+ },
+ {
+  "tag_name": "v10.0.34",
+  "prerelease": true,
+  "published_at": "2026-11-03T06:19:13Z",
+  "body": "The age of AI is upon us! As I have speculated, AI is great for dealing with boring, repetitive tasks that have just enough corner cases and sheer tedium to make automating them impractical. Like dealing with control flow flattening and their ilk. And these days, even local AI running on reasonably ",
+  "assets": [
+   {
+    "name": "DeDRM_tools.zip",
+    "browser_download_url": "https://github.com/Satsuoni/DeDRM_tools/releases/download/v10.0.34/DeDRM_tools.zip",
+    "digest": "sha256:f9743134149078a073de2d29da750fd7536220db5eb26d12ce758d52fdea14e1"
+   },
+   {
+    "name": "kfxdedrmmobi.zip",
+    "browser_download_url": "https://github.com/Satsuoni/DeDRM_tools/releases/download/v10.0.34/kfxdedrmmobi.zip",
+    "digest": "sha256:8de08c8a8f1b68fba5151f8df59ff534479349c9df0f0b5232eb5682692874bb"
+   }
+  ]
+ },
+ {
+  "tag_name": "v10.0.32",
+  "prerelease": true,
+  "published_at": "2026-09-17T13:43:52Z",
+  "body": "- Added support for MSKindle 1.0.25218. It is 64-bit so the previous executables are not compatible! Use those for lower versions. \r\n- Final does not mean \"better\", just slightly different. It also means that since further releases are expected to be 64bit, I will probably not update this executable",
+  "assets": [
+   {
+    "name": "DeDRM_tools.zip",
+    "browser_download_url": "https://github.com/Satsuoni/DeDRM_tools/releases/download/v10.0.32/DeDRM_tools.zip",
+    "digest": "sha256:af63128bc089757bc399defb42e20d3e105198b5128db1cb466922719223850d"
+   },
+   {
+    "name": "kfx-dedrm-scriptlet-v0.2.2-no-kterm-jadehawk.zip",
+    "browser_download_url": "https://github.com/Satsuoni/DeDRM_tools/releases/download/v10.0.32/kfx-dedrm-scriptlet-v0.2.2-no-kterm-jadehawk.zip",
+    "digest": "sha256:e7e111cc6f59f6df4d54f9e21a3d8867276d5e1771edef504e3ef3a05bfa641b"
+   },
+   {
+    "name": "kfxdedrmmobi.zip",
+    "browser_download_url": "https://github.com/Satsuoni/DeDRM_tools/releases/download/v10.0.32/kfxdedrmmobi.zip",
+    "digest": "sha256:8de08c8a8f1b68fba5151f8df59ff534479349c9df0f0b5232eb5682692874bb"
+   }
+  ]
+ },
+ {
+  "tag_name": "v10.0.31",
+  "prerelease": true,
+  "published_at": "2026-08-27T11:34:05Z",
+  "body": "- Added support for MSKindle 1.0.23514, 1.0.23620 \r\n- Providing copy of @Jadehawk's scriptlet wrapper for jailbroken Kindles, original [here](https://github.com/jadehawk/kfx-dedrm/releases). \r\n- **Updated 23620 code** for better compatibility with new method.\r\n",
+  "assets": [
+   {
+    "name": "DeDRM_toolsv2.zip",
+    "browser_download_url": "https://github.com/Satsuoni/DeDRM_tools/releases/download/v10.0.31/DeDRM_toolsv2.zip",
+    "digest": "sha256:ad46eed64444549f813260420caf710486df715cb2911be7d404bb430f41bcbd"
+   },
+   {
+    "name": "kfx-dedrm-scriptlet-v0.2.2-no-kterm-jadehawk.zip",
+    "browser_download_url": "https://github.com/Satsuoni/DeDRM_tools/releases/download/v10.0.31/kfx-dedrm-scriptlet-v0.2.2-no-kterm-jadehawk.zip",
+    "digest": "sha256:e7e111cc6f59f6df4d54f9e21a3d8867276d5e1771edef504e3ef3a05bfa641b"
+   },
+   {
+    "name": "kfxdedrmmobi.zip",
+    "browser_download_url": "https://github.com/Satsuoni/DeDRM_tools/releases/download/v10.0.31/kfxdedrmmobi.zip",
+    "digest": "sha256:8de08c8a8f1b68fba5151f8df59ff534479349c9df0f0b5232eb5682692874bb"
+   }
+  ]
+ }
+]
