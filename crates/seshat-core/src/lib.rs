@@ -1,5 +1,6 @@
 //! Detección de Kindle, publicaciones de la herramienta, compatibilidad y estado de la biblioteca.
 
+pub mod compat;
 pub mod version;
 
 pub use version::KindleVersion;
