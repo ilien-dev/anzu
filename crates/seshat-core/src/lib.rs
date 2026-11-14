@@ -1,6 +1,8 @@
 //! Detección de Kindle, publicaciones de la herramienta, compatibilidad y estado de la biblioteca.
 
 pub mod compat;
+pub mod kindle;
+pub mod library;
 pub mod releases;
 pub mod settings;
 pub mod tool;
