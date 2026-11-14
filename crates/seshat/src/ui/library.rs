@@ -122,10 +122,8 @@ fn filters(app: &mut SeshatApp, ui: &mut egui::Ui) {
                 app.filter = filter;
             }
         }
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.label(theme::muted(format!("Libros de {}", app.content_dir.display())));
-        });
     });
+    ui.add(egui::Label::new(theme::muted(format!("Libros de {}", app.content_dir.display()))).truncate());
 }
 
 fn state_text(state: BookState, ready: bool) -> RichText {
@@ -166,6 +164,8 @@ fn table(app: &mut SeshatApp, ui: &mut egui::Ui) {
     theme::card(theme::PANEL, theme::LINE).show(ui, |ui| {
         ui.set_width(ui.available_width());
         egui::ScrollArea::vertical().id_salt("libros").auto_shrink([false, true]).show(ui, |ui| {
+            // El título ocupa lo que dejan libres las demás columnas.
+            let title_width = (ui.available_width() - 470.0).max(180.0);
             egui::Grid::new("tabla-libros").num_columns(5).spacing([18.0, 10.0]).striped(true).show(ui, |ui| {
                 ui.label("");
                 for heading in ["Título", "ASIN", "Tamaño", "Estado"] {
@@ -184,7 +184,11 @@ fn table(app: &mut SeshatApp, ui: &mut egui::Ui) {
                         }
                     }
                     let title_color = if can_select { theme::TEXT } else { theme::MUTED };
-                    ui.add(egui::Label::new(RichText::new(title).color(title_color)).truncate());
+                    ui.allocate_ui_with_layout(
+                        egui::vec2(title_width, ui.spacing().interact_size.y),
+                        egui::Layout::left_to_right(egui::Align::Center),
+                        |ui| ui.add(egui::Label::new(RichText::new(title).color(title_color)).truncate()),
+                    );
                     ui.label(theme::mono(asin).color(theme::MUTED));
                     ui.label(theme::muted(app::human_size(size)));
                     ui.label(state_text(state, ready));

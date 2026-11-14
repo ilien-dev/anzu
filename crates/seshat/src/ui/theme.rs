@@ -34,7 +34,10 @@ pub fn apply(ctx: &egui::Context) {
     visuals.widgets.inactive.bg_fill = PANEL;
     visuals.widgets.inactive.weak_bg_fill = PANEL;
     visuals.widgets.inactive.bg_stroke = Stroke::new(1.0, LINE);
-    ctx.set_visuals(visuals);
+    // La app es siempre oscura: sin esto, con Windows en modo claro los controles
+    // tomarían los colores claros sobre nuestro fondo oscuro.
+    ctx.set_theme(egui::ThemePreference::Dark);
+    ctx.set_visuals_of(egui::Theme::Dark, visuals);
 
     ctx.all_styles_mut(|style| {
         style.spacing.item_spacing = egui::vec2(10.0, 8.0);
