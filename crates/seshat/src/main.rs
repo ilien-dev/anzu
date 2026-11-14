@@ -1,6 +1,9 @@
 //! Seshat: de Kindle a EPUB.
 
+mod app;
 mod cli;
+mod pipeline;
+mod ui;
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -8,10 +11,13 @@ use std::process::ExitCode;
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match cli::parse(&args) {
-        Ok(cli::Command::Gui) => {
-            eprintln!("La interfaz todavía no está disponible. Usa `seshat convert <archivo>`.");
-            ExitCode::from(2)
-        }
+        Ok(cli::Command::Gui) => match ui::launch() {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("Error: no se pudo abrir la interfaz: {error}");
+                ExitCode::FAILURE
+            }
+        },
         Ok(cli::Command::Help) => {
             println!("{}", cli::USAGE);
             ExitCode::SUCCESS
