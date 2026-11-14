@@ -68,7 +68,7 @@ impl Settings {
     pub fn load(dir: &Path) -> Settings {
         std::fs::read_to_string(dir.join(FILE_NAME))
             .ok()
-            .and_then(|s| serde_json::from_str(&s).ok())
+            .and_then(|s| serde_json::from_str(s.trim_start_matches('\u{feff}')).ok())
             .unwrap_or_default()
     }
 
@@ -143,6 +143,17 @@ mod tests {
         std::fs::create_dir_all(&old).unwrap();
         assert!(!adopt_legacy_dir(&old, &new), "no pisa una carpeta que ya existe");
         assert!(!adopt_legacy_dir(&tmp.path().join("nada"), &tmp.path().join("otro")));
+    }
+
+    #[test]
+    fn a_byte_order_mark_does_not_discard_the_settings() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut bytes = vec![0xEF, 0xBB, 0xBF];
+        bytes.extend_from_slice(br#"{"output_dir":"D:/Libros","theme":"dark"}"#);
+        std::fs::write(dir.path().join("settings.json"), bytes).unwrap();
+        let s = Settings::load(dir.path());
+        assert_eq!(s.output_dir, PathBuf::from("D:/Libros"));
+        assert_eq!(s.theme, ThemeChoice::Dark);
     }
 
     #[test]

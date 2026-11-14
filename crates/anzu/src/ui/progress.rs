@@ -1,54 +1,63 @@
 //! Pantalla de progreso: pasos, avance por libro y registro.
 
-use eframe::egui::{self, RichText};
 use anzu_core::library::BookState;
+use eframe::egui::{self, Align, Layout, RichText, Sense};
 
-use super::{Screen, AnzuApp, StepState, theme};
+use super::icons::{self, StepMark};
+use super::{AnzuApp, Screen, StepState, theme};
 use crate::pipeline::Step;
 
 const STEPS: [(Step, &str, &str); 5] = [
     (Step::Check, "Comprobar versiones", "Kindle instalada y última herramienta publicada"),
-    (Step::Download, "Descargar la herramienta", "Con huella SHA-256 verificada"),
-    (Step::CloseKindle, "Cerrar la app Kindle", "Solo con tu confirmación"),
+    (Step::Download, "Descargar la herramienta", "Con su huella SHA-256 verificada"),
+    (Step::CloseKindle, "Cerrar la app Kindle", "Solo si la confirmas"),
     (Step::Unlock, "Desbloquear", "Puede tardar un minuto por libro"),
-    (Step::Convert, "Convertir a EPUB", "Con el conversor propio de Anzu"),
+    (Step::Convert, "Convertir a EPUB", "Con el conversor de Anzu"),
 ];
 
 pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui) {
-    header(app, ui);
-    footer(app, ui);
-    let frame = egui::Frame::new().fill(theme::BG).inner_margin(egui::Margin::symmetric(24, 16));
-    egui::CentralPanel::default().frame(frame).show(ui, |ui| {
-        ui.columns(2, |columns| {
-            steps(app, &mut columns[0]);
-            columns[1].vertical(|ui| {
-                books(app, ui);
-                ui.add_space(6.0);
-                log(app, ui);
+    let p = theme::Palette::of(ui.ctx());
+    egui::Panel::top("cabecera-progreso").frame(theme::band(p.shell, 10)).show_separator_line(false).show(ui, |ui| {
+        theme::centered(ui, |ui| header(app, ui, p));
+    });
+    egui::Panel::bottom("pie-progreso").frame(theme::band(p.bg, 12)).show_separator_line(false).show(ui, |ui| {
+        theme::centered(ui, |ui| footer(app, ui, p));
+    });
+    egui::CentralPanel::default().frame(theme::band(p.bg, 12)).show(ui, |ui| {
+        theme::centered(ui, |ui| {
+            ui.columns(2, |columns| {
+                steps(app, &mut columns[0], p);
+                columns[1].vertical(|ui| {
+                    books(app, ui, p);
+                    ui.add_space(4.0);
+                    log(app, ui, p);
+                });
             });
         });
     });
 }
 
-fn header(app: &AnzuApp, ui: &mut egui::Ui) {
-    let frame = egui::Frame::new().fill(theme::BG).inner_margin(egui::Margin::symmetric(24, 12));
-    egui::Panel::top("cabecera-progreso").frame(frame).show(ui, |ui| {
-        ui.horizontal(|ui| {
-            ui.label(RichText::new("Anzu").size(18.0).strong());
+fn header(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
+    ui.horizontal(|ui| {
+        AnzuApp::brand(ui, p);
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             let total = app.run.asins.len();
             let libros = if total == 1 { "1 libro".to_string() } else { format!("{total} libros") };
             match &app.run.result {
                 None => {
+                    ui.label(
+                        RichText::new(format!("Procesando {libros}. No abras la app Kindle hasta que termine."))
+                            .color(p.on_shell),
+                    );
                     ui.spinner();
-                    ui.label(theme::muted(format!("Procesando {libros} · no abras la app Kindle hasta que termine")));
                 }
                 Some((converted, failed)) if failed.is_empty() => {
-                    ui.label(RichText::new(format!("✔ Terminado: {converted} convertidos")).color(theme::OK));
+                    ui.label(theme::bold(format!("Terminado: {converted} convertidos")).color(p.shell_accent));
                 }
                 Some((converted, failed)) => {
                     ui.label(
-                        RichText::new(format!("⚠ Terminado: {converted} convertidos, {} con problemas", failed.len()))
-                            .color(theme::WARN),
+                        theme::bold(format!("Terminado: {converted} convertidos, {} con problemas", failed.len()))
+                            .color(p.shell_accent),
                     );
                 }
             }
@@ -56,41 +65,43 @@ fn header(app: &AnzuApp, ui: &mut egui::Ui) {
     });
 }
 
-fn steps(app: &AnzuApp, ui: &mut egui::Ui) {
-    theme::card(theme::PANEL, theme::LINE).show(ui, |ui| {
+fn steps(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
+    theme::panel(p).inner_margin(egui::Margin::symmetric(16, 14)).show(ui, |ui| {
         ui.set_width(ui.available_width());
-        ui.label(RichText::new("Pasos").size(16.0).strong());
-        ui.add_space(4.0);
+        ui.label(theme::bold("Pasos").size(15.0));
+        ui.add_space(6.0);
         let finished = app.run.result.is_some();
         for (step, title, detail) in STEPS {
             let state = app.run.steps.iter().find(|(s, _)| *s == step).map(|(_, state)| *state);
-            let (mark, color, note) = match (state, finished) {
-                (Some(StepState::Done), _) => ("✔", theme::OK, detail),
-                (Some(StepState::Running), false) => ("●", theme::ACCENT, detail),
-                (Some(StepState::Running), true) => ("⚠", theme::WARN, "No se completó"),
-                (None, false) => ("○", theme::MUTED, "Pendiente"),
-                (None, true) => ("–", theme::MUTED, "No fue necesario"),
+            let (mark, note) = match (state, finished) {
+                (Some(StepState::Done), _) => (StepMark::Done, detail),
+                (Some(StepState::Running), false) => (StepMark::Running, detail),
+                (Some(StepState::Running), true) => (StepMark::Failed, "No se completó"),
+                (None, false) => (StepMark::Pending, "Pendiente"),
+                (None, true) => (StepMark::Pending, "No hizo falta"),
             };
-            ui.horizontal(|ui| {
-                ui.label(RichText::new(mark).color(color).size(15.0));
+            ui.horizontal_top(|ui| {
+                let (rect, _) = ui.allocate_exact_size(egui::vec2(18.0, 20.0), Sense::hover());
+                icons::step(ui.painter(), rect.center(), mark, p);
                 ui.vertical(|ui| {
+                    ui.spacing_mut().item_spacing.y = 2.0;
                     let running = state == Some(StepState::Running) && !finished;
-                    let text = RichText::new(title).color(if state.is_some() { theme::TEXT } else { theme::MUTED });
-                    ui.label(if running { text.strong() } else { text });
-                    ui.label(theme::muted(note));
+                    let color = if state.is_some() { p.fg } else { p.muted };
+                    ui.label(if running { theme::bold(title).color(color) } else { RichText::new(title).color(color) });
+                    ui.label(theme::muted(p, note).size(theme::SMALL));
                 });
             });
-            ui.add_space(2.0);
+            ui.add_space(6.0);
         }
     });
 }
 
-fn books(app: &AnzuApp, ui: &mut egui::Ui) {
+fn books(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
     let unlocking = app.run.steps.iter().any(|(s, state)| *s == Step::Unlock && *state == StepState::Running);
     let failures = app.run.result.as_ref().map(|(_, failed)| failed.as_slice()).unwrap_or(&[]);
-    theme::card(theme::PANEL, theme::LINE).show(ui, |ui| {
+    theme::panel(p).inner_margin(egui::Margin::symmetric(16, 12)).show(ui, |ui| {
         ui.set_width(ui.available_width());
-        egui::ScrollArea::vertical().id_salt("libros-progreso").max_height(220.0).show(ui, |ui| {
+        egui::ScrollArea::vertical().id_salt("libros-progreso").max_height(230.0).show(ui, |ui| {
             for asin in &app.run.asins {
                 let title = app
                     .books
@@ -99,66 +110,69 @@ fn books(app: &AnzuApp, ui: &mut egui::Ui) {
                     .map_or_else(|| format!("Libro {asin}"), AnzuApp::display_title);
                 let state = app.run.states.get(asin).copied().unwrap_or(BookState::Locked);
                 let failure = failures.iter().find(|(a, _)| a == asin).map(|(_, reason)| reason.as_str());
-                let (status, fraction) = match (failure, state) {
-                    (Some(_), BookState::Unlocked) => (RichText::new("No se pudo convertir").color(theme::WARN), 0.5),
-                    (Some(_), _) => (RichText::new("No se pudo desbloquear").color(theme::WARN), 0.0),
-                    (None, BookState::Converted) => (RichText::new("✔ Convertido").color(theme::OK), 1.0),
-                    (None, BookState::Unlocked) => (RichText::new("Convirtiendo…").color(theme::DONE), 0.5),
-                    (None, BookState::Locked) if unlocking => (RichText::new("Desbloqueando…").color(theme::DONE), 0.1),
-                    (None, BookState::Locked) => (RichText::new("En cola").color(theme::MUTED), 0.0),
+                let (status, color) = match (failure, state) {
+                    (Some(_), BookState::Locked) => ("No se pudo desbloquear", p.warn),
+                    (Some(_), _) => ("No se pudo convertir", p.warn),
+                    (None, BookState::Converted) => ("EPUB listo", p.ok),
+                    (None, BookState::Unlocked) => ("Convirtiendo…", p.accent),
+                    (None, BookState::Locked) if unlocking => ("Desbloqueando…", p.accent),
+                    (None, BookState::Locked) => ("En cola", p.muted),
                 };
+                ui.add(egui::Label::new(theme::bold(title)).truncate());
                 ui.horizontal(|ui| {
-                    ui.add(egui::Label::new(title).truncate());
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| ui.label(status));
+                    let (rect, _) = ui.allocate_exact_size(egui::vec2(icons::TRACK_WIDTH, 16.0), Sense::hover());
+                    icons::track(ui.painter(), rect.left_center(), state, failure.is_none(), p);
+                    ui.label(RichText::new(status).color(color).size(12.0));
                 });
-                ui.add(egui::ProgressBar::new(fraction).desired_height(6.0).fill(theme::ACCENT));
                 if let Some(reason) = failure {
-                    ui.label(theme::muted(reason.lines().next().unwrap_or(reason)));
+                    ui.label(theme::muted(p, reason.lines().next().unwrap_or(reason)).size(theme::SMALL));
                 }
-                ui.add_space(4.0);
+                ui.add_space(8.0);
             }
         });
     });
 }
 
-fn log(app: &AnzuApp, ui: &mut egui::Ui) {
-    theme::card(theme::LOG_BG, theme::LINE).show(ui, |ui| {
+fn log(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
+    theme::panel(p).fill(p.log_bg).inner_margin(egui::Margin::symmetric(16, 10)).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.horizontal(|ui| {
-            ui.label(theme::muted("Registro"));
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.add_enabled(!app.run.log.is_empty(), egui::Button::new("Copiar registro")).clicked() {
+            ui.label(theme::bold("Registro").color(p.muted).size(theme::SMALL));
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                if ui.add_enabled(!app.run.log.is_empty(), egui::Button::new("Copiar")).clicked() {
                     ui.ctx().copy_text(app.run.log.join("\n"));
                 }
             });
         });
         egui::ScrollArea::vertical()
             .id_salt("registro")
-            .max_height(260.0)
+            .max_height(250.0)
             .auto_shrink([false, false])
             .stick_to_bottom(true)
             .show(ui, |ui| {
+                ui.spacing_mut().item_spacing.y = 3.0;
                 for line in &app.run.log {
-                    ui.label(theme::mono(line.as_str()).size(12.0));
+                    ui.label(RichText::new(line.as_str()).size(12.0));
                 }
             });
     });
 }
 
-fn footer(app: &mut AnzuApp, ui: &mut egui::Ui) {
-    let frame = egui::Frame::new().fill(theme::PANEL).inner_margin(egui::Margin::symmetric(24, 12));
-    egui::Panel::bottom("pie-progreso").frame(frame).show(ui, |ui| {
+fn footer(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
+    theme::panel(p).show(ui, |ui| {
+        ui.set_width(ui.available_width());
         ui.horizontal(|ui| {
-            ui.label(theme::muted("Los EPUB se guardan en"));
-            ui.label(theme::mono(app.settings.output_dir.display().to_string()));
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.label(theme::muted(p, "Los EPUB se guardan en"));
+            ui.label(app.settings.output_dir.display().to_string());
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 let finished = app.run.result.is_some();
-                if ui.add_enabled(finished, theme::primary_button("Volver a la biblioteca")).clicked() {
+                let back = ui.add_enabled(finished, theme::primary_button(p, "Volver a los libros"));
+                if back.on_disabled_hover_text("Espera a que termine").clicked() {
                     app.selected.clear();
                     app.refresh_books();
                     app.screen = Screen::Library;
                 }
-                if finished && ui.button("Abrir carpeta").clicked() {
+                if finished && ui.button("Abrir la carpeta").clicked() {
                     let _ = std::process::Command::new("explorer").arg(&app.settings.output_dir).spawn();
                 }
             });

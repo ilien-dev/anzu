@@ -110,6 +110,10 @@ fn trusted_cache(dir: &Path, expected_sha256: &str) -> Option<Vec<String>> {
         }
         names.push(name.to_string());
     }
+    // Un manifiesto sin ejecutables es de una versión anterior, o no sirve: se reinstala.
+    if names.is_empty() {
+        return None;
+    }
     Some(names)
 }
 
@@ -287,6 +291,17 @@ mod tests {
         std::fs::write(cache.path().join("v9").join("MSIXKFXArchiver_x64_1_9999.exe"), b"MZ").unwrap();
         let tool = ensure_tool(&release(Some(&digest)), cache.path()).unwrap();
         assert_eq!(tool.exe_names, vec!["a.exe".to_string()]);
+    }
+
+    #[test]
+    fn marker_from_an_older_version_is_reinstalled() {
+        let cache = tempfile::tempdir().unwrap();
+        let dir = cache.path().join("v9");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("x.exe"), b"MZ").unwrap();
+        // Las versiones anteriores solo guardaban la huella del zip, sin la de cada ejecutable.
+        std::fs::write(dir.join(".ok"), b"00").unwrap();
+        assert!(matches!(ensure_tool(&release(Some("00")), cache.path()), Err(Error::Network(_))));
     }
 
     #[test]
