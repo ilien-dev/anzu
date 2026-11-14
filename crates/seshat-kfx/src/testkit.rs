@@ -162,3 +162,45 @@ pub fn build_container(locals: &[&str], entities: &[TestEntity]) -> Vec<u8> {
     out.extend(payload_area);
     out
 }
+
+/// Construye en memoria los fragmentos de un libro de prueba.
+pub struct BookBuilder {
+    pub fragments: crate::container::Fragments,
+}
+
+impl BookBuilder {
+    pub fn new() -> Self {
+        BookBuilder { fragments: crate::container::Fragments::new() }
+    }
+
+    /// Identificador de un símbolo local, registrándolo si hace falta.
+    pub fn local(&mut self, name: &str) -> u32 {
+        if let Some(id) = self.fragments.symbols.id(name) {
+            return id;
+        }
+        self.fragments.symbols.extend_local(vec![name.to_string()]);
+        self.fragments.symbols.id(name).expect("símbolo recién registrado")
+    }
+
+    /// Un símbolo local como valor Ion.
+    pub fn lsym(&mut self, name: &str) -> Ion {
+        Ion::Symbol(self.local(name))
+    }
+
+    pub fn add(&mut self, ftype: &str, fid: &str, value: Ion) {
+        self.local(fid);
+        self.fragments.items.push(crate::container::Fragment {
+            ftype: ftype.to_string(),
+            fid: fid.to_string(),
+            value: crate::container::FragmentValue::Ion(value),
+        });
+    }
+
+    pub fn add_raw(&mut self, ftype: &str, fid: &str, bytes: Vec<u8>) {
+        self.fragments.items.push(crate::container::Fragment {
+            ftype: ftype.to_string(),
+            fid: fid.to_string(),
+            value: crate::container::FragmentValue::Raw(bytes),
+        });
+    }
+}
