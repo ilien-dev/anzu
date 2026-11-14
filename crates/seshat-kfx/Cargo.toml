@@ -9,4 +9,5 @@ thiserror = "2.0.21"
 zip = "9.5.1"
 
 [dev-dependencies]
+roxmltree = "0.21.2"
 tempfile = "3.27.0"
