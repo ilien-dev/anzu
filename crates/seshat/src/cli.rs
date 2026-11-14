@@ -1,3 +1,69 @@
+//! Argumentos de la línea de comandos.
+
+use std::path::PathBuf;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Command {
+    /// Sin argumentos: abre la interfaz.
+    Gui,
+    Convert { input: PathBuf, out_dir: Option<PathBuf> },
+    Help,
+    Version,
+}
+
+pub const USAGE: &str = "\
+Seshat: de Kindle a EPUB
+
+Uso:
+  seshat                              Abre la interfaz
+  seshat convert <archivo> [-o <carpeta>]
+                                      Convierte un KFX sin DRM (.kfx-zip) a EPUB
+  seshat --help | --version
+
+Opciones de convert:
+  -o, --output <carpeta>              Dónde guardar el EPUB (por defecto, la carpeta actual)";
+
+pub fn parse(args: &[String]) -> Result<Command, String> {
+    let Some((first, rest)) = args.split_first() else { return Ok(Command::Gui) };
+    match first.as_str() {
+        "-h" | "--help" => Ok(Command::Help),
+        "-V" | "--version" => Ok(Command::Version),
+        "convert" => parse_convert(rest),
+        other => Err(format!("orden desconocida: {other}")),
+    }
+}
+
+fn parse_convert(args: &[String]) -> Result<Command, String> {
+    let mut input: Option<PathBuf> = None;
+    let mut out_dir = None;
+    let mut only_files = false;
+    let mut rest = args.iter();
+    while let Some(arg) = rest.next() {
+        if !only_files {
+            match arg.as_str() {
+                "--" => {
+                    only_files = true;
+                    continue;
+                }
+                "-h" | "--help" => return Ok(Command::Help),
+                "-o" | "--output" => {
+                    let dir = rest.next().ok_or_else(|| format!("falta la carpeta después de {arg}"))?;
+                    out_dir = Some(PathBuf::from(dir));
+                    continue;
+                }
+                flag if flag.len() > 1 && flag.starts_with('-') => return Err(format!("opción desconocida: {flag}")),
+                _ => {}
+            }
+        }
+        if input.is_some() {
+            return Err("solo se puede convertir un archivo cada vez".to_string());
+        }
+        input = Some(PathBuf::from(arg));
+    }
+    let input = input.ok_or_else(|| "falta el archivo que convertir".to_string())?;
+    Ok(Command::Convert { input, out_dir })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

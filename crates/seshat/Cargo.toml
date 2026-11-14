@@ -5,3 +5,5 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+seshat-core = { version = "0.1.0", path = "../seshat-core" }
+seshat-kfx = { version = "0.1.0", path = "../seshat-kfx" }

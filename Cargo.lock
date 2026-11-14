@@ -618,6 +618,10 @@ dependencies = [
 [[package]]
 name = "seshat"
 version = "0.1.0"
+dependencies = [
+ "seshat-core",
+ "seshat-kfx",
+]
 
 [[package]]
 name = "seshat-core"
