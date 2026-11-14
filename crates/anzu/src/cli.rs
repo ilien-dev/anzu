@@ -12,13 +12,13 @@ pub enum Command {
 }
 
 pub const USAGE: &str = "\
-Seshat: de Kindle a EPUB
+Anzu: de Kindle a EPUB
 
 Uso:
-  seshat                              Abre la interfaz
-  seshat convert <archivo> [-o <carpeta>]
+  anzu                              Abre la interfaz
+  anzu convert <archivo> [-o <carpeta>]
                                       Convierte un KFX sin DRM (.kfx-zip) a EPUB
-  seshat --help | --version
+  anzu --help | --version
 
 Opciones de convert:
   -o, --output <carpeta>              Dónde guardar el EPUB (por defecto, la carpeta actual)";

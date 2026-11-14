@@ -9,7 +9,7 @@
 //! - Escribe `<output-folder>/<ASIN>_EBOK.kfx-zip` por libro y omite los que ya existen.
 //! - Deja `books.keyfile` en el directorio desde el que se lanza.
 //! - Sin `--data-dir` usa `<unidad>:/Data` como zona temporal; aquí siempre se le pasa
-//!   una carpeta propia para no escribir fuera de los datos de Seshat.
+//!   una carpeta propia para no escribir fuera de los datos de Anzu.
 //!
 //! Este módulo no descifra nada: solo lanza el proceso y recoge sus archivos.
 
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn missing_executable_is_an_io_error() {
-        let cmd = crate::kindle::quiet_command("seshat-no-such-program-xyz");
+        let cmd = crate::kindle::quiet_command("anzu-no-such-program-xyz");
         assert!(matches!(run_streaming(cmd, &mut |_| {}), Err(Error::Io(_))));
     }
 

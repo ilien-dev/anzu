@@ -1,4 +1,4 @@
-//! Seshat: de Kindle a EPUB.
+//! Anzu: de Kindle a EPUB.
 
 // En la versión de publicación la app es un programa de ventana: no abre consola.
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
@@ -29,7 +29,7 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Ok(cli::Command::Version) => {
-            println!("seshat {}", env!("CARGO_PKG_VERSION"));
+            println!("anzu {}", env!("CARGO_PKG_VERSION"));
             ExitCode::SUCCESS
         }
         Ok(cli::Command::Convert { input, out_dir }) => convert(&input, out_dir),
@@ -62,7 +62,7 @@ fn attach_parent_console() {}
 /// Convierte un archivo: la ruta del EPUB va a stdout; avisos y errores, a stderr.
 fn convert(input: &Path, out_dir: Option<PathBuf>) -> ExitCode {
     let out_dir = out_dir.unwrap_or_else(|| PathBuf::from("."));
-    match seshat_kfx::convert(input, &out_dir) {
+    match anzu_kfx::convert(input, &out_dir) {
         Ok(converted) => {
             for warning in &converted.warnings {
                 eprintln!("aviso: {warning}");

@@ -1,5 +1,5 @@
-//! Verificación manual: qué ve Seshat en este equipo.
-use seshat_core::{kindle, library, settings};
+//! Verificación manual: qué ve Anzu en este equipo.
+use anzu_core::{kindle, library, settings};
 
 fn main() {
     let data = settings::data_dir();

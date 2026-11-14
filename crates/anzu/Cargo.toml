@@ -1,0 +1,11 @@
+[package]
+name = "anzu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+eframe = "0.37.0"
+rfd = "0.18.0"
+anzu-core = { version = "0.1.0", path = "../anzu-core" }
+anzu-kfx = { version = "0.1.0", path = "../anzu-kfx" }

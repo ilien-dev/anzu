@@ -9,12 +9,12 @@
 
 use std::path::{Path, PathBuf};
 
-use seshat_core::Error;
-use seshat_core::kindle::KindleInstall;
-use seshat_core::library::{Book, BookState};
-use seshat_core::releases::Release;
-use seshat_core::tool::Tool;
-use seshat_kfx::Converted;
+use anzu_core::Error;
+use anzu_core::kindle::KindleInstall;
+use anzu_core::library::{Book, BookState};
+use anzu_core::releases::Release;
+use anzu_core::tool::Tool;
+use anzu_kfx::Converted;
 
 use crate::app::{self, Health, RunPlan};
 
@@ -33,7 +33,7 @@ pub trait Backend {
         on_line: &mut dyn FnMut(&str),
     ) -> Result<Vec<(String, PathBuf)>, Error>;
     fn unlocked_path(&self, asin: &str) -> PathBuf;
-    fn convert(&self, input: &Path, out_dir: &Path) -> Result<Converted, seshat_kfx::Error>;
+    fn convert(&self, input: &Path, out_dir: &Path) -> Result<Converted, anzu_kfx::Error>;
     fn mark_converted(&self, asin: &str, epub: &Path);
 }
 
@@ -205,23 +205,23 @@ pub struct CoreBackend {
 
 impl Backend for CoreBackend {
     fn detect_kindle(&self) -> Option<KindleInstall> {
-        seshat_core::kindle::detect()
+        anzu_core::kindle::detect()
     }
 
     fn fetch_release(&self) -> Result<Release, Error> {
-        seshat_core::releases::fetch_latest()
+        anzu_core::releases::fetch_latest()
     }
 
     fn ensure_tool(&self, release: &Release) -> Result<Tool, Error> {
-        seshat_core::tool::ensure_tool(release, &self.data_dir.join("tool"))
+        anzu_core::tool::ensure_tool(release, &self.data_dir.join("tool"))
     }
 
     fn kindle_running(&self) -> bool {
-        seshat_core::kindle::is_running()
+        anzu_core::kindle::is_running()
     }
 
     fn close_kindle(&self) -> Result<(), Error> {
-        seshat_core::kindle::close()
+        anzu_core::kindle::close()
     }
 
     fn unlock(
@@ -232,27 +232,27 @@ impl Backend for CoreBackend {
     ) -> Result<Vec<(String, PathBuf)>, Error> {
         let work = self.data_dir.join("work");
         let out = work.join("out");
-        let keyfile = self.data_dir.join("keys").join("seshat.k4i");
-        let request = seshat_core::unlock::UnlockRequest {
+        let keyfile = self.data_dir.join("keys").join("anzu.k4i");
+        let request = anzu_core::unlock::UnlockRequest {
             exe,
             content_dir,
             out_dir: &out,
             keyfile: &keyfile,
             work_dir: &work,
         };
-        seshat_core::unlock::unlock(&request, &self.data_dir, on_line)
+        anzu_core::unlock::unlock(&request, &self.data_dir, on_line)
     }
 
     fn unlocked_path(&self, asin: &str) -> PathBuf {
-        seshat_core::library::unlocked_path(&self.data_dir, asin)
+        anzu_core::library::unlocked_path(&self.data_dir, asin)
     }
 
-    fn convert(&self, input: &Path, out_dir: &Path) -> Result<Converted, seshat_kfx::Error> {
-        seshat_kfx::convert(input, out_dir)
+    fn convert(&self, input: &Path, out_dir: &Path) -> Result<Converted, anzu_kfx::Error> {
+        anzu_kfx::convert(input, out_dir)
     }
 
     fn mark_converted(&self, asin: &str, epub: &Path) {
-        let mut settings = seshat_core::settings::Settings::load(&self.data_dir);
+        let mut settings = anzu_core::settings::Settings::load(&self.data_dir);
         settings.converted.insert(asin.to_string(), epub.to_path_buf());
         let _ = settings.save(&self.data_dir);
     }
@@ -262,8 +262,8 @@ impl Backend for CoreBackend {
 mod tests {
     use super::*;
     use crate::app::{BlockReason, Health, RunPlan};
-    use seshat_core::library::BookState;
-    use seshat_core::releases::Asset;
+    use anzu_core::library::BookState;
+    use anzu_core::releases::Asset;
     use std::sync::Mutex;
 
     /// Un sistema simulado que anota cada operación que se le pide.
@@ -377,11 +377,11 @@ mod tests {
             PathBuf::from(format!("{asin}.kfx-zip"))
         }
 
-        fn convert(&self, input: &Path, out_dir: &Path) -> Result<Converted, seshat_kfx::Error> {
+        fn convert(&self, input: &Path, out_dir: &Path) -> Result<Converted, anzu_kfx::Error> {
             let asin = input.file_stem().unwrap().to_string_lossy().to_string();
             self.note(&format!("convert {asin}"));
             if self.failing_conversions.contains(&asin.as_str()) {
-                return Err(seshat_kfx::Error::NotKfx);
+                return Err(anzu_kfx::Error::NotKfx);
             }
             Ok(Converted { path: out_dir.join(format!("{asin}.epub")), title: format!("Libro {asin}"), warnings: vec![] })
         }

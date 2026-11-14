@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/seshat-core", "crates/seshat-kfx", "crates/seshat"]
+members = ["crates/anzu-core", "crates/anzu-kfx", "crates/anzu"]
 
 [workspace.package]
 version = "0.1.0"

@@ -1,8 +1,8 @@
 //! Verificación manual: recorre el mismo camino protegido que la app.
 //! Publicación más reciente -> descarga verificada -> compatibilidad -> desbloqueo.
-use seshat_core::compat::{self, Compat};
-use seshat_core::unlock::{self, UnlockRequest};
-use seshat_core::{kindle, releases, settings, tool};
+use anzu_core::compat::{self, Compat};
+use anzu_core::unlock::{self, UnlockRequest};
+use anzu_core::{kindle, releases, settings, tool};
 
 fn main() {
     if let Err(e) = run() {
@@ -30,7 +30,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     let work = data.join("work");
     let out = work.join("out");
-    let keyfile = data.join("keys").join("seshat.k4i");
+    let keyfile = data.join("keys").join("anzu.k4i");
     let exe = tool.dir.join(&exe_name);
     let req = UnlockRequest { exe: &exe, content_dir: &kindle.content_dir, out_dir: &out, keyfile: &keyfile, work_dir: &work };
 

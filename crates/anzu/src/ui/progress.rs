@@ -1,9 +1,9 @@
 //! Pantalla de progreso: pasos, avance por libro y registro.
 
 use eframe::egui::{self, RichText};
-use seshat_core::library::BookState;
+use anzu_core::library::BookState;
 
-use super::{Screen, SeshatApp, StepState, theme};
+use super::{Screen, AnzuApp, StepState, theme};
 use crate::pipeline::Step;
 
 const STEPS: [(Step, &str, &str); 5] = [
@@ -11,10 +11,10 @@ const STEPS: [(Step, &str, &str); 5] = [
     (Step::Download, "Descargar la herramienta", "Con huella SHA-256 verificada"),
     (Step::CloseKindle, "Cerrar la app Kindle", "Solo con tu confirmación"),
     (Step::Unlock, "Desbloquear", "Puede tardar un minuto por libro"),
-    (Step::Convert, "Convertir a EPUB", "Con el conversor propio de Seshat"),
+    (Step::Convert, "Convertir a EPUB", "Con el conversor propio de Anzu"),
 ];
 
-pub fn show(app: &mut SeshatApp, ui: &mut egui::Ui) {
+pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui) {
     header(app, ui);
     footer(app, ui);
     let frame = egui::Frame::new().fill(theme::BG).inner_margin(egui::Margin::symmetric(24, 16));
@@ -30,11 +30,11 @@ pub fn show(app: &mut SeshatApp, ui: &mut egui::Ui) {
     });
 }
 
-fn header(app: &SeshatApp, ui: &mut egui::Ui) {
+fn header(app: &AnzuApp, ui: &mut egui::Ui) {
     let frame = egui::Frame::new().fill(theme::BG).inner_margin(egui::Margin::symmetric(24, 12));
     egui::Panel::top("cabecera-progreso").frame(frame).show(ui, |ui| {
         ui.horizontal(|ui| {
-            ui.label(RichText::new("Seshat").size(18.0).strong());
+            ui.label(RichText::new("Anzu").size(18.0).strong());
             let total = app.run.asins.len();
             let libros = if total == 1 { "1 libro".to_string() } else { format!("{total} libros") };
             match &app.run.result {
@@ -56,7 +56,7 @@ fn header(app: &SeshatApp, ui: &mut egui::Ui) {
     });
 }
 
-fn steps(app: &SeshatApp, ui: &mut egui::Ui) {
+fn steps(app: &AnzuApp, ui: &mut egui::Ui) {
     theme::card(theme::PANEL, theme::LINE).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.label(RichText::new("Pasos").size(16.0).strong());
@@ -85,7 +85,7 @@ fn steps(app: &SeshatApp, ui: &mut egui::Ui) {
     });
 }
 
-fn books(app: &SeshatApp, ui: &mut egui::Ui) {
+fn books(app: &AnzuApp, ui: &mut egui::Ui) {
     let unlocking = app.run.steps.iter().any(|(s, state)| *s == Step::Unlock && *state == StepState::Running);
     let failures = app.run.result.as_ref().map(|(_, failed)| failed.as_slice()).unwrap_or(&[]);
     theme::card(theme::PANEL, theme::LINE).show(ui, |ui| {
@@ -96,7 +96,7 @@ fn books(app: &SeshatApp, ui: &mut egui::Ui) {
                     .books
                     .iter()
                     .find(|b| &b.asin == asin)
-                    .map_or_else(|| format!("Libro {asin}"), SeshatApp::display_title);
+                    .map_or_else(|| format!("Libro {asin}"), AnzuApp::display_title);
                 let state = app.run.states.get(asin).copied().unwrap_or(BookState::Locked);
                 let failure = failures.iter().find(|(a, _)| a == asin).map(|(_, reason)| reason.as_str());
                 let (status, fraction) = match (failure, state) {
@@ -121,7 +121,7 @@ fn books(app: &SeshatApp, ui: &mut egui::Ui) {
     });
 }
 
-fn log(app: &SeshatApp, ui: &mut egui::Ui) {
+fn log(app: &AnzuApp, ui: &mut egui::Ui) {
     theme::card(theme::LOG_BG, theme::LINE).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.horizontal(|ui| {
@@ -145,7 +145,7 @@ fn log(app: &SeshatApp, ui: &mut egui::Ui) {
     });
 }
 
-fn footer(app: &mut SeshatApp, ui: &mut egui::Ui) {
+fn footer(app: &mut AnzuApp, ui: &mut egui::Ui) {
     let frame = egui::Frame::new().fill(theme::PANEL).inner_margin(egui::Margin::symmetric(24, 12));
     egui::Panel::bottom("pie-progreso").frame(frame).show(ui, |ui| {
         ui.horizontal(|ui| {

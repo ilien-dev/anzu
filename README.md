@@ -1,8 +1,8 @@
-# Seshat
+# Anzu
 
 De Kindle a EPUB en una sola app para Windows, escrita en Rust.
 
-Seshat encuentra los libros que descargaste con la app Kindle, comprueba que la
+Anzu encuentra los libros que descargaste con la app Kindle, comprueba que la
 herramienta de desbloqueo es la última y admite tu versión de Kindle, la ejecuta y
 convierte el resultado a EPUB. No hay que buscar descargas ni vigilar versiones.
 
@@ -15,36 +15,36 @@ convierte el resultado a EPUB. No hay que buscar descargas ni vigilar versiones.
 
 ## Uso
 
-Abre `seshat.exe`. La ventana muestra:
+Abre `anzu.exe`. La ventana muestra:
 
 - **Estado del sistema:** versión de Kindle instalada, versión de la herramienta y si
   son compatibles.
 - **Tus libros:** con DRM, desbloqueados o ya convertidos.
 - **Carpeta de destino** y el botón **Desbloquear y convertir**.
 
-Si la app Kindle está abierta, Seshat pide permiso antes de cerrarla.
+Si la app Kindle está abierta, Anzu pide permiso antes de cerrarla.
 
 También convierte desde la terminal un libro ya desbloqueado:
 
 ```
-seshat convert libro.kfx-zip -o C:\Libros
+anzu convert libro.kfx-zip -o C:\Libros
 ```
 
 ## Qué hace y qué no
 
 | Parte | Quién la hace |
 |---|---|
-| Detectar Kindle y los libros | Seshat |
-| Comprobar la última versión y la compatibilidad | Seshat |
-| Descargar la herramienta y verificar su huella SHA-256 | Seshat |
+| Detectar Kindle y los libros | Anzu |
+| Comprobar la última versión y la compatibilidad | Anzu |
+| Descargar la herramienta y verificar su huella SHA-256 | Anzu |
 | Quitar el DRM | La herramienta de [Satsuoni](https://github.com/Satsuoni/DeDRM_tools), como proceso externo |
-| Leer el formato KFX y escribir el EPUB | Seshat, con código propio |
+| Leer el formato KFX y escribir el EPUB | Anzu, con código propio |
 
-Seshat no contiene código de descifrado.
+Anzu no contiene código de descifrado.
 
 ### Cuándo se bloquea el desbloqueo
 
-Seshat se niega a desbloquear, y explica por qué, cuando:
+Anzu se niega a desbloquear, y explica por qué, cuando:
 
 - tu app Kindle es más nueva que la última herramienta publicada;
 - no puede determinar con certeza si son compatibles;
@@ -62,20 +62,20 @@ interrumpe la conversión.
 
 ## Dónde guarda cosas
 
-Todo en `%LOCALAPPDATA%\seshat\`:
+Todo en `%LOCALAPPDATA%\anzu\`:
 
 | Ruta | Contenido |
 |---|---|
 | `tool\<versión>\` | La herramienta descargada |
 | `unlocked\<ASIN>.kfx-zip` | Copias desbloqueadas de tus libros |
-| `keys\seshat.k4i`, `work\books.keyfile` | **Secretos de tu cuenta de Amazon** |
+| `keys\anzu.k4i`, `work\books.keyfile` | **Secretos de tu cuenta de Amazon** |
 | `settings.json` | Carpeta de destino y libros convertidos |
 
 Los dos archivos de claves equivalen a una contraseña: no los compartas ni los subas
-a ningún sitio. La herramienta también imprime esos secretos al trabajar; Seshat los
+a ningún sitio. La herramienta también imprime esos secretos al trabajar; Anzu los
 filtra antes de mostrarlos o copiarlos en el registro.
 
-Seshat nunca escribe en la carpeta de la app Kindle.
+Anzu nunca escribe en la carpeta de la app Kindle.
 
 ## Compilar
 
@@ -83,7 +83,7 @@ Seshat nunca escribe en la carpeta de la app Kindle.
 cargo build --release
 ```
 
-El ejecutable queda en `target\release\seshat.exe`.
+El ejecutable queda en `target\release\anzu.exe`.
 
 ```
 cargo test --workspace
@@ -93,9 +93,9 @@ cargo test --workspace
 
 | Crate | Responsabilidad |
 |---|---|
-| `seshat-kfx` | Lector de Ion binario y del contenedor KFX; modelo del libro; escritor de EPUB 3 |
-| `seshat-core` | Detección de Kindle, publicaciones de GitHub, compatibilidad, descarga verificada, ejecución de la herramienta, biblioteca |
-| `seshat` | Interfaz (`egui`) y línea de comandos |
+| `anzu-kfx` | Lector de Ion binario y del contenedor KFX; modelo del libro; escritor de EPUB 3 |
+| `anzu-core` | Detección de Kindle, publicaciones de GitHub, compatibilidad, descarga verificada, ejecución de la herramienta, biblioteca |
+| `anzu` | Interfaz (`egui`) y línea de comandos |
 
 ## Créditos
 
@@ -104,7 +104,7 @@ cargo test --workspace
 
 ## Licencia y aviso legal
 
-GPL-3.0-or-later. Seshat no está aprobada por Amazon.
+GPL-3.0-or-later. Anzu no está aprobada por Amazon.
 
 Quitar el DRM puede estar restringido donde vives. Úsala solo con libros que hayas
 comprado y para leerlos en tus propios dispositivos.

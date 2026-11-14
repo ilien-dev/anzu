@@ -1,7 +1,7 @@
 //! Verificación manual: recuento de fragmentos por tipo de un KFX sin DRM.
 use std::collections::BTreeMap;
 
-use seshat_kfx::container::{self, FragmentValue};
+use anzu_kfx::container::{self, FragmentValue};
 
 fn main() {
     let path = std::env::args().nth(1).expect("uso: dump <archivo.kfx-zip>");

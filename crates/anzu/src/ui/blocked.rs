@@ -2,12 +2,12 @@
 
 use eframe::egui::{self, RichText};
 
-use super::{SeshatApp, theme};
+use super::{AnzuApp, theme};
 use crate::app::BlockReason;
 
 const RELEASES_URL: &str = "https://github.com/Satsuoni/DeDRM_tools/releases";
 
-pub fn show(app: &mut SeshatApp, ui: &mut egui::Ui, reason: &BlockReason) {
+pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui, reason: &BlockReason) {
     let (title, body) = reason.message();
     theme::card(theme::WARN_BG, theme::WARN_LINE).show(ui, |ui| {
         ui.set_width(ui.available_width());

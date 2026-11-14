@@ -198,6 +198,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "anzu"
+version = "0.1.0"
+dependencies = [
+ "anzu-core",
+ "anzu-kfx",
+ "eframe",
+ "rfd",
+]
+
+[[package]]
+name = "anzu-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.21",
+ "ureq",
+ "zip",
+]
+
+[[package]]
+name = "anzu-kfx"
+version = "0.1.0"
+dependencies = [
+ "roxmltree",
+ "tempfile",
+ "thiserror 2.0.21",
+ "zip",
+]
+
+[[package]]
 name = "arboard"
 version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3181,39 +3214,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.10",
-]
-
-[[package]]
-name = "seshat"
-version = "0.1.0"
-dependencies = [
- "eframe",
- "rfd",
- "seshat-core",
- "seshat-kfx",
-]
-
-[[package]]
-name = "seshat-core"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.21",
- "ureq",
- "zip",
-]
-
-[[package]]
-name = "seshat-kfx"
-version = "0.1.0"
-dependencies = [
- "roxmltree",
- "tempfile",
- "thiserror 2.0.21",
- "zip",
 ]
 
 [[package]]

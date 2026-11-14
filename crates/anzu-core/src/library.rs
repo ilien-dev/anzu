@@ -1,4 +1,4 @@
-//! Libros descargados por la app Kindle y su estado en Seshat.
+//! Libros descargados por la app Kindle y su estado en Anzu.
 //!
 //! Solo lectura: nada de este módulo escribe en la carpeta de Kindle.
 
@@ -27,7 +27,7 @@ pub struct Book {
     pub epub: Option<PathBuf>,
 }
 
-/// Dónde guarda Seshat la copia desbloqueada de un libro.
+/// Dónde guarda Anzu la copia desbloqueada de un libro.
 pub fn unlocked_path(data_dir: &Path, asin: &str) -> PathBuf {
     data_dir.join("unlocked").join(format!("{asin}.kfx-zip"))
 }

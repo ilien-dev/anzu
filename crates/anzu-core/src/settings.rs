@@ -9,12 +9,12 @@ use crate::Error;
 
 const FILE_NAME: &str = "settings.json";
 
-/// Carpeta de datos de la app: `%LOCALAPPDATA%/seshat`.
+/// Carpeta de datos de la app: `%LOCALAPPDATA%/anzu`.
 pub fn data_dir() -> PathBuf {
     std::env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(std::env::temp_dir)
-        .join("seshat")
+        .join("anzu")
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

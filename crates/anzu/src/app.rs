@@ -1,10 +1,10 @@
 //! Estado de la app y las reglas que no dependen de la interfaz.
 
-use seshat_core::compat::{self, Compat};
-use seshat_core::kindle::KindleInstall;
-use seshat_core::library::{Book, BookState};
-use seshat_core::releases::Release;
-use seshat_core::{Error, KindleVersion};
+use anzu_core::compat::{self, Compat};
+use anzu_core::kindle::KindleInstall;
+use anzu_core::library::{Book, BookState};
+use anzu_core::releases::Release;
+use anzu_core::{Error, KindleVersion};
 
 /// Si el sistema está en condiciones de desbloquear.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -161,7 +161,7 @@ pub fn human_size(bytes: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use seshat_core::releases::Asset;
+    use anzu_core::releases::Asset;
     use std::path::PathBuf;
 
     fn kindle(version: &str) -> KindleInstall {

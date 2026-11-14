@@ -1,12 +1,12 @@
 //! Pantalla principal: estado del sistema, libros detectados y acción.
 
 use eframe::egui::{self, Color32, RichText};
-use seshat_core::library::BookState;
+use anzu_core::library::BookState;
 
-use super::{Filter, SeshatApp, blocked, theme};
+use super::{Filter, AnzuApp, blocked, theme};
 use crate::app::{self, BlockReason, Health};
 
-pub fn show(app: &mut SeshatApp, ui: &mut egui::Ui) {
+pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui) {
     header(app, ui);
     footer(app, ui);
     let frame = egui::Frame::new().fill(theme::BG).inner_margin(egui::Margin::symmetric(24, 16));
@@ -23,11 +23,11 @@ pub fn show(app: &mut SeshatApp, ui: &mut egui::Ui) {
     });
 }
 
-fn header(app: &mut SeshatApp, ui: &mut egui::Ui) {
+fn header(app: &mut AnzuApp, ui: &mut egui::Ui) {
     let frame = egui::Frame::new().fill(theme::BG).inner_margin(egui::Margin::symmetric(24, 12));
     egui::Panel::top("cabecera").frame(frame).show(ui, |ui| {
         ui.horizontal(|ui| {
-            ui.label(RichText::new("Seshat").size(18.0).strong());
+            ui.label(RichText::new("Anzu").size(18.0).strong());
             ui.label(theme::muted("de Kindle a EPUB"));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let checking = app.health == Health::Checking;
@@ -53,7 +53,7 @@ fn status_card(ui: &mut egui::Ui, fill: Color32, line: Color32, label: &str, val
     });
 }
 
-fn status_cards(app: &SeshatApp, ui: &mut egui::Ui) {
+fn status_cards(app: &AnzuApp, ui: &mut egui::Ui) {
     let (kindle, kindle_detail) = match &app.health {
         Health::Checking => ("Comprobando…".to_string(), "Buscando la app de Microsoft Store".to_string()),
         Health::Ready { kindle, .. } => (kindle.to_string(), "Instalada desde Microsoft Store".to_string()),
@@ -108,7 +108,7 @@ fn status_cards(app: &SeshatApp, ui: &mut egui::Ui) {
     });
 }
 
-fn filters(app: &mut SeshatApp, ui: &mut egui::Ui) {
+fn filters(app: &mut AnzuApp, ui: &mut egui::Ui) {
     let count = |state: BookState| app.books.iter().filter(|b| b.state == state).count();
     let options = [
         (Filter::All, format!("Todos · {}", app.books.len())),
@@ -135,7 +135,7 @@ fn state_text(state: BookState, ready: bool) -> RichText {
     }
 }
 
-fn table(app: &mut SeshatApp, ui: &mut egui::Ui) {
+fn table(app: &mut AnzuApp, ui: &mut egui::Ui) {
     if app.books.is_empty() {
         theme::card(theme::PANEL, theme::LINE).show(ui, |ui| {
             ui.set_width(ui.available_width());
@@ -158,7 +158,7 @@ fn table(app: &mut SeshatApp, ui: &mut egui::Ui) {
             Filter::Unlocked => b.state == BookState::Unlocked,
             Filter::Converted => b.state == BookState::Converted,
         })
-        .map(|b| (b.asin.clone(), SeshatApp::display_title(b), b.size, b.state))
+        .map(|b| (b.asin.clone(), AnzuApp::display_title(b), b.size, b.state))
         .collect();
 
     theme::card(theme::PANEL, theme::LINE).show(ui, |ui| {
@@ -199,7 +199,7 @@ fn table(app: &mut SeshatApp, ui: &mut egui::Ui) {
     });
 }
 
-fn footer(app: &mut SeshatApp, ui: &mut egui::Ui) {
+fn footer(app: &mut AnzuApp, ui: &mut egui::Ui) {
     let frame = egui::Frame::new().fill(theme::PANEL).inner_margin(egui::Margin::symmetric(24, 12));
     egui::Panel::bottom("pie").frame(frame).show(ui, |ui| {
         ui.horizontal(|ui| {

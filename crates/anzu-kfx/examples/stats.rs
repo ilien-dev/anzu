@@ -1,9 +1,9 @@
 //! Verificación manual: qué estructuras usa de verdad un libro. Solo cuenta; no imprime texto.
 use std::collections::BTreeMap;
 
-use seshat_kfx::container::{self, FragmentValue};
-use seshat_kfx::ion::Ion;
-use seshat_kfx::symbols::SymbolTable;
+use anzu_kfx::container::{self, FragmentValue};
+use anzu_kfx::ion::Ion;
+use anzu_kfx::symbols::SymbolTable;
 
 fn name(symbols: &SymbolTable, sid: u32) -> String {
     symbols.name(sid).map_or_else(|| format!("${sid}"), str::to_string)

@@ -99,7 +99,7 @@ pub(crate) fn agent() -> ureq::Agent {
     ureq::Agent::config_builder()
         .timeout_global(Some(Duration::from_secs(15)))
         .http_status_as_error(false)
-        .user_agent("seshat")
+        .user_agent("anzu")
         .build()
         .into()
 }

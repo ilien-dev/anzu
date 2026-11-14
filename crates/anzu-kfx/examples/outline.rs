@@ -1,6 +1,6 @@
 //! Verificación manual: resumen del modelo de un libro. No imprime su texto.
-use seshat_kfx::book::{self, Block, TocEntry};
-use seshat_kfx::container;
+use anzu_kfx::book::{self, Block, TocEntry};
+use anzu_kfx::container;
 
 fn count_toc(entries: &[TocEntry]) -> (usize, usize) {
     let mut total = 0;

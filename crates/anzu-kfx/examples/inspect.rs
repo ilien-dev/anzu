@@ -1,8 +1,8 @@
 //! Verificación manual: estructura de los fragmentos de un tipo, sin volcar el texto del libro.
 //! uso: inspect <archivo> <tipo, p. ej. $260> [cuántos] [profundidad]
-use seshat_kfx::container::{self, FragmentValue};
-use seshat_kfx::ion::Ion;
-use seshat_kfx::symbols::SymbolTable;
+use anzu_kfx::container::{self, FragmentValue};
+use anzu_kfx::ion::Ion;
+use anzu_kfx::symbols::SymbolTable;
 
 const MAX_STRING: usize = 48;
 

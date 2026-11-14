@@ -10,9 +10,9 @@ use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
 
 use eframe::egui;
-use seshat_core::library::{Book, BookState};
-use seshat_core::settings::{self, Settings};
-use seshat_core::{kindle, library as core_library};
+use anzu_core::library::{Book, BookState};
+use anzu_core::settings::{self, Settings};
+use anzu_core::{kindle, library as core_library};
 
 use crate::app::{self, Health, RunPlan};
 use crate::pipeline::{self, CoreBackend, Msg, Step};
@@ -47,7 +47,7 @@ struct Run {
     result: Option<(usize, Vec<(String, String)>)>,
 }
 
-pub struct SeshatApp {
+pub struct AnzuApp {
     data_dir: PathBuf,
     content_dir: PathBuf,
     settings: Settings,
@@ -64,13 +64,13 @@ pub struct SeshatApp {
     run: Run,
 }
 
-impl SeshatApp {
+impl AnzuApp {
     fn new(ctx: &egui::Context) -> Self {
         let data_dir = settings::data_dir();
         let settings = Settings::load(&data_dir);
         let local = std::env::var_os("LOCALAPPDATA").map(PathBuf::from).unwrap_or_default();
         let (tx, rx) = mpsc::channel();
-        let mut app = SeshatApp {
+        let mut app = AnzuApp {
             content_dir: kindle::content_dir_in(&local),
             data_dir,
             settings,
@@ -231,7 +231,7 @@ impl SeshatApp {
     }
 }
 
-impl eframe::App for SeshatApp {
+impl eframe::App for AnzuApp {
     fn logic(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
         while let Ok(message) = self.rx.try_recv() {
             self.handle(message);
@@ -254,17 +254,17 @@ impl eframe::App for SeshatApp {
 pub fn launch() -> Result<(), String> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("Seshat: de Kindle a EPUB")
+            .with_title("Anzu: de Kindle a EPUB")
             .with_inner_size([1180.0, 760.0])
             .with_min_inner_size([760.0, 520.0]),
         ..Default::default()
     };
     eframe::run_native(
-        "Seshat",
+        "Anzu",
         options,
         Box::new(|cc| {
             theme::apply(&cc.egui_ctx);
-            Ok(Box::new(SeshatApp::new(&cc.egui_ctx)))
+            Ok(Box::new(AnzuApp::new(&cc.egui_ctx)))
         }),
     )
     .map_err(|e| e.to_string())
