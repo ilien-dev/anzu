@@ -26,10 +26,8 @@ pub fn parse_archiver(exe_name: &str) -> Option<ArchiverSupport> {
     let stem = exe_name.strip_suffix(".exe")?;
     let (minor, digits) = if let Some(rest) = stem.strip_prefix("MSIXKFXArchiver_x64_1_") {
         (1, rest)
-    } else if let Some(rest) = stem.strip_prefix("MSIXKFXArchiver1_") {
-        (0, rest.strip_suffix("_final")?)
     } else {
-        return None;
+        (0, stem.strip_prefix("MSIXKFXArchiver1_")?.strip_suffix("_final")?)
     };
     if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
         return None;

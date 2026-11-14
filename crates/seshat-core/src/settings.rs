@@ -58,8 +58,7 @@ mod tests {
     #[test]
     fn round_trips() {
         let dir = tempfile::tempdir().unwrap();
-        let mut s = Settings::default();
-        s.output_dir = PathBuf::from(r"D:\Libros");
+        let mut s = Settings { output_dir: PathBuf::from(r"D:\Libros"), ..Settings::default() };
         s.converted.insert("B0AAA".into(), PathBuf::from(r"D:\Libros\a.epub"));
         s.save(dir.path()).unwrap();
         assert_eq!(Settings::load(dir.path()), s);

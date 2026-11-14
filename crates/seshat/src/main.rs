@@ -1,5 +1,8 @@
 //! Seshat: de Kindle a EPUB.
 
+// En la versión de publicación la app es un programa de ventana: no abre consola.
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+
 mod app;
 mod cli;
 mod pipeline;
@@ -10,6 +13,9 @@ use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if !args.is_empty() {
+        attach_parent_console();
+    }
     match cli::parse(&args) {
         Ok(cli::Command::Gui) => match ui::launch() {
             Ok(()) => ExitCode::SUCCESS,
@@ -33,6 +39,25 @@ fn main() -> ExitCode {
         }
     }
 }
+
+/// Un programa de ventana no tiene consola propia. Cuando se usa desde una terminal
+/// (con argumentos), se engancha a la de quien lo lanzó para poder escribir en ella.
+#[cfg(windows)]
+fn attach_parent_console() {
+    const ATTACH_PARENT_PROCESS: u32 = u32::MAX;
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn AttachConsole(process_id: u32) -> i32;
+    }
+    // SAFETY: la llamada no recibe punteros; si no hay consola a la que engancharse
+    // (o ya hay una) devuelve 0 y no cambia nada.
+    unsafe {
+        AttachConsole(ATTACH_PARENT_PROCESS);
+    }
+}
+
+#[cfg(not(windows))]
+fn attach_parent_console() {}
 
 /// Convierte un archivo: la ruta del EPUB va a stdout; avisos y errores, a stderr.
 fn convert(input: &Path, out_dir: Option<PathBuf>) -> ExitCode {

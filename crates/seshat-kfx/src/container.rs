@@ -198,7 +198,7 @@ impl<'a> Layout<'a> {
         if index.len() % INDEX_RECORD != 0 {
             return Err(bad("tabla de entidades con tamaño incorrecto"));
         }
-        for record in index.chunks_exact(INDEX_RECORD) {
+        for record in index.as_chunks::<INDEX_RECORD>().0 {
             let id = u32_at(record, 0)? as u32;
             let ftype = u32_at(record, 4)? as u32;
             let start = self
