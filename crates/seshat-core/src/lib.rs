@@ -2,6 +2,8 @@
 
 pub mod compat;
 pub mod releases;
+pub mod settings;
+pub mod tool;
 pub mod version;
 
 pub use version::KindleVersion;
