@@ -6,6 +6,7 @@ pub mod library;
 pub mod releases;
 pub mod settings;
 pub mod tool;
+pub mod unlock;
 pub mod version;
 
 pub use version::KindleVersion;
