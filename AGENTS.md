@@ -1,5 +1,6 @@
 - Before committing run `cargo test --workspace` and `cargo clippy --workspace --all-targets -- -D warnings`; CI (`.github/workflows/ci.yml`) runs both on every PR.
 - PRs are squash-merged and the PR title must be a Conventional Commit: Cocogitto (`cog.toml`) bumps the version from it on main.
+- `CONTRIBUTING.md` — branch names (`feature/<1-4 lowercase words>`), PR description format and limits; read it, or load the `contributing` skill, before opening an issue or a PR.
 - English first: code, comments, docs and commit messages are in English. Spanish lives only in the `ES` strings of `crates/anzu/src/i18n.rs`, in `README.es.md`, and in test data that exercises non-ASCII text.
 - Every user-visible string of the app is a field or method of `i18n::Strings`; add it to both `EN` and `ES`. Do not write interface text inline under `crates/anzu/src/ui/`.
 - `anzu-core` and `anzu-kfx` return English messages; the app translates them in `i18n::core_error` and `i18n::kfx_error`. A new `Error` variant needs a Spanish arm there.

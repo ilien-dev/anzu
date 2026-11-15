@@ -5,8 +5,10 @@ name: Release
 # CHANGELOG, tags it and pushes both back to main. Then the Windows build is
 # made from that tag and published as a GitHub Release.
 #
-# The bump commit is pushed with GITHUB_TOKEN, so it does not start this
-# workflow again.
+# main is protected by a ruleset that only deploy keys may bypass, so the bump
+# commit and its tag are pushed over SSH with the write deploy key stored in the
+# RELEASE_DEPLOY_KEY secret. That push starts this workflow once more, and the
+# second run finds nothing to release.
 
 on:
   push:
@@ -30,6 +32,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
 
       - uses: cocogitto/cocogitto-action@v4.2.0
         with:
