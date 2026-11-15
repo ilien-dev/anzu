@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in Anzu does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One problem per issue. Search the [existing issues](https://github.com/ilien-dev/anzu/issues?q=is%3Aissue) first.
+        Never paste anything from your Amazon account or from `%LOCALAPPDATA%\anzu\keys` or `%LOCALAPPDATA%\anzu\work`.
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: The steps that lead to the problem.
+      placeholder: "1. Open Anzu\n2. Tick a book\n3. Press Convert"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: The message Anzu showed, and a screenshot if you can.
+    validations:
+      required: true
+  - type: input
+    id: anzu
+    attributes:
+      label: Anzu version
+      description: Settings → Version.
+      placeholder: "0.4.0"
+    validations:
+      required: true
+  - type: input
+    id: kindle
+    attributes:
+      label: Kindle app version
+      description: Shown at the top of the Anzu window.
+      placeholder: "1.1.5634.0"
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Before opening
+      options:
+        - label: I searched the existing issues and this one is not reported yet.
+          required: true

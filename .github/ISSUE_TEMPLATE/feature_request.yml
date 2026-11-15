@@ -1,0 +1,34 @@
+name: Feature request
+description: Propose one improvement to Anzu.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One idea per issue. Anzu converts books from the Microsoft Store Kindle app to EPUB for people who are not technical;
+        ideas outside that purpose will be declined. Read [PRODUCT.md](https://github.com/ilien-dev/anzu/blob/main/PRODUCT.md) and search the
+        [issues](https://github.com/ilien-dev/anzu/issues?q=is%3Aissue) and [pull requests](https://github.com/ilien-dev/anzu/pulls?q=is%3Apr) first.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do and what gets in the way. At most a few sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+      description: The change you have in mind. A sketch or screenshot helps for anything visual.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before opening
+      options:
+        - label: I searched the existing issues and pull requests and nobody proposed this yet.
+          required: true
+        - label: This is a single idea, not several in one issue.
+          required: true
+        - label: I would like to send the pull request myself.
