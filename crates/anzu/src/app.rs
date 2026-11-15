@@ -74,6 +74,11 @@ pub fn selectable(state: BookState, ready: bool) -> bool {
     ready || state != BookState::Locked
 }
 
+/// How many of `books` were not among the ASINs listed before.
+pub fn new_books(before: &[String], books: &[Book]) -> usize {
+    books.iter().filter(|b| !before.contains(&b.asin)).count()
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunPlan {
     pub needs_unlock: bool,
@@ -193,6 +198,15 @@ mod tests {
 
         let selected: Vec<String> = vec!["A".into(), "B".into()];
         assert_eq!(plan_run(&books, &selected), RunPlan { needs_unlock: true, asins: vec!["A".into(), "B".into()] });
+    }
+
+    #[test]
+    fn a_refresh_counts_only_the_books_that_appeared() {
+        let books = [book("A", BookState::Locked), book("B", BookState::Unlocked), book("C", BookState::Locked)];
+        assert_eq!(new_books(&["A".into(), "B".into()], &books), 1);
+        assert_eq!(new_books(&["A".into(), "B".into(), "C".into()], &books), 0);
+        assert_eq!(new_books(&[], &books), 3);
+        assert_eq!(new_books(&["GONE".into()], &[]), 0, "a book that disappears is not new");
     }
 
     #[test]

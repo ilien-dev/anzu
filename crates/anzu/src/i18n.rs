@@ -44,6 +44,8 @@ pub struct Strings {
     pub empty_title: &'static str,
     pub empty_steps: [&'static str; 3],
     pub empty_note: &'static str,
+    pub refresh: &'static str,
+    pub refresh_hint: &'static str,
     pub save_in: &'static str,
     pub change_folder: &'static str,
     pub folder_dialog: &'static str,
@@ -186,9 +188,11 @@ pub const EN: Strings = Strings {
     empty_steps: [
         "1. Open the Kindle app from the Microsoft Store and sign in.",
         "2. Download in it the books you want to convert.",
-        "3. Come back here and press “Check again”.",
+        "3. Come back here and press “Refresh list”.",
     ],
     empty_note: "Anzu only reads that folder: it never changes or deletes your Kindle books.",
+    refresh: "Refresh list",
+    refresh_hint: "Reads the Kindle folder again to show the books you have just downloaded.",
     save_in: "Save to",
     change_folder: "Change folder",
     folder_dialog: "Folder for the EPUB files",
@@ -339,9 +343,11 @@ pub const ES: Strings = Strings {
     empty_steps: [
         "1. Abre la app Kindle de Microsoft Store e inicia sesión.",
         "2. Descarga en ella los libros que quieras convertir.",
-        "3. Vuelve aquí y pulsa «Volver a comprobar».",
+        "3. Vuelve aquí y pulsa «Actualizar lista».",
     ],
     empty_note: "Anzu solo lee esa carpeta: nunca cambia ni borra tus libros de Kindle.",
+    refresh: "Actualizar lista",
+    refresh_hint: "Vuelve a leer la carpeta de Kindle para mostrar los libros que acabas de descargar.",
     save_in: "Guardar en",
     change_folder: "Cambiar carpeta",
     folder_dialog: "Carpeta para los EPUB",
@@ -479,6 +485,18 @@ impl Strings {
             (false, n) => format!("{n} books"),
             (true, 1) => "1 libro".to_string(),
             (true, n) => format!("{n} libros"),
+        }
+    }
+
+    /// What the last "Refresh list" found: "No new books", "1 new book", "3 new books".
+    pub fn new_books(&self, n: usize) -> String {
+        match (self.es(), n) {
+            (false, 0) => "No new books".to_string(),
+            (false, 1) => "1 new book".to_string(),
+            (false, n) => format!("{n} new books"),
+            (true, 0) => "No hay libros nuevos".to_string(),
+            (true, 1) => "1 libro nuevo".to_string(),
+            (true, n) => format!("{n} libros nuevos"),
         }
     }
 
@@ -915,6 +933,12 @@ mod tests {
         assert_eq!(EN.selected(1), "1 selected");
         assert_eq!(ES.selected(1), "1 seleccionado");
         assert_eq!(ES.selected(2), "2 seleccionados");
+        assert_eq!(EN.new_books(0), "No new books");
+        assert_eq!(EN.new_books(1), "1 new book");
+        assert_eq!(EN.new_books(4), "4 new books");
+        assert_eq!(ES.new_books(0), "No hay libros nuevos");
+        assert_eq!(ES.new_books(1), "1 libro nuevo");
+        assert_eq!(ES.new_books(4), "4 libros nuevos");
     }
 
     #[test]

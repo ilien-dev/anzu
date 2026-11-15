@@ -90,6 +90,8 @@ pub struct AnzuApp {
     selected: Vec<String>,
     filter: Filter,
     sort: Sort,
+    /// How many new books the last "Refresh list" found, until the next run.
+    refreshed: Option<usize>,
     screen: Screen,
     tx: Sender<Msg>,
     rx: Receiver<Msg>,
@@ -118,6 +120,7 @@ impl AnzuApp {
             selected: Vec::new(),
             filter: Filter::All,
             sort: Sort { column: Column::Title, ascending: true },
+            refreshed: None,
             screen: Screen::Library,
             tx,
             rx,
@@ -146,6 +149,17 @@ impl AnzuApp {
         self.learn_titles();
         let ready = self.ready();
         self.selected.retain(|asin| self.books.iter().any(|b| &b.asin == asin && app::selectable(b.state, ready)));
+    }
+
+    /// "Refresh list": reads the Kindle folder again, without going online, and
+    /// remembers how many books appeared.
+    fn refresh_by_hand(&mut self) {
+        if self.busy() {
+            return;
+        }
+        let before: Vec<String> = self.books.iter().map(|b| b.asin.clone()).collect();
+        self.refresh_books();
+        self.refreshed = Some(app::new_books(&before, &self.books));
     }
 
     /// Reads the title of unlocked books that do not have one yet, and remembers it.
@@ -210,6 +224,7 @@ impl AnzuApp {
             self.run.states.insert(book.asin.clone(), progress::starting_state(book.state));
         }
         self.screen = Screen::Progress;
+        self.refreshed = None;
 
         let (close_tx, close_rx) = mpsc::channel::<bool>();
         self.close_tx = Some(close_tx);
