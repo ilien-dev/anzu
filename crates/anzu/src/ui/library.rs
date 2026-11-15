@@ -163,12 +163,26 @@ fn toolbar(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings)
             }
         }
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            // Right to left: the first one added ends up furthest right.
             ui.label(theme::muted(p, t.selected(app.selected.len())).size(theme::SMALL));
+            ui.add_space(14.0);
+            refresh_button(app, ui, t);
+            if let Some(found) = app.refreshed {
+                ui.label(theme::muted(p, t.new_books(found)).size(theme::SMALL));
+            }
         });
     });
 }
 
-fn empty_state(ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
+/// "Refresh list": shows the books downloaded in Kindle since the window opened.
+fn refresh_button(app: &mut AnzuApp, ui: &mut egui::Ui, t: &Strings) {
+    let enabled = !app.busy();
+    if theme::button(ui, theme::Surface::Page, enabled, egui::Button::new(t.refresh)).on_hover_text(t.refresh_hint).clicked() {
+        app.refresh_by_hand();
+    }
+}
+
+fn empty_state(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     theme::panel(p).inner_margin(egui::Margin::symmetric(20, 18)).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.label(theme::bold(t.empty_title).size(15.0));
@@ -178,12 +192,14 @@ fn empty_state(ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
         }
         ui.add_space(4.0);
         ui.label(theme::muted(p, t.empty_note).size(theme::SMALL));
+        ui.add_space(8.0);
+        refresh_button(app, ui, t);
     });
 }
 
 fn table(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     if app.books.is_empty() {
-        empty_state(ui, p, t);
+        empty_state(app, ui, p, t);
         return;
     }
 
