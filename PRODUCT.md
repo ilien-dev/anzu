@@ -8,69 +8,70 @@ web
 
 ## Users
 
-Personas que compran libros en Kindle y quieren leerlos como EPUB en otros lectores.
-La app está pensada para publicarse: quien la abre puede no ser técnico y no conoce
-las herramientas que hay debajo. La mayoría tendrá de 1 a 20 libros descargados a la
-vez; algunos tendrán cientos, y la lista debe seguir siendo manejable para ellos.
+People who buy books on Kindle and want to read them as EPUB on other readers. The app
+is meant to be published: whoever opens it may not be technical and does not know the
+tools underneath. Most will have 1 to 20 books downloaded at a time; some will have
+hundreds, and the list must stay manageable for them.
 
 ## Product Purpose
 
-Anzu convierte a EPUB los libros descargados con la app Kindle de Microsoft Store,
-sin que el usuario tenga que buscar herramientas, comprobar versiones ni tocar
-carpetas. Éxito: abrir la app, ver los libros con su título, elegir cuáles y obtener
-los EPUB en la carpeta elegida.
+Anzu converts books downloaded with the Microsoft Store Kindle app to EPUB, without
+the user having to look for tools, check versions or touch folders. Success: open the
+app, see the books with their titles, choose which ones, and get the EPUB files in the
+chosen folder.
 
 ## Positioning
 
-Anzu se niega a actuar cuando no puede garantizar que es seguro: comprueba antes de
-cada desbloqueo que la herramienta es la última publicada, que su huella coincide y
-que admite la versión de Kindle instalada. Si algo no cuadra, lo explica y no hace
-nada. El conversor de KFX a EPUB es código propio.
+Anzu refuses to act when it cannot guarantee that it is safe: before each unlock it
+checks that the tool is the latest published release, that its hash matches and that
+it supports the installed Kindle version. If something does not add up, it explains
+why and does nothing. The KFX to EPUB converter is its own code.
 
 ## Operating Context
 
-- Windows 10 u 11, con la app Amazon Kindle de Microsoft Store instalada y con sesión
-  iniciada.
-- El desbloqueo lo hace la herramienta de Satsuoni, que Anzu descarga y ejecuta como
-  proceso externo. Anzu no contiene código de descifrado.
-- La app Kindle debe estar cerrada durante el desbloqueo; Anzu pide permiso antes de
-  cerrarla.
-- Hace falta conexión para comprobar la herramienta. Convertir libros ya
-  desbloqueados no la necesita.
+- Windows 10 or 11, with the Amazon Kindle app from the Microsoft Store installed and
+  signed in.
+- Unlocking is done by Satsuoni's tool, which Anzu downloads and runs as an external
+  process. Anzu contains no decryption code.
+- The Kindle app must be closed during unlocking; Anzu asks for permission before
+  closing it.
+- A connection is needed to check the tool. Converting books that are already unlocked
+  does not need one.
 
 ## Capabilities and Constraints
 
-- Aplicación de escritorio nativa para Windows, escrita en Rust con `egui`. No hay
-  HTML ni navegador: el valor `web` de Platform solo indica que no sigue las guías de
-  iOS ni de Android.
-- Estados de un libro: con DRM, desbloqueado, convertido.
-- El título real solo se conoce cuando el libro está desbloqueado; hasta entonces se
-  muestra su ASIN.
-- Convierte libros de texto. Cómics, maquetación fija y diccionarios quedan fuera.
-- Interfaz en español.
-- Tema claro y oscuro: sigue al sistema o lo fija el usuario.
-- El contenido tiene un ancho máximo y queda centrado en monitores grandes.
-- Sin decidir: búsqueda y ordenación en la lista para bibliotecas de cientos de
-  libros; cancelar una ejecución en curso.
+- Native desktop application for Windows, written in Rust with `egui`. There is no
+  HTML and no browser: the `web` value under Platform only means that it does not
+  follow the iOS or Android guidelines.
+- Book states: with DRM, unlocked, converted.
+- The real title is only known once the book is unlocked; until then its ASIN is
+  shown.
+- Converts text books. Comics, fixed layout and dictionaries are out of scope.
+- The interface is in English by default and also available in Spanish.
+- Light and dark theme: it follows the system or the user sets it.
+- The content has a maximum width and is centred on large monitors.
+- The book table sorts by any column. Undecided: search for libraries of hundreds of books;
+  cancelling a run in progress.
 
 ## Brand Commitments
 
-- Nombre: Anzu, por el ave mesopotámica que robó la Tablilla de los Destinos.
-- Logotipo: monograma A formado por dos alas abiertas sobre una tablilla.
-- Estilo elegido por el usuario: «Consola ámbar» (monoespaciada, técnica, densa,
-  acento ámbar). El tema claro no debe ser el típico fondo amarillento.
+- Name: Anzu, after the Mesopotamian bird that stole the Tablet of Destinies.
+- Logo: an A monogram formed by two open wings over a tablet.
+- Style chosen by the user: “Amber console” (monospaced, technical, dense, amber
+  accent). The light theme must not be the typical yellowish background.
 
 ## Evidence on Hand
 
-- Un libro real convertido de extremo a extremo (77 capítulos, verificación interna
-  del EPUB sin problemas).
-- Propuestas de interfaz y de logotipo aprobadas en canvas.
-- No hay testimonios, cifras de uso ni capturas de terceros; no inventar ninguno.
+- One real book converted end to end (77 chapters, internal EPUB verification with no
+  problems).
+- Interface and logo proposals approved on canvas.
+- There are no testimonials, usage figures or third-party screenshots; do not invent
+  any.
 
 ## Product Principles
 
-1. Ante la duda, no actuar y explicar por qué.
-2. Nunca escribir en la carpeta de Kindle ni cerrar la app sin permiso.
-3. Los secretos de la cuenta no se muestran ni se guardan en registros.
-4. Un libro que falla no detiene a los demás.
-5. Decir siempre qué va a pasar antes de que pase.
+1. When in doubt, do not act, and explain why.
+2. Never write to the Kindle folder or close the app without permission.
+3. Account secrets are not shown and are not stored in logs.
+4. A book that fails does not stop the others.
+5. Always say what is going to happen before it happens.

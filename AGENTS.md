@@ -1,0 +1,16 @@
+- There is no CI: run `cargo test --workspace` and `cargo clippy --workspace --all-targets -- -D warnings` before committing; both must be clean.
+- English first: code, comments, docs and commit messages are in English. Spanish lives only in the `ES` strings of `crates/anzu/src/i18n.rs`, in `README.es.md`, and in test data that exercises non-ASCII text.
+- Every user-visible string of the app is a field or method of `i18n::Strings`; add it to both `EN` and `ES`. Do not write interface text inline under `crates/anzu/src/ui/`.
+- `anzu-core` and `anzu-kfx` return English messages; the app translates them in `i18n::core_error` and `i18n::kfx_error`. A new `Error` variant needs a Spanish arm there.
+- `anzu-kfx` does not depend on `anzu-core` or on Windows APIs.
+- Do not run `crates/anzu-core/examples/unlock.rs` or start an unlock from the window unless the user asks: it downloads and executes a third-party binary and closes the Kindle app.
+- Do not read or print anything under `%LOCALAPPDATA%\anzu\keys` or `%LOCALAPPDATA%\anzu\work`: they hold the user's Amazon account secrets. Nothing may write inside the Kindle app's content folder.
+- Output of the unlock tool reaches the screen and the log only through `unlock::redact`, an allowlist. A new harmless line of the tool goes in `SAFE_PREFIXES`.
+- `Settings` must keep loading files written by older versions: a new field needs a default and a test with an old file.
+- On this machine shell heredocs mangle backslashes and single quotes in Rust source; write Rust with the file tools.
+- To look at the window, capture it with `PrintWindow` on the Anzu window handle. Do not copy from the screen: it can capture the user's other windows.
+- egui is 0.37: `App::ui(ui, frame)` plus `logic`, `Panel::top/bottom(..).show(ui, ..)`, `Id::unique`, `ui.scope_id()`, `ctx.all_styles_mut`. The older names are deprecated or gone.
+- The version lives in `[workspace.package]` of the root `Cargo.toml`.
+- `PRODUCT.md` — product facts; read before changing scope or interface copy.
+- `.impeccable/surfaces/main-window.md` — design direction of the main window; read before interface work.
+- `docs/superpowers/` — the original spec and plan; historical, outdated in places.

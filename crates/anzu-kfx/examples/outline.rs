@@ -1,4 +1,4 @@
-//! Verificación manual: resumen del modelo de un libro. No imprime su texto.
+//! Manual check: summary of a book's model. It does not print the book's text.
 use anzu_kfx::book::{self, Block, TocEntry};
 use anzu_kfx::container;
 
@@ -14,8 +14,8 @@ fn count_toc(entries: &[TocEntry]) -> (usize, usize) {
 }
 
 fn main() {
-    let path = std::env::args().nth(1).expect("uso: outline <archivo.kfx-zip>");
-    let fragments = container::open(std::path::Path::new(&path)).expect("no se pudo abrir");
+    let path = std::env::args().nth(1).expect("usage: outline <file.kfx-zip>");
+    let fragments = container::open(std::path::Path::new(&path)).expect("could not open the file");
     let book = match book::build(&fragments) {
         Ok(b) => b,
         Err(e) => {
@@ -57,19 +57,19 @@ fn main() {
     }
     let (toc_entries, toc_depth) = count_toc(&book.toc);
 
-    println!("Título:     {}", book.meta.title);
-    println!("Autores:    {}", book.meta.authors.join("; "));
-    println!("Idioma:     {}", book.meta.language);
+    println!("Title:      {}", book.meta.title);
+    println!("Authors:    {}", book.meta.authors.join("; "));
+    println!("Language:   {}", book.meta.language);
     println!("ASIN:       {}", book.meta.asin.as_deref().unwrap_or("-"));
-    println!("Editorial:  {}", book.meta.publisher.as_deref().unwrap_or("-"));
-    println!("Portada:    {}", book.cover.as_deref().unwrap_or("-"));
-    println!("Capítulos:  {} ({} vacíos)", book.chapters.len(), empty_chapters);
-    println!("Bloques:    {headings} encabezados, {paragraphs} párrafos, {images} imágenes");
-    println!("Palabras:   {words}");
-    println!("Formato:    {bold} tramos en negrita, {italic} en cursiva, {links} enlaces, {anchors} anclas");
-    println!("Índice:     {toc_entries} entradas, profundidad {toc_depth}");
-    println!("Imágenes:   {}", book.images.iter().map(|i| format!("{} ({} bytes)", i.name, i.data.len())).collect::<Vec<_>>().join(", "));
-    println!("Avisos:     {}", book.warnings.len());
+    println!("Publisher:  {}", book.meta.publisher.as_deref().unwrap_or("-"));
+    println!("Cover:      {}", book.cover.as_deref().unwrap_or("-"));
+    println!("Chapters:   {} ({} empty)", book.chapters.len(), empty_chapters);
+    println!("Blocks:     {headings} headings, {paragraphs} paragraphs, {images} images");
+    println!("Words:      {words}");
+    println!("Formatting: {bold} bold runs, {italic} italic, {links} links, {anchors} anchors");
+    println!("Contents:   {toc_entries} entries, depth {toc_depth}");
+    println!("Images:     {}", book.images.iter().map(|i| format!("{} ({} bytes)", i.name, i.data.len())).collect::<Vec<_>>().join(", "));
+    println!("Warnings:   {}", book.warnings.len());
     for w in book.warnings.iter().take(15) {
         println!("  - {w}");
     }

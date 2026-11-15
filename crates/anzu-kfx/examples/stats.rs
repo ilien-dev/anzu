@@ -1,4 +1,4 @@
-//! Verificación manual: qué estructuras usa de verdad un libro. Solo cuenta; no imprime texto.
+//! Manual check: which structures a book really uses. It only counts; it prints no text.
 use std::collections::BTreeMap;
 
 use anzu_kfx::container::{self, FragmentValue};
@@ -55,7 +55,7 @@ fn walk_nodes(v: &Ion, symbols: &SymbolTable, stats: &mut Stats) {
     }
 }
 
-/// Un struct en una línea, con las cadenas sustituidas por su longitud.
+/// A struct on one line, with strings replaced by their length.
 fn describe(v: &Ion, symbols: &SymbolTable) -> String {
     match v.unannotated() {
         Ion::Struct(fields) => {
@@ -63,16 +63,16 @@ fn describe(v: &Ion, symbols: &SymbolTable) -> String {
                 fields.iter().map(|(sid, value)| format!("{}: {}", name(symbols, *sid), describe(value, symbols))).collect();
             format!("{{{}}}", parts.join(", "))
         }
-        Ion::List(items) => format!("[{} elementos]", items.len()),
+        Ion::List(items) => format!("[{} items]", items.len()),
         Ion::Symbol(s) => format!("'{}'", name(symbols, *s)),
-        Ion::String(s) => format!("<texto de {}>", s.chars().count()),
+        Ion::String(s) => format!("<text of {}>", s.chars().count()),
         other => format!("{other:?}"),
     }
 }
 
 fn main() {
-    let path = std::env::args().nth(1).expect("uso: stats <archivo.kfx-zip>");
-    let fragments = container::open(std::path::Path::new(&path)).expect("no se pudo abrir");
+    let path = std::env::args().nth(1).expect("usage: stats <file.kfx-zip>");
+    let fragments = container::open(std::path::Path::new(&path)).expect("could not open the file");
     let symbols = &fragments.symbols;
     let mut stats = Stats::default();
 
@@ -93,7 +93,7 @@ fn main() {
                 }
                 Ion::Struct(_) => {
                     if let Some(Ion::Symbol(u)) = value.field(306).map(Ion::unannotated) {
-                        *stats.units.entry(format!("{key} en {}", name(symbols, *u))).or_default() += 1;
+                        *stats.units.entry(format!("{key} in {}", name(symbols, *u))).or_default() += 1;
                     }
                 }
                 _ => {}
@@ -106,13 +106,13 @@ fn main() {
         let line: Vec<String> = map.iter().map(|(k, n)| format!("{k}={n}")).collect();
         println!("   {}", line.join("  "));
     };
-    print("tipos de nodo ($159)", &stats.node_types);
-    print("campos de nodo", &stats.node_fields);
-    print("campos de eventos de estilo ($142)", &stats.event_fields);
-    println!("-- primer evento: {}", stats.first_event.unwrap_or_else(|| "ninguno".into()));
-    print("propiedades de estilo ($157)", &stats.style_fields);
-    print("unidades", &stats.units);
-    println!("-- valores simbólicos de estilo");
+    print("node types ($159)", &stats.node_types);
+    print("node fields", &stats.node_fields);
+    print("style event fields ($142)", &stats.event_fields);
+    println!("-- first event: {}", stats.first_event.unwrap_or_else(|| "none".into()));
+    print("style properties ($157)", &stats.style_fields);
+    print("units", &stats.units);
+    println!("-- symbolic style values");
     for (key, values) in &stats.symbol_values {
         let line: Vec<String> = values.iter().map(|(k, n)| format!("{k}={n}")).collect();
         println!("   {key}: {}", line.join("  "));

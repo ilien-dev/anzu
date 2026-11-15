@@ -1,17 +1,17 @@
-//! Contenedor KFX (`CONT`) y archivos `.kfx-zip`.
+//! KFX container (`CONT`) and `.kfx-zip` files.
 //!
-//! Un libro KFX es un conjunto de fragmentos, cada uno con un tipo y un identificador.
-//! En disco se reparten en uno o varios contenedores:
+//! A KFX book is a set of fragments, each with a type and an identifier. On disk they
+//! are spread over one or more containers:
 //!
 //! ```text
-//! "CONT" | versión u16 | long. cabecera u32 | offset info u32 | long. info u32
-//! container_info (Ion): offsets de la tabla de entidades y de los símbolos del documento
-//! tabla de entidades: registros de 24 bytes (id u32, tipo u32, offset u64, longitud u64)
-//! entidades: "ENTY" | versión u16 | long. cabecera u32 | info (Ion) | datos
+//! "CONT" | version u16 | header len u32 | info offset u32 | info len u32
+//! container_info (Ion): offsets of the entity table and of the document symbols
+//! entity table: 24-byte records (id u32, type u32, offset u64, length u64)
+//! entities: "ENTY" | version u16 | header len u32 | info (Ion) | data
 //! ```
 //!
-//! Todos los enteros de la cabecera son little-endian. Referencia de formato:
-//! `kfxlib/kfx_container.py` del plugin KFX Input de John Howell (GPL-3.0).
+//! Every integer in the header is little-endian. Format reference:
+//! `kfxlib/kfx_container.py` from John Howell's KFX Input plugin (GPL-3.0).
 
 use std::io::Read;
 use std::path::Path;
@@ -39,9 +39,9 @@ const INFO_INDEX_LENGTH: u32 = 414;
 const INFO_SYMBOLS_OFFSET: u32 = 415;
 const INFO_SYMBOLS_LENGTH: u32 = 416;
 
-/// Tipos cuyo contenido son bytes en bruto (imágenes, fuentes) y no Ion.
+/// Types whose content is raw bytes (images, fonts) rather than Ion.
 const RAW_TYPES: [u32; 2] = [417, 418];
-/// Identificador de los fragmentos únicos de su tipo.
+/// Identifier of the fragments that are the only one of their type.
 const SINGLETON_ID: u32 = 348;
 
 const MAX_ZIP_ENTRY: u64 = 512 * 1024 * 1024;
@@ -95,7 +95,7 @@ fn slice(data: &[u8], offset: usize, len: usize) -> Result<&[u8], Error> {
         .checked_add(len)
         .filter(|end| *end <= data.len())
         .map(|end| &data[offset..end])
-        .ok_or_else(|| bad("un bloque apunta fuera del archivo"))
+        .ok_or_else(|| bad("a block points outside the file"))
 }
 
 fn u32_at(data: &[u8], at: usize) -> Result<usize, Error> {
@@ -107,10 +107,10 @@ fn u64_at(data: &[u8], at: usize) -> Result<usize, Error> {
     let b = slice(data, at, 8)?;
     let mut raw = [0u8; 8];
     raw.copy_from_slice(b);
-    usize::try_from(u64::from_le_bytes(raw)).map_err(|_| bad("offset fuera de rango"))
+    usize::try_from(u64::from_le_bytes(raw)).map_err(|_| bad("offset out of range"))
 }
 
-/// Un contenedor con la cabecera ya validada.
+/// A container whose header has already been validated.
 struct Layout<'a> {
     data: &'a [u8],
     header_len: usize,
@@ -126,30 +126,30 @@ impl<'a> Layout<'a> {
             return Err(Error::NotKfx);
         }
         if data.len() < CONT_MIN_HEADER {
-            return Err(bad("cabecera truncada"));
+            return Err(bad("truncated header"));
         }
         let header_len = u32_at(data, 6)?;
         if header_len < CONT_MIN_HEADER || header_len > data.len() {
-            return Err(bad("longitud de cabecera fuera de rango"));
+            return Err(bad("header length out of range"));
         }
         let info_bytes = slice(data, u32_at(data, 10)?, u32_at(data, 14)?)?;
         let info = ion::parse(info_bytes)
-            .map_err(|e| bad(&format!("container_info ilegible: {e}")))?
+            .map_err(|e| bad(&format!("unreadable container_info: {e}")))?
             .into_iter()
             .next()
-            .ok_or_else(|| bad("container_info vacío"))?;
+            .ok_or_else(|| bad("empty container_info"))?;
         Ok(Layout { data, header_len, info })
     }
 
     fn info_usize(&self, sid: u32) -> Result<usize, Error> {
         match self.info.field(sid).map(Ion::unannotated) {
             None | Some(Ion::Null) => Ok(0),
-            Some(Ion::Int(n)) => usize::try_from(*n).map_err(|_| bad("offset negativo en container_info")),
-            Some(_) => Err(bad("container_info con un campo que no es entero")),
+            Some(Ion::Int(n)) => usize::try_from(*n).map_err(|_| bad("negative offset in container_info")),
+            Some(_) => Err(bad("container_info has a field that is not an integer")),
         }
     }
 
-    /// Los símbolos locales del documento, si este contenedor los trae.
+    /// The document's local symbols, if this container carries them.
     fn load_symbols(&self, into: &mut Fragments) -> Result<(), Error> {
         let len = self.info_usize(INFO_SYMBOLS_LENGTH)?;
         if len == 0 || into.symbols_loaded {
@@ -157,12 +157,12 @@ impl<'a> Layout<'a> {
         }
         let bytes = slice(self.data, self.info_usize(INFO_SYMBOLS_OFFSET)?, len)?;
         let table = ion::parse(bytes)
-            .map_err(|e| bad(&format!("tabla de símbolos ilegible: {e}")))?
+            .map_err(|e| bad(&format!("unreadable symbol table: {e}")))?
             .into_iter()
             .next()
-            .ok_or_else(|| bad("tabla de símbolos vacía"))?;
+            .ok_or_else(|| bad("empty symbol table"))?;
 
-        // En el archivo, `max_id` cuenta también los símbolos de sistema.
+        // In the file, `max_id` also counts the system symbols.
         let shared = match table.field(SID_IMPORTS).map(Ion::unannotated) {
             Some(Ion::List(imports)) => imports
                 .iter()
@@ -196,7 +196,7 @@ impl<'a> Layout<'a> {
         }
         let index = slice(self.data, self.info_usize(INFO_INDEX_OFFSET)?, len)?;
         if index.len() % INDEX_RECORD != 0 {
-            return Err(bad("tabla de entidades con tamaño incorrecto"));
+            return Err(bad("entity table of the wrong size"));
         }
         for record in index.as_chunks::<INDEX_RECORD>().0 {
             let id = u32_at(record, 0)? as u32;
@@ -204,7 +204,7 @@ impl<'a> Layout<'a> {
             let start = self
                 .header_len
                 .checked_add(u64_at(record, 8)?)
-                .ok_or_else(|| bad("offset de entidad fuera de rango"))?;
+                .ok_or_else(|| bad("entity offset out of range"))?;
             let bytes = slice(self.data, start, u64_at(record, 16)?)?;
             let fragment = entity(bytes, id, ftype, &into.symbols)?;
             into.items.push(fragment);
@@ -215,11 +215,11 @@ impl<'a> Layout<'a> {
 
 fn entity(bytes: &[u8], id: u32, ftype: u32, symbols: &SymbolTable) -> Result<Fragment, Error> {
     if !bytes.starts_with(ENTY_SIGNATURE) || bytes.len() < ENTY_MIN_HEADER {
-        return Err(bad("entidad sin firma ENTY"));
+        return Err(bad("entity without the ENTY signature"));
     }
     let header_len = u32_at(bytes, 6)?;
     if header_len < ENTY_MIN_HEADER || header_len > bytes.len() {
-        return Err(bad("cabecera de entidad fuera de rango"));
+        return Err(bad("entity header out of range"));
     }
     let payload = &bytes[header_len..];
     let name = |sid: u32| symbols.name(sid).map_or_else(|| format!("${sid}"), str::to_string);
@@ -229,7 +229,7 @@ fn entity(bytes: &[u8], id: u32, ftype: u32, symbols: &SymbolTable) -> Result<Fr
     let value = if RAW_TYPES.contains(&ftype) {
         FragmentValue::Raw(payload.to_vec())
     } else {
-        let parsed = ion::parse(payload)?.into_iter().next().ok_or_else(|| bad("entidad sin contenido"))?;
+        let parsed = ion::parse(payload)?.into_iter().next().ok_or_else(|| bad("entity with no content"))?;
         FragmentValue::Ion(match parsed {
             Ion::Annotated(annots, inner) if id == SINGLETON_ID && annots.contains(&ftype) => *inner,
             other => other,
@@ -238,14 +238,14 @@ fn entity(bytes: &[u8], id: u32, ftype: u32, symbols: &SymbolTable) -> Result<Fr
     Ok(Fragment { ftype: type_name, fid, value })
 }
 
-/// Lee un contenedor `CONT` y añade sus fragmentos.
+/// Reads a `CONT` container and adds its fragments.
 pub fn read_container(bytes: &[u8], into: &mut Fragments) -> Result<(), Error> {
     let layout = Layout::parse(bytes)?;
     layout.load_symbols(into)?;
     layout.load_entities(into)
 }
 
-/// Abre un `.kfx-zip` (todas sus entradas `CONT`) o un contenedor KFX suelto.
+/// Opens a `.kfx-zip` (all of its `CONT` entries) or a single KFX container.
 pub fn open(path: &Path) -> Result<Fragments, Error> {
     let data = std::fs::read(path)?;
     let mut fragments = Fragments::new();
@@ -254,7 +254,7 @@ pub fn open(path: &Path) -> Result<Fragments, Error> {
         return Ok(fragments);
     }
 
-    let bad_zip = |e: zip::result::ZipError| bad(&format!("zip no válido: {e}"));
+    let bad_zip = |e: zip::result::ZipError| bad(&format!("invalid zip: {e}"));
     let mut archive = zip::ZipArchive::new(std::io::Cursor::new(&data)).map_err(bad_zip)?;
     let mut containers: Vec<Vec<u8>> = Vec::new();
     for i in 0..archive.len() {
@@ -275,8 +275,8 @@ pub fn open(path: &Path) -> Result<Fragments, Error> {
         return Err(Error::NotKfx);
     }
 
-    // Los símbolos del documento pueden venir en cualquier contenedor: primero se cargan
-    // todos, y solo después se resuelven los nombres de las entidades.
+    // The document symbols can come in any container: all of them are loaded first, and
+    // only then are the entity names resolved.
     let layouts = containers.iter().map(|c| Layout::parse(c)).collect::<Result<Vec<_>, _>>()?;
     for layout in &layouts {
         layout.load_symbols(&mut fragments)?;
@@ -329,10 +329,10 @@ mod tests {
         let f = read(&sample()).unwrap();
         assert_eq!(f.items.len(), 2);
 
-        let section = f.get("$260", "sec1").expect("sección");
+        let section = f.get("$260", "sec1").expect("the section fragment");
         assert_eq!(section.value, FragmentValue::Ion(st(vec![(174, sym(FIRST_LOCAL))])));
 
-        let image = f.get("$417", "img1").expect("recurso crudo");
+        let image = f.get("$417", "img1").expect("the raw resource");
         assert_eq!(image.value, FragmentValue::Raw(vec![0xFF, 0xD8, 0xFF, 0x00, 0x01]));
 
         assert_eq!(f.of_type("$260").count(), 1);
@@ -343,11 +343,11 @@ mod tests {
 
     #[test]
     fn singleton_fragments_take_their_type_as_id() {
-        // id $348 y valor anotado con su propio tipo: el fragmento se identifica por el tipo.
+        // id $348 and a value annotated with its own type: the fragment is identified by the type.
         let value = Ion::Annotated(vec![538], Box::new(st(vec![(169, list(vec![]))])));
         let bytes = build_container(&[], &[TestEntity { id: 348, ftype: 538, payload: ion_doc(&value) }]);
         let f = read(&bytes).unwrap();
-        let frag = f.get("$538", "$538").expect("fragmento único");
+        let frag = f.get("$538", "$538").expect("the singleton fragment");
         assert_eq!(frag.value, FragmentValue::Ion(st(vec![(169, list(vec![]))])));
     }
 
@@ -399,7 +399,7 @@ mod tests {
     fn every_truncation_fails_cleanly() {
         let bytes = sample();
         for len in 0..bytes.len() {
-            assert!(read(&bytes[..len]).is_err(), "truncado a {len} bytes debería fallar");
+            assert!(read(&bytes[..len]).is_err(), "truncated to {len} bytes, it should fail");
         }
     }
 
@@ -418,11 +418,11 @@ mod tests {
         let path = tmp.path().join("book.kfx-zip");
         let main = build_container(&[], &sample_entities()[..1]);
         let meta = build_container(&["sec1", "img1"], &sample_entities()[1..]);
-        write_zip(&path, &[("book.azw", main), ("notes.txt", b"hola".to_vec()), ("book.azw.md", meta)]);
+        write_zip(&path, &[("book.azw", main), ("notes.txt", b"hello".to_vec()), ("book.azw.md", meta)]);
 
         let f = open(&path).unwrap();
         assert_eq!(f.items.len(), 2);
-        assert!(f.get("$260", "sec1").is_some(), "los símbolos del segundo contenedor deben valer para el primero");
+        assert!(f.get("$260", "sec1").is_some(), "the symbols of the second container must apply to the first");
         assert!(f.get("$417", "img1").is_some());
     }
 
@@ -446,11 +446,11 @@ mod tests {
     fn files_that_are_not_books_are_rejected() {
         let tmp = tempfile::tempdir().unwrap();
         let text = tmp.path().join("a.txt");
-        std::fs::write(&text, b"hola, esto no es un libro").unwrap();
+        std::fs::write(&text, b"hello, this is not a book").unwrap();
         assert!(matches!(open(&text), Err(Error::NotKfx)));
 
         let empty_zip = tmp.path().join("b.zip");
-        write_zip(&empty_zip, &[("readme.txt", b"nada".to_vec())]);
+        write_zip(&empty_zip, &[("readme.txt", b"nothing".to_vec())]);
         assert!(matches!(open(&empty_zip), Err(Error::NotKfx)));
 
         assert!(matches!(open(&tmp.path().join("missing.kfx")), Err(Error::Io(_))));

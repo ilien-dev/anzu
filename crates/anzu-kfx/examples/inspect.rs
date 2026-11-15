@@ -1,5 +1,5 @@
-//! Verificación manual: estructura de los fragmentos de un tipo, sin volcar el texto del libro.
-//! uso: inspect <archivo> <tipo, p. ej. $260> [cuántos] [profundidad]
+//! Manual check: structure of the fragments of one type, without dumping the book's text.
+//! usage: inspect <file> <type, e.g. $260> [how many] [depth]
 use anzu_kfx::container::{self, FragmentValue};
 use anzu_kfx::ion::Ion;
 use anzu_kfx::symbols::SymbolTable;
@@ -15,7 +15,7 @@ fn show(v: &Ion, symbols: &SymbolTable, indent: usize, depth: usize, mask_all: b
     match v {
         Ion::Struct(fields) => {
             if depth == 0 {
-                println!("{pad}{{…{} campos}}", fields.len());
+                println!("{pad}{{…{} fields}}", fields.len());
                 return;
             }
             for (sid, value) in fields {
@@ -30,7 +30,7 @@ fn show(v: &Ion, symbols: &SymbolTable, indent: usize, depth: usize, mask_all: b
         }
         Ion::List(items) | Ion::Sexp(items) => {
             if depth == 0 {
-                println!("{pad}[…{} elementos]", items.len());
+                println!("{pad}[…{} items]", items.len());
                 return;
             }
             let shown = items.len().min(4);
@@ -44,7 +44,7 @@ fn show(v: &Ion, symbols: &SymbolTable, indent: usize, depth: usize, mask_all: b
                 }
             }
             if items.len() > shown {
-                println!("{pad}… y {} más", items.len() - shown);
+                println!("{pad}… and {} more", items.len() - shown);
             }
         }
         Ion::Annotated(annots, inner) => {
@@ -59,7 +59,7 @@ fn show(v: &Ion, symbols: &SymbolTable, indent: usize, depth: usize, mask_all: b
 fn scalar(v: &Ion, symbols: &SymbolTable, mask_all: bool) -> String {
     match v {
         Ion::Symbol(s) => format!("'{}'", name(symbols, *s)),
-        Ion::String(s) if mask_all || s.chars().count() > MAX_STRING => format!("<texto de {} caracteres>", s.chars().count()),
+        Ion::String(s) if mask_all || s.chars().count() > MAX_STRING => format!("<text of {} characters>", s.chars().count()),
         Ion::String(s) => format!("{s:?}"),
         Ion::Blob(b) | Ion::Clob(b) => format!("<{} bytes>", b.len()),
         Ion::Annotated(annots, inner) => {
@@ -72,19 +72,19 @@ fn scalar(v: &Ion, symbols: &SymbolTable, mask_all: bool) -> String {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let path = args.get(1).expect("uso: inspect <archivo> <tipo> [cuántos] [profundidad]");
-    let ftype = args.get(2).expect("falta el tipo");
+    let path = args.get(1).expect("usage: inspect <file> <type> [how many] [depth]");
+    let ftype = args.get(2).expect("the type is missing");
     let count: usize = args.get(3).and_then(|n| n.parse().ok()).unwrap_or(1);
     let depth: usize = args.get(4).and_then(|n| n.parse().ok()).unwrap_or(6);
 
-    let fragments = container::open(std::path::Path::new(path)).expect("no se pudo abrir");
-    // El tipo $145 guarda la prosa del libro: se enmascara siempre.
+    let fragments = container::open(std::path::Path::new(path)).expect("could not open the file");
+    // Type $145 holds the book's prose: it is always masked.
     let mask_all = ftype == "$145";
     for f in fragments.of_type(ftype).take(count) {
         println!("== {} {}", f.ftype, f.fid);
         match &f.value {
             FragmentValue::Ion(v) => show(v, &fragments.symbols, 1, depth, mask_all),
-            FragmentValue::Raw(b) => println!("  <{} bytes en bruto>", b.len()),
+            FragmentValue::Raw(b) => println!("  <{} raw bytes>", b.len()),
         }
     }
 }

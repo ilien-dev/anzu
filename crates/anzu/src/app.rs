@@ -1,4 +1,4 @@
-//! Estado de la app y las reglas que no dependen de la interfaz.
+//! App state and the rules that do not depend on the interface.
 
 use anzu_core::compat::{self, Compat};
 use anzu_core::kindle::KindleInstall;
@@ -6,7 +6,7 @@ use anzu_core::library::{Book, BookState};
 use anzu_core::releases::Release;
 use anzu_core::{Error, KindleVersion};
 
-/// Si el sistema está en condiciones de desbloquear.
+/// Whether the system is in a state where unlocking is allowed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Health {
     Checking,
@@ -14,6 +14,7 @@ pub enum Health {
     Blocked(BlockReason),
 }
 
+/// Why unlocking is blocked. The text shown for each lives in `i18n`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlockReason {
     KindleMissing,
@@ -23,59 +24,6 @@ pub enum BlockReason {
     BadDownload,
     TooNew { kindle: String, max_supported: String },
     Unknown,
-}
-
-impl BlockReason {
-    /// Título y explicación para mostrar al usuario.
-    pub fn message(&self) -> (String, String) {
-        let (title, body) = match self {
-            BlockReason::KindleMissing => (
-                "No se encontró la app Kindle",
-                "Instala «Amazon Kindle» desde Microsoft Store, inicia sesión y descarga tus libros. \
-                 Después pulsa «Volver a comprobar»."
-                    .to_string(),
-            ),
-            BlockReason::Offline => (
-                "Sin conexión",
-                "No se pudo consultar la última versión de la herramienta de desbloqueo. Sin esa comprobación \
-                 no se desbloquea nada. Los libros ya desbloqueados se pueden convertir igualmente."
-                    .to_string(),
-            ),
-            BlockReason::RateLimited => (
-                "GitHub ha limitado las consultas",
-                "Se hicieron demasiadas consultas en poco tiempo. Espera unos minutos y pulsa \
-                 «Volver a comprobar»."
-                    .to_string(),
-            ),
-            BlockReason::NoDigest => (
-                "La descarga no se puede verificar",
-                "La última publicación de la herramienta no trae huella SHA-256, así que no hay forma de \
-                 comprobar que el archivo es el original. Por seguridad no se ejecutará."
-                    .to_string(),
-            ),
-            BlockReason::BadDownload => (
-                "La descarga no coincide con la original",
-                "La huella del archivo descargado no es la que publica GitHub. Puede ser una descarga \
-                 corrupta o manipulada, y no se ejecutará. Pulsa «Volver a comprobar» para intentarlo de nuevo."
-                    .to_string(),
-            ),
-            BlockReason::TooNew { kindle, max_supported } => (
-                "Tu app Kindle es más nueva que la herramienta de desbloqueo",
-                format!(
-                    "Tienes Kindle {kindle} y la herramienta admite hasta la versión {max_supported}. \
-                     No se intentará desbloquear nada hasta que exista una versión compatible; \
-                     se descargará sola en cuanto se publique."
-                ),
-            ),
-            BlockReason::Unknown => (
-                "No se puede confirmar la compatibilidad",
-                "No fue posible determinar si la herramienta admite tu versión de Kindle. \
-                 Ante la duda, el desbloqueo queda bloqueado."
-                    .to_string(),
-            ),
-        };
-        (title.to_string(), body)
-    }
 }
 
 fn evaluate(
@@ -104,8 +52,8 @@ fn evaluate(
     }
 }
 
-/// Por qué no se puede desbloquear, o `None` si todo está en orden.
-#[cfg_attr(not(test), allow(dead_code))] // la app usa `health`; esto queda como consulta directa
+/// Why unlocking is not allowed, or `None` when everything is in order.
+#[cfg_attr(not(test), allow(dead_code))] // the app uses `health`; this stays as a direct query
 pub fn block_reason(
     kindle: Option<&KindleInstall>,
     release: Result<&Release, &Error>,
@@ -121,7 +69,7 @@ pub fn health(kindle: Option<&KindleInstall>, release: Result<&Release, &Error>,
     }
 }
 
-/// Un libro con DRM solo se puede elegir si el sistema está listo para desbloquear.
+/// A book with DRM can only be picked when the system is ready to unlock.
 pub fn selectable(state: BookState, ready: bool) -> bool {
     ready || state != BookState::Locked
 }
@@ -129,7 +77,7 @@ pub fn selectable(state: BookState, ready: bool) -> bool {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunPlan {
     pub needs_unlock: bool,
-    /// Libros que se procesarán, en el orden de la biblioteca.
+    /// The books to process, in library order.
     pub asins: Vec<String>,
 }
 
@@ -138,23 +86,6 @@ pub fn plan_run(books: &[Book], selected: &[String]) -> RunPlan {
     RunPlan {
         needs_unlock: chosen.iter().any(|b| b.state == BookState::Locked),
         asins: chosen.iter().map(|b| b.asin.clone()).collect(),
-    }
-}
-
-pub fn action_label(plan: &RunPlan) -> &'static str {
-    if plan.needs_unlock { "Desbloquear y convertir" } else { "Convertir" }
-}
-
-/// Tamaño legible, con coma decimal.
-pub fn human_size(bytes: u64) -> String {
-    const KB: f64 = 1024.0;
-    let value = bytes as f64;
-    if value < KB * KB {
-        format!("{} KB", (value / KB).floor())
-    } else if value < KB * KB * KB {
-        format!("{:.1} MB", value / (KB * KB)).replace('.', ",")
-    } else {
-        format!("{:.1} GB", value / (KB * KB * KB)).replace('.', ",")
     }
 }
 
@@ -184,19 +115,11 @@ mod tests {
     }
 
     fn book(asin: &str, state: BookState) -> Book {
-        Book {
-            asin: asin.into(),
-            title: None,
-            source: PathBuf::from("x.azw"),
-            size: 1,
-            state,
-            unlocked: None,
-            epub: None,
-        }
+        Book { asin: asin.into(), title: None, source: PathBuf::from("x.azw"), size: 1, state, unlocked: None, epub: None }
     }
 
     #[test]
-    fn this_machine_is_ready() {
+    fn a_supported_kindle_with_a_verified_tool_is_ready() {
         let k = kindle("1.1.5634.0");
         let r = release(Some("abc"));
         assert_eq!(block_reason(Some(&k), Ok(&r), &names()), None);
@@ -220,7 +143,7 @@ mod tests {
     #[test]
     fn network_problems_block() {
         let k = kindle("1.1.5634.0");
-        assert_eq!(block_reason(Some(&k), Err(&Error::Network("sin red".into())), &[]), Some(BlockReason::Offline));
+        assert_eq!(block_reason(Some(&k), Err(&Error::Network("offline".into())), &[]), Some(BlockReason::Offline));
         assert_eq!(block_reason(Some(&k), Err(&Error::RateLimited), &[]), Some(BlockReason::RateLimited));
         assert_eq!(block_reason(Some(&k), Err(&Error::NoRelease), &[]), Some(BlockReason::Unknown));
     }
@@ -253,33 +176,12 @@ mod tests {
     }
 
     #[test]
-    fn every_block_reason_explains_itself() {
-        let reasons = [
-            BlockReason::KindleMissing,
-            BlockReason::Offline,
-            BlockReason::RateLimited,
-            BlockReason::NoDigest,
-            BlockReason::BadDownload,
-            BlockReason::TooNew { kindle: "1.1.6000.0".into(), max_supported: "1.1.5634".into() },
-            BlockReason::Unknown,
-        ];
-        let mut titles = std::collections::HashSet::new();
-        for reason in &reasons {
-            let (title, body) = reason.message();
-            assert!(!title.is_empty() && !body.is_empty(), "{reason:?}");
-            assert!(titles.insert(title.clone()), "título repetido: {title}");
-        }
-        let (_, body) = reasons[5].message();
-        assert!(body.contains("1.1.6000.0") && body.contains("1.1.5634"), "{body}");
-    }
-
-    #[test]
     fn locked_books_need_a_ready_system() {
         assert!(selectable(BookState::Locked, true));
         assert!(!selectable(BookState::Locked, false));
         for ready in [true, false] {
             assert!(selectable(BookState::Unlocked, ready));
-            assert!(selectable(BookState::Converted, ready), "se puede volver a convertir");
+            assert!(selectable(BookState::Converted, ready), "a book can be converted again");
         }
     }
 
@@ -299,19 +201,5 @@ mod tests {
         let selected: Vec<String> = vec!["GONE".into(), "A".into()];
         assert_eq!(plan_run(&books, &selected), RunPlan { needs_unlock: false, asins: vec!["A".into()] });
         assert_eq!(plan_run(&books, &[]), RunPlan { needs_unlock: false, asins: vec![] });
-    }
-
-    #[test]
-    fn action_label_says_what_will_happen() {
-        assert_eq!(action_label(&RunPlan { needs_unlock: true, asins: vec!["A".into()] }), "Desbloquear y convertir");
-        assert_eq!(action_label(&RunPlan { needs_unlock: false, asins: vec!["A".into()] }), "Convertir");
-    }
-
-    #[test]
-    fn sizes_are_readable() {
-        assert_eq!(human_size(0), "0 KB");
-        assert_eq!(human_size(871_790), "851 KB");
-        assert_eq!(human_size(2_973_494), "2,8 MB");
-        assert_eq!(human_size(1_500_000_000), "1,4 GB");
     }
 }

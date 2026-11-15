@@ -1,39 +1,38 @@
-//! Argumentos de la línea de comandos.
+//! Command-line arguments.
 
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
-    /// Sin argumentos: abre la interfaz.
+    /// No arguments: open the window.
     Gui,
     Convert { input: PathBuf, out_dir: Option<PathBuf> },
     Help,
     Version,
 }
 
-pub const USAGE: &str = "\
-Anzu: de Kindle a EPUB
+/// What was wrong with the arguments. The text for each lives in `i18n`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CliError {
+    UnknownCommand(String),
+    UnknownOption(String),
+    /// An option that needs a value came last.
+    MissingValue(String),
+    MissingInput,
+    TooManyInputs,
+}
 
-Uso:
-  anzu                              Abre la interfaz
-  anzu convert <archivo> [-o <carpeta>]
-                                      Convierte un KFX sin DRM (.kfx-zip) a EPUB
-  anzu --help | --version
-
-Opciones de convert:
-  -o, --output <carpeta>              Dónde guardar el EPUB (por defecto, la carpeta actual)";
-
-pub fn parse(args: &[String]) -> Result<Command, String> {
+pub fn parse(args: &[String]) -> Result<Command, CliError> {
     let Some((first, rest)) = args.split_first() else { return Ok(Command::Gui) };
     match first.as_str() {
         "-h" | "--help" => Ok(Command::Help),
         "-V" | "--version" => Ok(Command::Version),
         "convert" => parse_convert(rest),
-        other => Err(format!("orden desconocida: {other}")),
+        other => Err(CliError::UnknownCommand(other.to_string())),
     }
 }
 
-fn parse_convert(args: &[String]) -> Result<Command, String> {
+fn parse_convert(args: &[String]) -> Result<Command, CliError> {
     let mut input: Option<PathBuf> = None;
     let mut out_dir = None;
     let mut only_files = false;
@@ -47,20 +46,20 @@ fn parse_convert(args: &[String]) -> Result<Command, String> {
                 }
                 "-h" | "--help" => return Ok(Command::Help),
                 "-o" | "--output" => {
-                    let dir = rest.next().ok_or_else(|| format!("falta la carpeta después de {arg}"))?;
+                    let dir = rest.next().ok_or_else(|| CliError::MissingValue(arg.clone()))?;
                     out_dir = Some(PathBuf::from(dir));
                     continue;
                 }
-                flag if flag.len() > 1 && flag.starts_with('-') => return Err(format!("opción desconocida: {flag}")),
+                flag if flag.len() > 1 && flag.starts_with('-') => return Err(CliError::UnknownOption(flag.to_string())),
                 _ => {}
             }
         }
         if input.is_some() {
-            return Err("solo se puede convertir un archivo cada vez".to_string());
+            return Err(CliError::TooManyInputs);
         }
         input = Some(PathBuf::from(arg));
     }
-    let input = input.ok_or_else(|| "falta el archivo que convertir".to_string())?;
+    let input = input.ok_or(CliError::MissingInput)?;
     Ok(Command::Convert { input, out_dir })
 }
 
@@ -80,17 +79,17 @@ mod tests {
     #[test]
     fn convert_takes_an_input_file() {
         assert_eq!(
-            parse(&args(&["convert", "libro.kfx-zip"])),
-            Ok(Command::Convert { input: PathBuf::from("libro.kfx-zip"), out_dir: None })
+            parse(&args(&["convert", "book.kfx-zip"])),
+            Ok(Command::Convert { input: PathBuf::from("book.kfx-zip"), out_dir: None })
         );
     }
 
     #[test]
     fn output_folder_can_go_before_or_after_the_input() {
-        let expected = Ok(Command::Convert { input: PathBuf::from("a.kfx"), out_dir: Some(PathBuf::from("salida")) });
-        assert_eq!(parse(&args(&["convert", "a.kfx", "-o", "salida"])), expected);
-        assert_eq!(parse(&args(&["convert", "-o", "salida", "a.kfx"])), expected);
-        assert_eq!(parse(&args(&["convert", "a.kfx", "--output", "salida"])), expected);
+        let expected = Ok(Command::Convert { input: PathBuf::from("a.kfx"), out_dir: Some(PathBuf::from("out")) });
+        assert_eq!(parse(&args(&["convert", "a.kfx", "-o", "out"])), expected);
+        assert_eq!(parse(&args(&["convert", "-o", "out", "a.kfx"])), expected);
+        assert_eq!(parse(&args(&["convert", "a.kfx", "--output", "out"])), expected);
     }
 
     #[test]
@@ -102,26 +101,21 @@ mod tests {
     }
 
     #[test]
-    fn mistakes_are_explained() {
-        for bad in [
-            &["convert"][..],
-            &["convert", "-o", "salida"],
-            &["convert", "a.kfx", "-o"],
-            &["convert", "a.kfx", "b.kfx"],
-            &["convert", "a.kfx", "--nope"],
-            &["explode"],
-            &["a.kfx"],
-        ] {
-            let result = parse(&args(bad));
-            assert!(matches!(&result, Err(message) if !message.is_empty()), "{bad:?} -> {result:?}");
-        }
+    fn each_mistake_is_named() {
+        assert_eq!(parse(&args(&["convert"])), Err(CliError::MissingInput));
+        assert_eq!(parse(&args(&["convert", "-o", "out"])), Err(CliError::MissingInput));
+        assert_eq!(parse(&args(&["convert", "a.kfx", "-o"])), Err(CliError::MissingValue("-o".into())));
+        assert_eq!(parse(&args(&["convert", "a.kfx", "b.kfx"])), Err(CliError::TooManyInputs));
+        assert_eq!(parse(&args(&["convert", "a.kfx", "--nope"])), Err(CliError::UnknownOption("--nope".into())));
+        assert_eq!(parse(&args(&["explode"])), Err(CliError::UnknownCommand("explode".into())));
+        assert_eq!(parse(&args(&["a.kfx"])), Err(CliError::UnknownCommand("a.kfx".into())));
     }
 
     #[test]
-    fn a_file_name_that_starts_with_a_dash_needs_no_special_syntax_after_the_flags() {
+    fn a_file_name_that_starts_with_a_dash_goes_after_a_double_dash() {
         assert_eq!(
-            parse(&args(&["convert", "--", "-raro.kfx"])),
-            Ok(Command::Convert { input: PathBuf::from("-raro.kfx"), out_dir: None })
+            parse(&args(&["convert", "--", "-odd.kfx"])),
+            Ok(Command::Convert { input: PathBuf::from("-odd.kfx"), out_dir: None })
         );
     }
 }

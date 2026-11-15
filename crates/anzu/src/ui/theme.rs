@@ -1,17 +1,17 @@
-//! Colores, tipografía y estilo de la interfaz, en claro y en oscuro.
+//! Colours, type and style of the interface, light and dark.
 
 use std::sync::Arc;
 
 use anzu_core::settings::ThemeChoice;
 use eframe::egui::{self, Color32, CornerRadius, FontFamily, FontId, RichText, Stroke};
 
-/// Ancho máximo del contenido: en monitores grandes queda centrado, no estirado.
+/// Maximum width of the content: on large monitors it stays centred, not stretched.
 pub const MAX_WIDTH: f32 = 1160.0;
 pub const RADIUS: CornerRadius = CornerRadius::same(3);
 pub const BODY: f32 = 13.0;
 pub const SMALL: f32 = 11.0;
 
-const BOLD_FAMILY: &str = "negrita";
+const BOLD_FAMILY: &str = "bold";
 
 #[derive(Debug, Clone, Copy)]
 pub struct Palette {
@@ -22,7 +22,7 @@ pub struct Palette {
     pub muted: Color32,
     pub accent: Color32,
     pub on_accent: Color32,
-    /// La banda de cabecera, oscura en ambos temas.
+    /// The header band, dark in both themes.
     pub shell: Color32,
     pub on_shell: Color32,
     pub shell_muted: Color32,
@@ -42,7 +42,7 @@ const fn rgb(hex: u32) -> Color32 {
     Color32::from_rgb((hex >> 16) as u8, (hex >> 8) as u8, hex as u8)
 }
 
-/// «Papel frío»: blanco frío y tinta. El ámbar solo aparece como acento.
+/// "Cold paper": cool white and ink. Amber only ever appears as the accent.
 pub const LIGHT: Palette = Palette {
     bg: rgb(0xF3F5F7),
     panel: rgb(0xFFFFFF),
@@ -89,12 +89,12 @@ pub const DARK: Palette = Palette {
     log_bg: rgb(0x0A0B08),
 };
 
-/// Colores del icono de la ventana: la tinta de la cabecera con el logotipo en ámbar.
+/// Colours of the window icon: the header ink with the logo in amber.
 pub const ICON_BACKGROUND: [u8; 3] = [0x14, 0x17, 0x1A];
 pub const ICON_MARK: [u8; 3] = [0xFF, 0xB0, 0x00];
 
 impl Palette {
-    /// La paleta del tema que está activo ahora mismo.
+    /// The palette of the theme that is active right now.
     pub fn of(ctx: &egui::Context) -> Palette {
         if ctx.theme() == egui::Theme::Dark { DARK } else { LIGHT }
     }
@@ -127,7 +127,7 @@ fn visuals(p: Palette, dark: bool) -> egui::Visuals {
     v
 }
 
-/// Registra la tipografía, los colores de ambos temas y el espaciado. Una vez, al arrancar.
+/// Registers the typeface, the colours of both themes and the spacing. Once, at start-up.
 pub fn install(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
     fonts.font_data.insert(
@@ -141,7 +141,7 @@ pub fn install(ctx: &egui::Context) {
     for family in [FontFamily::Proportional, FontFamily::Monospace] {
         fonts.families.entry(family).or_default().insert(0, "jetbrains-mono".to_owned());
     }
-    // La negrita cae a la regular para los caracteres que no tenga.
+    // Bold falls back to regular for the characters it lacks.
     fonts
         .families
         .insert(FontFamily::Name(BOLD_FAMILY.into()), vec!["jetbrains-mono-bold".to_owned(), "jetbrains-mono".to_owned()]);
@@ -165,7 +165,7 @@ pub fn install(ctx: &egui::Context) {
     });
 }
 
-/// Aplica la elección del usuario: seguir al sistema, o forzar claro u oscuro.
+/// Applies the user's choice: follow the system, or force light or dark.
 pub fn set_choice(ctx: &egui::Context, choice: ThemeChoice) {
     ctx.set_theme(match choice {
         ThemeChoice::System => egui::ThemePreference::System,
@@ -190,7 +190,7 @@ pub fn muted(p: Palette, text: impl Into<String>) -> RichText {
     RichText::new(text).color(p.muted)
 }
 
-/// Un panel con borde fino.
+/// A panel with a hairline border.
 pub fn panel(p: Palette) -> egui::Frame {
     egui::Frame::new()
         .fill(p.panel)
@@ -210,7 +210,7 @@ pub fn primary_button(p: Palette, label: &str) -> egui::Button<'static> {
         .min_size(egui::vec2(0.0, 38.0))
 }
 
-/// Un botón para la banda de cabecera, que es oscura en ambos temas.
+/// A button for the header band, which is dark in both themes.
 pub fn shell_button(p: Palette, label: &str, selected: bool) -> egui::Button<'static> {
     let (fill, text) = if selected { (p.shell_accent, p.on_shell_accent) } else { (p.shell, p.on_shell) };
     egui::Button::new(RichText::new(label.to_string()).color(text).size(12.0))
@@ -218,12 +218,12 @@ pub fn shell_button(p: Palette, label: &str, selected: bool) -> egui::Button<'st
         .stroke(Stroke::new(1.0, if selected { p.shell_accent } else { p.shell_line }))
 }
 
-/// Un fondo de banda sin borde, con el margen vertical dado.
+/// A borderless band background with the given vertical margin.
 pub fn band(fill: Color32, vertical: i8) -> egui::Frame {
     egui::Frame::new().fill(fill).inner_margin(egui::Margin::symmetric(24, vertical))
 }
 
-/// Coloca el contenido en una columna centrada de como mucho [`MAX_WIDTH`].
+/// Lays the content out in a centred column of at most [`MAX_WIDTH`].
 pub fn centered<R>(ui: &mut egui::Ui, add: impl FnOnce(&mut egui::Ui) -> R) -> R {
     let full = ui.available_width();
     let width = full.min(MAX_WIDTH);

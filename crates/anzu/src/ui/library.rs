@@ -1,11 +1,12 @@
-//! Pantalla principal: estado del sistema, tabla de libros y acción.
+//! Main screen: system status, the book table and the action.
 
 use anzu_core::library::BookState;
-use anzu_core::settings::ThemeChoice;
+use anzu_core::settings::{Language, ThemeChoice};
 use eframe::egui::{self, Align, Align2, Layout, Pos2, Rect, RichText, Sense, Stroke};
 
 use super::{AnzuApp, Column, Filter, Sort, blocked, icons, theme};
-use crate::app::{self, Health, RunPlan};
+use crate::app::{self, Health};
+use crate::i18n::Strings;
 
 const HEAD_HEIGHT: f32 = 34.0;
 const ROW_HEIGHT: f32 = 40.0;
@@ -43,15 +44,6 @@ fn sort_rows(rows: &mut [Row], sort: Sort) {
     });
 }
 
-/// El texto del botón principal: dice qué va a pasar y con cuántos libros.
-fn run_label(plan: &RunPlan) -> String {
-    match plan.asins.len() {
-        0 => app::action_label(plan).to_string(),
-        1 => format!("{} 1 libro", app::action_label(plan)),
-        n => format!("{} {n} libros", app::action_label(plan)),
-    }
-}
-
 struct Cells {
     check: Rect,
     title: Rect,
@@ -77,50 +69,62 @@ fn cells(row: Rect) -> Cells {
 
 pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui) {
     let p = theme::Palette::of(ui.ctx());
-    egui::Panel::top("cabecera").frame(theme::band(p.shell, 10)).show_separator_line(false).show(ui, |ui| {
-        theme::centered(ui, |ui| header(app, ui, p));
+    let t = app.t();
+    egui::Panel::top("header").frame(theme::band(p.shell, 10)).show_separator_line(false).show(ui, |ui| {
+        theme::centered(ui, |ui| header(app, ui, p, t));
     });
-    egui::Panel::bottom("pie").frame(theme::band(p.bg, 12)).show_separator_line(false).show(ui, |ui| {
-        theme::centered(ui, |ui| footer(app, ui, p));
+    egui::Panel::bottom("footer").frame(theme::band(p.bg, 12)).show_separator_line(false).show(ui, |ui| {
+        theme::centered(ui, |ui| footer(app, ui, p, t));
     });
     egui::CentralPanel::default().frame(theme::band(p.bg, 12)).show(ui, |ui| {
         theme::centered(ui, |ui| {
-            status(app, ui, p);
+            status(app, ui, p, t);
             ui.add_space(6.0);
-            toolbar(app, ui, p);
-            table(app, ui, p);
+            toolbar(app, ui, p, t);
+            table(app, ui, p, t);
         });
     });
 }
 
-fn header(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
+fn header(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     ui.horizontal(|ui| {
-        AnzuApp::brand(ui, p);
+        AnzuApp::brand(ui, p, t);
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             let checking = app.health == Health::Checking;
-            let label = if checking { "Comprobando…" } else { "Volver a comprobar" };
+            let label = if checking { t.checking } else { t.recheck };
             if ui.add_enabled(!checking, theme::shell_button(p, label, false)).clicked() {
                 let ctx = ui.ctx().clone();
                 app.start_check(&ctx);
             }
             ui.add_space(10.0);
             ui.spacing_mut().item_spacing.x = 0.0;
-            // De derecha a izquierda: el primero que se añade queda más a la derecha.
-            for (choice, label) in
-                [(ThemeChoice::Dark, "Oscuro"), (ThemeChoice::Light, "Claro"), (ThemeChoice::System, "Sistema")]
-            {
+            // Right to left: the first one added ends up furthest right.
+            for (choice, label) in [
+                (ThemeChoice::Dark, t.theme_dark),
+                (ThemeChoice::Light, t.theme_light),
+                (ThemeChoice::System, t.theme_system),
+            ] {
                 if ui.add(theme::shell_button(p, label, app.settings.theme == choice)).clicked() {
                     let ctx = ui.ctx().clone();
                     app.set_theme(&ctx, choice);
                 }
             }
             ui.add_space(8.0);
-            ui.label(RichText::new("Tema").color(p.shell_muted).size(theme::SMALL));
+            ui.label(RichText::new(t.theme).color(p.shell_muted).size(theme::SMALL));
+            ui.add_space(14.0);
+            for (language, label) in [(Language::Es, "ES"), (Language::En, "EN")] {
+                if ui.add(theme::shell_button(p, label, app.settings.language == language)).clicked() {
+                    let ctx = ui.ctx().clone();
+                    app.set_language(&ctx, language);
+                }
+            }
+            ui.add_space(8.0);
+            ui.label(RichText::new(t.language).color(p.shell_muted).size(theme::SMALL));
         });
     });
 }
 
-fn status(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
+fn status(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     match app.health.clone() {
         Health::Blocked(reason) => blocked::show(app, ui, &reason),
         Health::Checking => {
@@ -128,7 +132,7 @@ fn status(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
                 ui.set_width(ui.available_width());
                 ui.horizontal(|ui| {
                     ui.spinner();
-                    ui.label("Comprobando la app Kindle y la última versión de la herramienta…");
+                    ui.label(t.checking_long);
                 });
             });
         }
@@ -138,11 +142,11 @@ fn status(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
                 ui.horizontal_wrapped(|ui| {
                     let (mark, _) = ui.allocate_exact_size(egui::vec2(14.0, 14.0), Sense::hover());
                     icons::check(ui.painter(), mark, p.ok);
-                    ui.label(theme::bold("Lista para desbloquear").color(p.ok));
+                    ui.label(theme::bold(t.ready).color(p.ok));
                     ui.add_space(14.0);
-                    fact(ui, p, "Kindle", &kindle.to_string());
-                    fact(ui, p, "Herramienta", &tool_tag);
-                    fact(ui, p, "Huella", "verificada");
+                    fact(ui, p, t.fact_kindle, &kindle.to_string());
+                    fact(ui, p, t.fact_tool, &tool_tag);
+                    fact(ui, p, t.fact_digest, t.verified);
                 });
             });
         }
@@ -155,13 +159,13 @@ fn fact(ui: &mut egui::Ui, p: theme::Palette, label: &str, value: &str) {
     ui.add_space(14.0);
 }
 
-fn toolbar(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
+fn toolbar(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     let count = |state: BookState| app.books.iter().filter(|b| b.state == state).count();
     let options = [
-        (Filter::All, format!("Todos {}", app.books.len())),
-        (Filter::Locked, format!("Con DRM {}", count(BookState::Locked))),
-        (Filter::Unlocked, format!("Desbloqueados {}", count(BookState::Unlocked))),
-        (Filter::Converted, format!("Convertidos {}", count(BookState::Converted))),
+        (Filter::All, format!("{} {}", t.filter_all, app.books.len())),
+        (Filter::Locked, format!("{} {}", t.filter_locked, count(BookState::Locked))),
+        (Filter::Unlocked, format!("{} {}", t.filter_unlocked, count(BookState::Unlocked))),
+        (Filter::Converted, format!("{} {}", t.filter_converted, count(BookState::Converted))),
     ];
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 4.0;
@@ -171,37 +175,27 @@ fn toolbar(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
             }
         }
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            let selected = app.selected.len();
-            let text = match selected {
-                0 => "Ninguno seleccionado".to_string(),
-                1 => "1 seleccionado".to_string(),
-                n => format!("{n} seleccionados"),
-            };
-            ui.label(theme::muted(p, text).size(theme::SMALL));
+            ui.label(theme::muted(p, t.selected(app.selected.len())).size(theme::SMALL));
         });
     });
 }
 
-fn empty_state(ui: &mut egui::Ui, p: theme::Palette) {
+fn empty_state(ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     theme::panel(p).inner_margin(egui::Margin::symmetric(20, 18)).show(ui, |ui| {
         ui.set_width(ui.available_width());
-        ui.label(theme::bold("Aún no hay libros que convertir").size(15.0));
+        ui.label(theme::bold(t.empty_title).size(15.0));
         ui.add_space(4.0);
-        for step in [
-            "1. Abre la app Kindle de Microsoft Store e inicia sesión.",
-            "2. Descarga en ella los libros que quieras convertir.",
-            "3. Vuelve aquí y pulsa «Volver a comprobar».",
-        ] {
+        for step in t.empty_steps {
             ui.label(step);
         }
         ui.add_space(4.0);
-        ui.label(theme::muted(p, "Anzu solo lee esa carpeta: nunca cambia ni borra tus libros de Kindle.").size(theme::SMALL));
+        ui.label(theme::muted(p, t.empty_note).size(theme::SMALL));
     });
 }
 
-fn table(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
+fn table(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     if app.books.is_empty() {
-        empty_state(ui, p);
+        empty_state(ui, p, t);
         return;
     }
 
@@ -214,7 +208,7 @@ fn table(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
             Filter::Unlocked => b.state == BookState::Unlocked,
             Filter::Converted => b.state == BookState::Converted,
         })
-        .map(|b| Row { asin: b.asin.clone(), title: AnzuApp::display_title(b), size: b.size, state: b.state })
+        .map(|b| Row { asin: b.asin.clone(), title: AnzuApp::display_title(b, t), size: b.size, state: b.state })
         .collect();
     sort_rows(&mut rows, app.sort);
 
@@ -223,32 +217,40 @@ fn table(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
     theme::panel(p).inner_margin(egui::Margin::ZERO).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.spacing_mut().item_spacing.y = 0.0;
-        table_head(app, ui, p, &rows, ready, busy);
+        table_head(app, ui, p, t, &rows, ready, busy);
         if rows.is_empty() {
             ui.add_space(14.0);
             ui.horizontal(|ui| {
                 ui.add_space(16.0);
-                ui.label(theme::muted(p, "No hay libros en este grupo."));
+                ui.label(theme::muted(p, t.empty_group));
             });
             ui.add_space(14.0);
             return;
         }
-        egui::ScrollArea::vertical().id_salt("libros").auto_shrink([false, true]).show(ui, |ui| {
+        egui::ScrollArea::vertical().id_salt("books").auto_shrink([false, true]).show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 0.0;
             for row in &rows {
-                table_row(app, ui, p, row, ready, busy);
+                table_row(app, ui, p, t, row, ready, busy);
             }
         });
     });
 }
 
-fn table_head(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, rows: &[Row], ready: bool, busy: bool) {
+fn table_head(
+    app: &mut AnzuApp,
+    ui: &mut egui::Ui,
+    p: theme::Palette,
+    t: &Strings,
+    rows: &[Row],
+    ready: bool,
+    busy: bool,
+) {
     let (rect, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), HEAD_HEIGHT), Sense::hover());
     let c = cells(rect);
     let painter = ui.painter().clone();
     painter.hline(rect.x_range(), rect.bottom(), Stroke::new(1.0, p.line));
 
-    // Casilla de "seleccionar todos" los que se pueden elegir.
+    // The box that selects every book that can be picked.
     let selectable: Vec<&String> =
         rows.iter().filter(|r| app::selectable(r.state, ready)).map(|r| &r.asin).collect();
     let all_selected = !selectable.is_empty() && selectable.iter().all(|a| app.selected.contains(a));
@@ -257,9 +259,9 @@ fn table_head(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, rows: &[R
     icons::checkbox(&painter, box_rect, all_selected, enabled, p);
     if enabled {
         let response = ui
-            .interact(c.check, ui.scope_id().with("todos"), Sense::click())
+            .interact(c.check, ui.scope_id().with("all"), Sense::click())
             .on_hover_cursor(egui::CursorIcon::PointingHand)
-            .on_hover_text(if all_selected { "Quitar la selección" } else { "Seleccionar todos" });
+            .on_hover_text(if all_selected { t.clear_selection } else { t.select_all });
         if response.clicked() {
             if all_selected {
                 app.selected.retain(|a| !selectable.contains(&a));
@@ -274,12 +276,12 @@ fn table_head(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, rows: &[R
     }
 
     let columns = [
-        (Column::Title, "TÍTULO", c.title, false),
-        (Column::Asin, "ASIN", c.asin, false),
-        (Column::Size, "TAMAÑO", c.size, true),
-        (Column::State, "ESTADO", c.state, false),
+        (Column::Title, t.col_title, c.title, false),
+        (Column::Asin, t.col_asin, c.asin, false),
+        (Column::Size, t.col_size, c.size, true),
+        (Column::State, t.col_state, c.state, false),
     ];
-    for (column, label, cell, right) in columns {
+    for (index, (column, label, cell, right)) in columns.into_iter().enumerate() {
         let active = app.sort.column == column;
         let color = if active { p.fg } else { p.muted };
         let (anchor, align) =
@@ -290,25 +292,24 @@ fn table_head(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, rows: &[R
             icons::sort_arrow(&painter, Pos2::new(x, cell.center().y), app.sort.ascending, p.accent);
         }
         let response = ui
-            .interact(cell, ui.scope_id().with(("columna", label)), Sense::click())
+            .interact(cell, ui.scope_id().with(("column", index)), Sense::click())
             .on_hover_cursor(egui::CursorIcon::PointingHand)
-            .on_hover_text("Ordenar por esta columna");
+            .on_hover_text(t.sort_hint);
         if response.clicked() {
             app.sort = Sort { column, ascending: if active { !app.sort.ascending } else { true } };
         }
     }
 }
 
-fn state_label(state: BookState, ready: bool) -> &'static str {
-    match state {
-        BookState::Locked if ready => "Con DRM",
-        BookState::Locked => "Con DRM, en espera",
-        BookState::Unlocked => "Desbloqueado",
-        BookState::Converted => "EPUB listo",
-    }
-}
-
-fn table_row(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, row: &Row, ready: bool, busy: bool) {
+fn table_row(
+    app: &mut AnzuApp,
+    ui: &mut egui::Ui,
+    p: theme::Palette,
+    t: &Strings,
+    row: &Row,
+    ready: bool,
+    busy: bool,
+) {
     let can_select = !busy && app::selectable(row.state, ready);
     let selected = app.selected.contains(&row.asin);
     let sense = if can_select { Sense::click() } else { Sense::hover() };
@@ -331,7 +332,7 @@ fn table_row(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, row: &Row,
 
     let small = theme::regular_font(12.0);
     painter.text(c.asin.left_center(), Align2::LEFT_CENTER, &row.asin, small.clone(), p.muted);
-    painter.text(c.size.right_center(), Align2::RIGHT_CENTER, app::human_size(row.size), small.clone(), p.muted);
+    painter.text(c.size.right_center(), Align2::RIGHT_CENTER, t.human_size(row.size), small.clone(), p.muted);
 
     let end = icons::track(&painter, c.state.left_center(), row.state, can_select || row.state != BookState::Locked, p);
     let (_, state_color) = icons::track_progress(row.state, p);
@@ -339,7 +340,7 @@ fn table_row(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, row: &Row,
     painter.text(
         Pos2::new(end + 10.0, c.state.center().y),
         Align2::LEFT_CENTER,
-        state_label(row.state, ready),
+        t.state(row.state, ready),
         small,
         label_color,
     );
@@ -354,24 +355,25 @@ fn table_row(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, row: &Row,
     }
 }
 
-fn footer(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette) {
+fn footer(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     theme::panel(p).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.horizontal(|ui| {
-            ui.label(theme::muted(p, "Guardar en"));
+            ui.label(theme::muted(p, t.save_in));
             ui.label(app.settings.output_dir.display().to_string());
-            if ui.button("Cambiar carpeta").clicked() {
+            if ui.button(t.change_folder).clicked() {
                 app.pick_output_dir();
             }
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 let plan = app.plan();
                 let enabled = !plan.asins.is_empty() && !app.busy();
-                if ui.add_enabled(enabled, theme::primary_button(p, &run_label(&plan))).clicked() {
+                let label = t.run_label(plan.needs_unlock, plan.asins.len());
+                if ui.add_enabled(enabled, theme::primary_button(p, &label)).clicked() {
                     let ctx = ui.ctx().clone();
                     app.start_run(&ctx);
                 }
                 if plan.asins.is_empty() {
-                    ui.label(theme::muted(p, "Marca los libros que quieras convertir").size(theme::SMALL));
+                    ui.label(theme::muted(p, t.pick_hint).size(theme::SMALL));
                 }
             });
         });
@@ -389,7 +391,7 @@ mod tests {
     fn sample() -> Vec<Row> {
         vec![
             row("B3", "zeta", 30, BookState::Converted),
-            row("B1", "Alfa", 20, BookState::Locked),
+            row("B1", "Alpha", 20, BookState::Locked),
             row("B2", "beta", 10, BookState::Unlocked),
         ]
     }
@@ -413,29 +415,21 @@ mod tests {
         sort_rows(&mut rows, Sort { column: Column::Size, ascending: true });
         assert_eq!(order(&rows), vec!["B2", "B1", "B3"]);
         sort_rows(&mut rows, Sort { column: Column::State, ascending: true });
-        assert_eq!(order(&rows), vec!["B1", "B2", "B3"], "con DRM, desbloqueado, convertido");
+        assert_eq!(order(&rows), vec!["B1", "B2", "B3"], "with DRM, unlocked, converted");
     }
 
     #[test]
     fn equal_keys_keep_a_stable_order_by_asin() {
-        let mut rows = vec![row("B2", "Igual", 1, BookState::Locked), row("B1", "igual", 1, BookState::Locked)];
+        let mut rows = vec![row("B2", "Same", 1, BookState::Locked), row("B1", "same", 1, BookState::Locked)];
         sort_rows(&mut rows, Sort { column: Column::Title, ascending: true });
         assert_eq!(order(&rows), vec!["B1", "B2"]);
-    }
-
-    #[test]
-    fn the_button_says_what_will_happen_and_to_how_many() {
-        let plan = |needs_unlock, n: usize| RunPlan { needs_unlock, asins: (0..n).map(|i| i.to_string()).collect() };
-        assert_eq!(run_label(&plan(false, 0)), "Convertir");
-        assert_eq!(run_label(&plan(false, 1)), "Convertir 1 libro");
-        assert_eq!(run_label(&plan(true, 3)), "Desbloquear y convertir 3 libros");
     }
 
     #[test]
     fn columns_never_overlap_even_in_a_narrow_window() {
         for width in [300.0, 700.0, 1160.0] {
             let c = cells(Rect::from_min_size(Pos2::ZERO, egui::vec2(width, ROW_HEIGHT)));
-            assert!(c.title.width() >= 0.0, "ancho {width}");
+            assert!(c.title.width() >= 0.0, "width {width}");
             assert!(c.check.right() <= c.title.left() + 0.01);
             assert!(c.asin.right() <= c.size.left() + 0.01);
             assert!(c.size.right() <= c.state.left() + 0.01);

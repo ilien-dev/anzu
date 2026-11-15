@@ -1,10 +1,10 @@
-//! Verificación manual: recuento de fragmentos por tipo de un KFX sin DRM.
+//! Manual check: fragment count by type of a DRM-free KFX.
 use std::collections::BTreeMap;
 
 use anzu_kfx::container::{self, FragmentValue};
 
 fn main() {
-    let path = std::env::args().nth(1).expect("uso: dump <archivo.kfx-zip>");
+    let path = std::env::args().nth(1).expect("usage: dump <file.kfx-zip>");
     let fragments = match container::open(std::path::Path::new(&path)) {
         Ok(f) => f,
         Err(e) => {
@@ -20,10 +20,10 @@ fn main() {
             entry.1 += bytes.len();
         }
     }
-    println!("{} fragmentos", fragments.items.len());
+    println!("{} fragments", fragments.items.len());
     for (ftype, (n, raw)) in counts {
         if raw > 0 {
-            println!("{ftype:>6}  {n:>5}  ({raw} bytes en bruto)");
+            println!("{ftype:>6}  {n:>5}  ({raw} raw bytes)");
         } else {
             println!("{ftype:>6}  {n:>5}");
         }

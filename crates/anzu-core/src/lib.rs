@@ -1,4 +1,4 @@
-//! Detección de Kindle, publicaciones de la herramienta, compatibilidad y estado de la biblioteca.
+//! Kindle detection, tool releases, compatibility and library state.
 
 pub mod compat;
 pub mod kindle;
@@ -13,25 +13,25 @@ pub use version::KindleVersion;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("versión no válida: {0}")]
+    #[error("invalid version: {0}")]
     BadVersion(String),
-    #[error("sin conexión o error de red: {0}")]
+    #[error("no connection or network error: {0}")]
     Network(String),
-    #[error("GitHub ha limitado las peticiones; inténtalo más tarde")]
+    #[error("GitHub has rate-limited the requests; try again later")]
     RateLimited,
-    #[error("no hay ninguna publicación de la herramienta")]
+    #[error("no release of the tool is available")]
     NoRelease,
-    #[error("respuesta de GitHub no válida: {0}")]
+    #[error("invalid response from GitHub: {0}")]
     BadResponse(String),
-    #[error("la publicación no trae huella SHA-256; no se ejecutará")]
+    #[error("the release has no SHA-256 digest; it will not be run")]
     NoDigest,
-    #[error("la huella SHA-256 de la descarga no coincide")]
+    #[error("the SHA-256 digest of the download does not match")]
     ChecksumMismatch,
-    #[error("la app Kindle está abierta")]
+    #[error("the Kindle app is open")]
     KindleRunning,
-    #[error("el desbloqueo falló (código {code}):\n{tail}")]
+    #[error("unlocking failed (code {code}):\n{tail}")]
     UnlockFailed { code: i32, tail: String },
-    #[error("E/S: {0}")]
+    #[error("I/O: {0}")]
     Io(#[from] std::io::Error),
     #[error("{0}")]
     Other(String),

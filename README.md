@@ -1,140 +1,148 @@
 # Anzu
 
-De Kindle a EPUB en una sola app para Windows, escrita en Rust.
+Español: [README.es.md](README.es.md)
 
-Anzu encuentra los libros que descargaste con la app Kindle, comprueba que la
-herramienta de desbloqueo es la última y admite tu versión de Kindle, la ejecuta y
-convierte el resultado a EPUB. No hay que buscar descargas ni vigilar versiones.
+Kindle to EPUB in a single Windows app, written in Rust.
 
-El nombre viene de Anzu, el ave mesopotámica que robó la Tablilla de los Destinos.
+Anzu finds the books you downloaded with the Kindle app, checks that the unlock tool
+is the latest release and supports your Kindle version, runs it, and converts the
+result to EPUB. You do not have to hunt for downloads or keep track of versions.
 
-## Requisitos
+The name comes from Anzu, the Mesopotamian bird that stole the Tablet of Destinies.
 
-- Windows 10 u 11.
-- La app **Amazon Kindle** de Microsoft Store, con tu sesión iniciada y los libros
-  descargados.
-- Conexión a internet para comprobar la herramienta antes de cada desbloqueo.
+## Requirements
 
-## Uso
+- Windows 10 or 11.
+- The **Amazon Kindle** app from the Microsoft Store, signed in and with your books
+  downloaded.
+- An internet connection, to check the tool before each unlock.
 
-Abre `anzu.exe`. La ventana muestra:
+## Use
 
-- **Estado del sistema:** si está lista para desbloquear, con la versión de Kindle y
-  la de la herramienta.
-- **Tus libros**, en una tabla que se puede ordenar por cualquier columna. El estado
-  de cada uno es un recorrido de tres tramos: con DRM, desbloqueado, EPUB listo.
-- **Carpeta de destino** y un botón que dice lo que va a pasar, por ejemplo
-  «Desbloquear y convertir 2 libros».
+Open `anzu.exe`. The window shows:
 
-El título real de un libro se conoce cuando está desbloqueado; hasta entonces se
-muestra su ASIN. Si la app Kindle está abierta, Anzu pide permiso antes de cerrarla.
+- **System status:** whether it is ready to unlock, with the Kindle version and the
+  tool version.
+- **Your books**, in a table you can sort by any column. Each book's status is a
+  three-stage track: with DRM, unlocked, EPUB ready.
+- **Destination folder** and a button that says what is about to happen, for example
+  “Unlock and convert 2 books”.
 
-El tema sigue al del sistema, o se fija en claro u oscuro desde la cabecera.
+A book's real title is only known once it is unlocked; until then Anzu shows its ASIN.
+If the Kindle app is open, Anzu asks for permission before closing it.
 
-También convierte desde la terminal un libro ya desbloqueado:
+The theme follows the system, or you can set it to light or dark from the header.
+
+The interface is available in English (the default) and Spanish. You switch language
+from the header, next to the theme switch.
+
+It can also convert an already unlocked book from the terminal:
 
 ```
-anzu convert libro.kfx-zip -o C:\Libros
+anzu convert book.kfx-zip -o C:\Books
 ```
 
-## Qué hace y qué no
+## What it does and what it does not
 
-| Parte | Quién la hace |
+| Part | Who does it |
 |---|---|
-| Detectar Kindle y los libros | Anzu |
-| Comprobar la última versión y la compatibilidad | Anzu |
-| Descargar la herramienta y verificar su huella SHA-256 | Anzu |
-| Quitar el DRM | La herramienta de [Satsuoni](https://github.com/Satsuoni/DeDRM_tools), como proceso externo |
-| Leer el formato KFX y escribir el EPUB | Anzu, con código propio |
+| Detecting Kindle and the books | Anzu |
+| Checking the latest release and compatibility | Anzu |
+| Downloading the tool and verifying its SHA-256 hash | Anzu |
+| Removing the DRM | [Satsuoni](https://github.com/Satsuoni/DeDRM_tools)'s tool, as an external process |
+| Reading the KFX format and writing the EPUB | Anzu, with its own code |
 
-Anzu no contiene código de descifrado.
+Anzu contains no decryption code.
 
-### Cuándo se bloquea el desbloqueo
+### When unlocking is blocked
 
-Anzu se niega a desbloquear, y explica por qué, cuando:
+Anzu refuses to unlock, and explains why, when:
 
-- tu app Kindle es más nueva que la última herramienta publicada;
-- no puede determinar con certeza si son compatibles;
-- no hay conexión para comprobarlo;
-- la descarga no trae huella SHA-256, o la huella no coincide.
+- your Kindle app is newer than the latest published tool;
+- it cannot tell for certain whether they are compatible;
+- there is no connection to check;
+- the download comes without a SHA-256 hash, or the hash does not match.
 
-La herramienta en caché se vuelve a comprobar en cada uso: si cambia la huella
-publicada, o la de alguno de sus ejecutables, se descarga de nuevo.
+The cached tool is checked again on every use: if the published hash changes, or the
+hash of any of its executables does, it is downloaded again.
 
-Los libros ya desbloqueados se pueden convertir siempre.
+Books that are already unlocked can always be converted.
 
-### Alcance del conversor
+### What the converter covers
 
-Libros de texto: capítulos, encabezados, cursiva y negrita, enlaces internos y
-externos, imágenes, portada, índice y metadatos. Las listas y las tablas conservan su
-texto pero pierden la estructura. Quedan fuera los cómics, la maquetación fija y los
-diccionarios. Lo que no se reconoce deja un aviso en el registro; no interrumpe la
-conversión.
+Text books: chapters, headings, italics and bold, internal and external links, images,
+cover, table of contents and metadata. Lists and tables keep their text but lose their
+structure. Comics, fixed layout and dictionaries are not supported. Anything the
+converter does not recognise leaves a warning in the log; it does not stop the
+conversion.
 
-## Dónde guarda cosas
+## Where it stores things
 
-En `%LOCALAPPDATA%\anzu\`:
+In `%LOCALAPPDATA%\anzu\`:
 
-| Ruta | Contenido |
+| Path | Contents |
 |---|---|
-| `tool\<versión>\` | La herramienta descargada y su manifiesto de huellas |
-| `unlocked\<ASIN>.kfx-zip` | Copias desbloqueadas de tus libros |
-| `keys\anzu.k4i`, `work\` | **Secretos de tu cuenta de Amazon** |
-| `settings.json` | Carpeta de destino, tema, títulos y libros convertidos |
+| `tool\<version>\` | The downloaded tool and its hash manifest |
+| `unlocked\<ASIN>.kfx-zip` | Unlocked copies of your books |
+| `keys\anzu.k4i`, `work\` | **Secrets of your Amazon account** |
+| `settings.json` | Destination folder, theme, language, titles and converted books |
 
-`keys\` y `work\` equivalen a una contraseña: no los compartas ni los subas a ningún
-sitio. La herramienta de desbloqueo es un programa de terceros y puede dejar datos
-propios fuera de esta carpeta; Anzu no lo controla.
+`keys\` and `work\` are as sensitive as a password: do not share them or upload them
+anywhere. The unlock tool is a third-party program and may leave data of its own
+outside this folder; Anzu has no control over that.
 
-La herramienta imprime secretos de la cuenta mientras trabaja. Anzu solo deja pasar al
-registro las líneas de progreso que conoce, oculta en ellas cualquier cadena larga y
-sustituye todo lo demás por un aviso.
+The tool prints account secrets while it works. Anzu only lets the progress lines it
+knows through to the log, hides any long string inside them, and replaces everything
+else with a notice.
 
-Anzu nunca escribe en la carpeta de la app Kindle.
+Anzu never writes to the Kindle app's folder.
 
-## Limitaciones conocidas de la versión 0.1.0
+## Known limitations of version 0.1.0
 
-- El recorrido completo desde la ventana (desbloquear y convertir pulsando el botón)
-  no se ha probado de principio a fin; sí cada parte por separado, con un libro real.
-- Los EPUB no se han validado con `epubcheck`; se comprueba su integridad interna.
-- No se puede cancelar una ejecución en curso. Si la herramienta deja de responder,
-  Anzu la detiene pasados diez minutos sin actividad.
-- La herramienta desbloquea todos los libros con DRM de la carpeta, no solo los
-  marcados; los que ya estaban desbloqueados no se rehacen.
-- La regla de compatibilidad se deduce del nombre del ejecutable de la herramienta.
-  Si una publicación futura cambia ese nombre, Anzu bloqueará hasta que se actualice.
-- El ejecutable aún no lleva icono propio en el Explorador; la ventana sí.
+- The full path from the window (unlock and convert by pressing the button) has not
+  been tested from start to finish; each part has been tested separately, with a real
+  book.
+- The EPUB files have not been validated with `epubcheck`; their internal integrity is
+  checked.
+- A run in progress cannot be cancelled. If the tool stops responding, Anzu stops it
+  after ten minutes without activity.
+- The tool unlocks every DRM-protected book in the folder, not only the selected ones;
+  books that were already unlocked are not redone.
+- The compatibility rule is inferred from the name of the tool's executable. If a
+  future release changes that name, Anzu will block until it is updated.
+- The executable does not have its own icon in Explorer yet; the window does.
 
-## Compilar
+## Build
 
 ```
 cargo build --release
 cargo test --workspace
 ```
 
-El ejecutable queda en `target\release\anzu.exe`.
+The executable ends up in `target\release\anzu.exe`.
 
-## Estructura
+## Structure
 
-| Crate | Responsabilidad |
+| Crate | Responsibility |
 |---|---|
-| `anzu-kfx` | Lector de Ion binario y del contenedor KFX; modelo del libro; escritor de EPUB 3 |
-| `anzu-core` | Detección de Kindle, publicaciones de GitHub, compatibilidad, descarga verificada, ejecución de la herramienta, biblioteca |
-| `anzu` | Interfaz (`egui`) y línea de comandos |
+| `anzu-kfx` | Binary Ion reader and KFX container reader; book model; EPUB 3 writer |
+| `anzu-core` | Kindle detection, GitHub releases, compatibility, verified download, running the tool, library |
+| `anzu` | Interface (`egui`) and command line |
 
-`PRODUCT.md` y `.impeccable/` recogen el contexto del producto y la dirección de
-diseño de la interfaz.
+`PRODUCT.md` and `.impeccable/` hold the product context and the design direction of
+the interface.
 
-## Créditos
+## Credits
 
-- **Satsuoni**, por la herramienta de desbloqueo.
-- **John Howell** (jhowell), cuyo plugin KFX Input es la referencia del formato KFX.
-- **JetBrains Mono**, la tipografía de la interfaz, bajo licencia SIL Open Font
-  License 1.1 (`crates/anzu/assets/fonts/OFL.txt`).
+- **Satsuoni**, for the unlock tool.
+- **John Howell** (jhowell), whose KFX Input plugin is the reference for the KFX
+  format.
+- **JetBrains Mono**, the interface typeface, under the SIL Open Font License 1.1
+  (`crates/anzu/assets/fonts/OFL.txt`).
 
-## Licencia y aviso legal
+## License and legal notice
 
-GPL-3.0-or-later. Anzu no está aprobada por Amazon.
+GPL-3.0-or-later. Anzu is not endorsed by Amazon.
 
-Quitar el DRM puede estar restringido donde vives. Úsala solo con libros que hayas
-comprado y para leerlos en tus propios dispositivos.
+Removing DRM may be restricted where you live. Use it only with books you have bought,
+and to read them on your own devices.

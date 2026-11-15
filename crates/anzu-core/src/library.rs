@@ -1,6 +1,6 @@
-//! Libros descargados por la app Kindle y su estado en Anzu.
+//! Books downloaded by the Kindle app and their state in Anzu.
 //!
-//! Solo lectura: nada de este módulo escribe en la carpeta de Kindle.
+//! Read-only: nothing in this module writes to the Kindle folder.
 
 use std::path::{Path, PathBuf};
 
@@ -19,7 +19,7 @@ pub enum BookState {
 pub struct Book {
     pub asin: String,
     pub title: Option<String>,
-    /// El `.azw` original dentro de la carpeta de Kindle.
+    /// The original `.azw` inside the Kindle folder.
     pub source: PathBuf,
     pub size: u64,
     pub state: BookState,
@@ -27,7 +27,7 @@ pub struct Book {
     pub epub: Option<PathBuf>,
 }
 
-/// Dónde guarda Anzu la copia desbloqueada de un libro.
+/// Where Anzu keeps the unlocked copy of a book.
 pub fn unlocked_path(data_dir: &Path, asin: &str) -> PathBuf {
     data_dir.join("unlocked").join(format!("{asin}.kfx-zip"))
 }
@@ -164,11 +164,11 @@ mod tests {
         add_book(&f.content, "B0AAA", 10);
         add_book(&f.content, "B0BBB", 10);
         let mut settings = Settings::default();
-        settings.titles.insert("B0AAA".into(), "Mi libro".into());
+        settings.titles.insert("B0AAA".into(), "My book".into());
 
         let books = scan(&f.content, &f.data, &settings);
 
-        assert_eq!(books[0].title.as_deref(), Some("Mi libro"));
+        assert_eq!(books[0].title.as_deref(), Some("My book"));
         assert_eq!(books[1].title, None);
     }
 
@@ -176,10 +176,10 @@ mod tests {
     fn ignores_folders_that_are_not_books() {
         let f = fixture();
         add_book(&f.content, "B0AAA", 10);
-        fs::create_dir_all(f.content.join("B0ZZZ_EBOK")).unwrap(); // sin .azw
+        fs::create_dir_all(f.content.join("B0ZZZ_EBOK")).unwrap(); // no .azw
         fs::create_dir_all(f.content.join("other")).unwrap();
         fs::write(f.content.join("book_asset.db"), b"db").unwrap();
-        fs::write(f.content.join("B0YYY_EBOK"), b"un archivo, no una carpeta").unwrap();
+        fs::write(f.content.join("B0YYY_EBOK"), b"a file, not a folder").unwrap();
 
         let books = scan(&f.content, &f.data, &Settings::default());
         assert_eq!(books.len(), 1);

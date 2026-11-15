@@ -1,10 +1,10 @@
-//! Tabla de símbolos de un documento KFX.
+//! Symbol table of a KFX document.
 //!
-//! Los identificadores 1..=9 son los símbolos de sistema de Ion. A continuación va la
-//! tabla compartida `YJ_symbols`, cuyos símbolos se nombran por su propio identificador
-//! (`$10`, `$11`, ...), y después los símbolos locales que declara cada libro.
-//! Referencia de formato: `kfxlib/yj_symbol_catalog.py` del plugin KFX Input de
-//! John Howell (GPL-3.0).
+//! Identifiers 1..=9 are Ion's system symbols. Next comes the shared table
+//! `YJ_symbols`, whose symbols are named after their own identifier (`$10`, `$11`, ...),
+//! and after that the local symbols each book declares.
+//! Format reference: `kfxlib/yj_symbol_catalog.py` from John Howell's KFX Input plugin
+//! (GPL-3.0).
 
 const SYSTEM: [&str; 9] = [
     "$ion",
@@ -18,9 +18,9 @@ const SYSTEM: [&str; 9] = [
     "$ion_shared_symbol_table",
 ];
 
-/// `max_id` de la versión de `YJ_symbols` conocida: símbolos `$10` a `$859`.
+/// `max_id` of the known version of `YJ_symbols`: symbols `$10` to `$859`.
 pub const YJ_MAX_ID: u32 = 850;
-/// Límite defensivo para un `max_id` leído de un archivo.
+/// Defensive limit for a `max_id` read from a file.
 const MAX_IMPORT: u32 = 100_000;
 
 #[derive(Debug, Clone)]
@@ -35,7 +35,7 @@ impl SymbolTable {
         Self::with_import_max(YJ_MAX_ID)
     }
 
-    /// Tabla cuya parte compartida ocupa `max_id` símbolos tras los de sistema.
+    /// A table whose shared part takes up `max_id` symbols after the system ones.
     pub fn with_import_max(max_id: u32) -> Self {
         let max_id = max_id.min(MAX_IMPORT);
         let first = SYSTEM.len() as u32 + 1;

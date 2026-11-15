@@ -1,4 +1,4 @@
-//! Detección de la app Kindle de Microsoft Store y de su proceso.
+//! Detection of the Microsoft Store Kindle app and of its process.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -16,12 +16,12 @@ pub struct KindleInstall {
     pub content_dir: PathBuf,
 }
 
-/// Interpreta la salida de `(Get-AppxPackage ...).Version`. Vacía significa "no instalada".
+/// Parses the output of `(Get-AppxPackage ...).Version`. Empty means "not installed".
 pub fn parse_appx_output(stdout: &str) -> Option<KindleVersion> {
     stdout.lines().map(str::trim).find(|l| !l.is_empty())?.parse().ok()
 }
 
-/// Carpeta donde la app guarda los libros, dada la ruta de `%LOCALAPPDATA%`.
+/// The folder where the app keeps the books, given the path of `%LOCALAPPDATA%`.
 pub fn content_dir_in(local_app_data: &Path) -> PathBuf {
     local_app_data
         .join("Packages")
@@ -36,7 +36,7 @@ pub fn tasklist_shows_kindle(stdout: &str) -> bool {
     stdout.lines().any(|l| l.trim_start().to_ascii_lowercase().starts_with(&image))
 }
 
-/// Un proceso hijo que no abre ventana de consola.
+/// A child process that opens no console window.
 pub(crate) fn quiet_command(program: &str) -> Command {
     let mut cmd = Command::new(program);
     #[cfg(windows)]
@@ -53,7 +53,7 @@ fn stdout_of(cmd: &mut Command) -> Option<String> {
     Some(String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
-/// Busca la app Kindle instalada. `None` si no está o no se puede determinar su versión.
+/// Looks for the installed Kindle app. `None` if it is absent or its version cannot be determined.
 pub fn detect() -> Option<KindleInstall> {
     let script = format!("(Get-AppxPackage -Name {PACKAGE_NAME}).Version");
     let out = stdout_of(quiet_command("powershell").args(["-NoProfile", "-NonInteractive", "-Command", &script]))?;
@@ -67,7 +67,7 @@ pub fn is_running() -> bool {
     stdout_of(quiet_command("tasklist").args(["/FI", &filter, "/NH"])).is_some_and(|o| tasklist_shows_kindle(&o))
 }
 
-/// Pide a la app que se cierre (sin forzar) y espera hasta 10 segundos.
+/// Asks the app to close (without forcing it) and waits up to 10 seconds.
 pub fn close() -> Result<(), Error> {
     if !is_running() {
         return Ok(());

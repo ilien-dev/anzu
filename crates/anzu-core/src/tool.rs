@@ -1,7 +1,7 @@
-//! Descarga, verificación y caché de la herramienta de desbloqueo.
+//! Download, verification and cache of the unlock tool.
 //!
-//! Nada se extrae ni se ejecuta si la huella SHA-256 del zip no coincide con la que
-//! publica GitHub para esa descarga.
+//! Nothing is extracted or run unless the SHA-256 digest of the zip matches the one
+//! GitHub publishes for that download.
 
 use std::io::{Cursor, Read};
 use std::path::{Path, PathBuf};
@@ -36,7 +36,7 @@ fn valid_tag(tag: &str) -> bool {
         && tag.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-' | b'_'))
 }
 
-/// Un ejecutable en la raíz del zip: sin separadores de ruta ni unidad.
+/// An executable at the root of the zip: no path separators and no drive.
 fn root_exe_name(entry: &str) -> Option<&str> {
     let plain = !entry.chars().any(|c| std::path::is_separator(c) || c == '/' || c == ':');
     let is_exe = entry.len() > 4 && entry[entry.len() - 4..].eq_ignore_ascii_case(".exe");
@@ -53,10 +53,10 @@ fn list_exes(dir: &Path) -> Result<Vec<String>, Error> {
     Ok(names)
 }
 
-/// Verifica el zip y extrae sus ejecutables de la raíz a `cache/<tag>/`.
+/// Verifies the zip and extracts its root executables to `cache/<tag>/`.
 pub fn install_from_zip(zip_bytes: &[u8], expected_sha256: &str, tag: &str, cache: &Path) -> Result<Tool, Error> {
     if !valid_tag(tag) {
-        return Err(Error::Other(format!("etiqueta de publicación no válida: {tag:?}")));
+        return Err(Error::Other(format!("invalid release tag: {tag:?}")));
     }
     if !verify_sha256(zip_bytes, expected_sha256) {
         return Err(Error::ChecksumMismatch);
@@ -67,7 +67,7 @@ pub fn install_from_zip(zip_bytes: &[u8], expected_sha256: &str, tag: &str, cach
     }
     std::fs::create_dir_all(&dir)?;
 
-    let bad_zip = |e: zip::result::ZipError| Error::Other(format!("zip no válido: {e}"));
+    let bad_zip = |e: zip::result::ZipError| Error::Other(format!("invalid zip: {e}"));
     let mut archive = zip::ZipArchive::new(Cursor::new(zip_bytes)).map_err(bad_zip)?;
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i).map_err(bad_zip)?;
@@ -79,12 +79,12 @@ pub fn install_from_zip(zip_bytes: &[u8], expected_sha256: &str, tag: &str, cach
         let mut data = Vec::new();
         (&mut entry).take(MAX_EXE_BYTES + 1).read_to_end(&mut data)?;
         if data.len() as u64 > MAX_EXE_BYTES {
-            return Err(Error::Other(format!("{name} es demasiado grande")));
+            return Err(Error::Other(format!("{name} is too large")));
         }
         std::fs::write(dir.join(&name), data)?;
     }
     let exe_names = list_exes(&dir)?;
-    // El manifiesto se escribe al final: huella del zip y huella de cada ejecutable.
+    // The manifest is written last: the digest of the zip and the digest of each executable.
     let mut manifest = format!("{}\n", expected_sha256.trim().to_ascii_lowercase());
     for name in &exe_names {
         manifest.push_str(&format!("{}  {name}\n", sha256_hex(&std::fs::read(dir.join(name))?)));
@@ -93,8 +93,8 @@ pub fn install_from_zip(zip_bytes: &[u8], expected_sha256: &str, tag: &str, cach
     Ok(Tool { tag: tag.to_string(), dir, exe_names })
 }
 
-/// Los ejecutables de una caché que sigue siendo la que se verificó: su manifiesto es de
-/// esta misma descarga y cada ejecutable conserva su huella. `None` si algo no cuadra.
+/// The executables of a cache that is still the one that was verified: its manifest is for
+/// this same download and each executable still has its digest. `None` if anything is off.
 fn trusted_cache(dir: &Path, expected_sha256: &str) -> Option<Vec<String>> {
     let manifest = std::fs::read_to_string(dir.join(OK_MARKER)).ok()?;
     let mut lines = manifest.lines();
@@ -110,19 +110,19 @@ fn trusted_cache(dir: &Path, expected_sha256: &str) -> Option<Vec<String>> {
         }
         names.push(name.to_string());
     }
-    // Un manifiesto sin ejecutables es de una versión anterior, o no sirve: se reinstala.
+    // A manifest without executables is from an earlier version, or is useless: reinstall.
     if names.is_empty() {
         return None;
     }
     Some(names)
 }
 
-/// Devuelve la herramienta de esa publicación, descargándola si no está en caché.
+/// Returns the tool of that release, downloading it if it is not cached.
 pub fn ensure_tool(release: &Release, cache: &Path) -> Result<Tool, Error> {
     let asset = release.tools_zip().ok_or(Error::NoRelease)?;
     let expected = asset.sha256.as_deref().ok_or(Error::NoDigest)?;
     if !valid_tag(&release.tag) {
-        return Err(Error::Other(format!("etiqueta de publicación no válida: {:?}", release.tag)));
+        return Err(Error::Other(format!("invalid release tag: {:?}", release.tag)));
     }
     let dir = cache.join(&release.tag);
     if let Some(exe_names) = trusted_cache(&dir, expected) {
@@ -137,7 +137,7 @@ fn download(url: &str) -> Result<Vec<u8>, Error> {
     let mut resp = releases::agent().get(url).call().map_err(net)?;
     let status = resp.status().as_u16();
     if status != 200 {
-        return Err(Error::Network(format!("la descarga respondió {status}")));
+        return Err(Error::Network(format!("the download responded with {status}")));
     }
     resp.body_mut().with_config().limit(MAX_ZIP_BYTES).read_to_vec().map_err(net)
 }
@@ -272,7 +272,7 @@ mod tests {
         let cache = tempfile::tempdir().unwrap();
         cached(cache.path());
         let other = "0".repeat(64);
-        // La URL de prueba no responde: llegar a la red demuestra que no se usó la caché.
+        // The test URL does not answer: reaching the network proves the cache was not used.
         assert!(matches!(ensure_tool(&release(Some(&other)), cache.path()), Err(Error::Network(_))));
     }
 
@@ -280,7 +280,7 @@ mod tests {
     fn tampered_cached_executable_is_not_trusted() {
         let cache = tempfile::tempdir().unwrap();
         let digest = cached(cache.path());
-        std::fs::write(cache.path().join("v9").join("a.exe"), b"MZ-otro").unwrap();
+        std::fs::write(cache.path().join("v9").join("a.exe"), b"MZ-other").unwrap();
         assert!(matches!(ensure_tool(&release(Some(&digest)), cache.path()), Err(Error::Network(_))));
     }
 
@@ -299,7 +299,7 @@ mod tests {
         let dir = cache.path().join("v9");
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("x.exe"), b"MZ").unwrap();
-        // Las versiones anteriores solo guardaban la huella del zip, sin la de cada ejecutable.
+        // Earlier versions stored only the digest of the zip, not that of each executable.
         std::fs::write(dir.join(".ok"), b"00").unwrap();
         assert!(matches!(ensure_tool(&release(Some("00")), cache.path()), Err(Error::Network(_))));
     }

@@ -1,7 +1,7 @@
-//! Publicaciones de `Satsuoni/DeDRM_tools` en GitHub.
+//! Releases of `Satsuoni/DeDRM_tools` on GitHub.
 //!
-//! Todas las publicaciones del repositorio están marcadas como `prerelease`, así que
-//! `/releases/latest` no devuelve nada útil: se pide la lista y se usa la primera.
+//! Every release in the repository is marked as `prerelease`, so `/releases/latest`
+//! returns nothing useful: the list is requested and the first one is used.
 
 use std::time::Duration;
 
@@ -15,7 +15,7 @@ pub const RELEASES_URL: &str = "https://api.github.com/repos/Satsuoni/DeDRM_tool
 pub struct Asset {
     pub name: String,
     pub url: String,
-    /// Huella SHA-256 en hexadecimal, tal como la publica GitHub.
+    /// SHA-256 digest in hexadecimal, as GitHub publishes it.
     pub sha256: Option<String>,
 }
 
@@ -28,7 +28,7 @@ pub struct Release {
 }
 
 impl Release {
-    /// El zip con los archivers: `DeDRM_tools.zip`, o variantes como `DeDRM_toolsv2.zip`.
+    /// The zip with the archivers: `DeDRM_tools.zip`, or variants such as `DeDRM_toolsv2.zip`.
     pub fn tools_zip(&self) -> Option<&Asset> {
         self.assets.iter().find(|a| a.name.starts_with("DeDRM_tools") && a.name.ends_with(".zip"))
     }
@@ -89,7 +89,7 @@ pub fn parse_releases(json: &str) -> Result<Vec<Release>, Error> {
     }
 }
 
-/// Consulta GitHub y devuelve la publicación más reciente.
+/// Queries GitHub and returns the most recent release.
 pub fn fetch_latest() -> Result<Release, Error> {
     let body = http_get_string(RELEASES_URL)?;
     parse_releases(&body)?.into_iter().next().ok_or(Error::NoRelease)
@@ -115,7 +115,7 @@ fn http_get_string(url: &str) -> Result<String, Error> {
     match status {
         200 => Ok(body),
         403 | 429 => Err(Error::RateLimited),
-        _ => Err(Error::Network(format!("GitHub respondió {status}"))),
+        _ => Err(Error::Network(format!("GitHub responded with {status}"))),
     }
 }
 

@@ -1,7 +1,7 @@
-//! Lector de Amazon Ion 1.0 en su codificación binaria.
+//! Reader for Amazon Ion 1.0 in its binary encoding.
 //!
-//! Sigue la especificación pública del formato. Cada lectura comprueba límites: un
-//! archivo truncado o malformado produce un `Err`, nunca un pánico.
+//! It follows the public specification of the format. Every read is bounds-checked: a
+//! truncated or malformed file yields an `Err`, never a panic.
 
 use crate::Error;
 
@@ -15,9 +15,9 @@ pub enum Ion {
     Bool(bool),
     Int(i64),
     Float(f64),
-    /// Coeficiente y exponente en base 10, como `"15e-1"`.
+    /// Coefficient and base-10 exponent, as in `"15e-1"`.
     Decimal(String),
-    /// Bytes del valor en hexadecimal; la conversión no los interpreta.
+    /// The value's bytes in hexadecimal; the conversion does not interpret them.
     Timestamp(String),
     Symbol(u32),
     String(String),
@@ -30,7 +30,7 @@ pub enum Ion {
 }
 
 impl Ion {
-    /// El valor sin su envoltorio de anotaciones.
+    /// The value without its annotation wrapper.
     pub fn unannotated(&self) -> &Ion {
         match self {
             Ion::Annotated(_, inner) => inner.unannotated(),
@@ -38,7 +38,7 @@ impl Ion {
         }
     }
 
-    /// El valor de un campo, si esto es un struct que lo tiene.
+    /// The value of a field, if this is a struct that has it.
     pub fn field(&self, sid: u32) -> Option<&Ion> {
         match self.unannotated() {
             Ion::Struct(fields) => fields.iter().find(|(id, _)| *id == sid).map(|(_, v)| v),
@@ -75,14 +75,14 @@ impl<'a> Reader<'a> {
     }
 
     fn byte(&mut self) -> Result<u8, Error> {
-        let b = *self.buf.get(self.pos).ok_or_else(|| err("datos truncados"))?;
+        let b = *self.buf.get(self.pos).ok_or_else(|| err("truncated data"))?;
         self.pos += 1;
         Ok(b)
     }
 
     fn take(&mut self, len: usize) -> Result<&'a [u8], Error> {
         let end = self.pos.checked_add(len).filter(|e| *e <= self.buf.len());
-        let end = end.ok_or_else(|| err("longitud declarada mayor que los datos"))?;
+        let end = end.ok_or_else(|| err("declared length exceeds the data"))?;
         let slice = &self.buf[self.pos..end];
         self.pos = end;
         Ok(slice)
@@ -97,7 +97,7 @@ impl<'a> Reader<'a> {
                 return Ok(value);
             }
         }
-        Err(err("VarUInt demasiado largo"))
+        Err(err("VarUInt too long"))
     }
 
     fn var_int(&mut self) -> Result<i64, Error> {
@@ -108,7 +108,7 @@ impl<'a> Reader<'a> {
         let mut read = 1;
         while last & 0x80 == 0 {
             if read >= VAR_UINT_MAX_BYTES {
-                return Err(err("VarInt demasiado largo"));
+                return Err(err("VarInt too long"));
             }
             last = self.byte()?;
             value = (value << 7) | i64::from(last & 0x7F);
@@ -117,23 +117,23 @@ impl<'a> Reader<'a> {
         Ok(if negative { -value } else { value })
     }
 
-    /// Lee un valor. `None` significa relleno (NOP) que se debe ignorar.
+    /// Reads one value. `None` means padding (NOP) that must be ignored.
     fn value(&mut self, depth: usize) -> Result<Option<Ion>, Error> {
         if depth > MAX_DEPTH {
-            return Err(err("anidamiento excesivo"));
+            return Err(err("nesting too deep"));
         }
         let descriptor = self.byte()?;
         let (kind, low) = (descriptor >> 4, descriptor & 0x0F);
 
         if kind == 15 {
-            return Err(err("tipo reservado"));
+            return Err(err("reserved type"));
         }
         if kind == 1 {
             return match low {
                 0 => Ok(Some(Ion::Bool(false))),
                 1 => Ok(Some(Ion::Bool(true))),
                 15 => Ok(Some(Ion::Null)),
-                _ => Err(err("booleano no válido")),
+                _ => Err(err("invalid boolean")),
             };
         }
         if low == 15 {
@@ -142,7 +142,7 @@ impl<'a> Reader<'a> {
 
         let sorted_struct = kind == 13 && low == 1;
         let len = if low == 14 || sorted_struct {
-            usize::try_from(self.var_uint()?).map_err(|_| err("longitud fuera de rango"))?
+            usize::try_from(self.var_uint()?).map_err(|_| err("length out of range"))?
         } else {
             usize::from(low)
         };
@@ -151,7 +151,7 @@ impl<'a> Reader<'a> {
         let value = match kind {
             0 => return Ok(None),
             2 | 3 => {
-                let value = i64::try_from(magnitude(body)?).map_err(|_| err("entero fuera de rango"))?;
+                let value = i64::try_from(magnitude(body)?).map_err(|_| err("integer out of range"))?;
                 Ion::Int(if kind == 3 { -value } else { value })
             }
             4 => match body.len() {
@@ -162,12 +162,12 @@ impl<'a> Reader<'a> {
                     raw.copy_from_slice(body);
                     Ion::Float(f64::from_be_bytes(raw))
                 }
-                _ => return Err(err("tamaño de float no válido")),
+                _ => return Err(err("invalid float size")),
             },
             5 => Ion::Decimal(decimal(body)?),
             6 => Ion::Timestamp(body.iter().map(|b| format!("{b:02x}")).collect()),
-            7 => Ion::Symbol(u32::try_from(magnitude(body)?).map_err(|_| err("símbolo fuera de rango"))?),
-            8 => Ion::String(std::str::from_utf8(body).map_err(|_| err("cadena con UTF-8 no válido"))?.to_string()),
+            7 => Ion::Symbol(u32::try_from(magnitude(body)?).map_err(|_| err("symbol out of range"))?),
+            8 => Ion::String(std::str::from_utf8(body).map_err(|_| err("string with invalid UTF-8"))?.to_string()),
             9 => Ion::Clob(body.to_vec()),
             10 => Ion::Blob(body.to_vec()),
             11 | 12 => {
@@ -184,7 +184,7 @@ impl<'a> Reader<'a> {
                 let mut inner = Reader::new(body);
                 let mut fields = Vec::new();
                 while !inner.done() {
-                    let sid = u32::try_from(inner.var_uint()?).map_err(|_| err("campo fuera de rango"))?;
+                    let sid = u32::try_from(inner.var_uint()?).map_err(|_| err("field out of range"))?;
                     if let Some(v) = inner.value(depth + 1)? {
                         fields.push((sid, v));
                     }
@@ -193,29 +193,29 @@ impl<'a> Reader<'a> {
             }
             14 => {
                 let mut inner = Reader::new(body);
-                let annot_len = usize::try_from(inner.var_uint()?).map_err(|_| err("anotación fuera de rango"))?;
+                let annot_len = usize::try_from(inner.var_uint()?).map_err(|_| err("annotation out of range"))?;
                 let mut annots_reader = Reader::new(inner.take(annot_len)?);
                 let mut annots = Vec::new();
                 while !annots_reader.done() {
                     let sid = annots_reader.var_uint()?;
-                    annots.push(u32::try_from(sid).map_err(|_| err("anotación fuera de rango"))?);
+                    annots.push(u32::try_from(sid).map_err(|_| err("annotation out of range"))?);
                 }
-                let wrapped = inner.value(depth + 1)?.ok_or_else(|| err("anotación sin valor"))?;
+                let wrapped = inner.value(depth + 1)?.ok_or_else(|| err("annotation with no value"))?;
                 if !inner.done() {
-                    return Err(err("anotación con datos sobrantes"));
+                    return Err(err("annotation with trailing data"));
                 }
                 Ion::Annotated(annots, Box::new(wrapped))
             }
-            _ => return Err(err("tipo desconocido")),
+            _ => return Err(err("unknown type")),
         };
         Ok(Some(value))
     }
 }
 
-/// Entero sin signo en big-endian de hasta 8 bytes.
+/// Unsigned big-endian integer of up to 8 bytes.
 fn magnitude(body: &[u8]) -> Result<u64, Error> {
     if body.len() > 8 {
-        return Err(err("entero de más de 8 bytes"));
+        return Err(err("integer wider than 8 bytes"));
     }
     Ok(body.iter().fold(0u64, |acc, b| (acc << 8) | u64::from(*b)))
 }
@@ -239,10 +239,10 @@ fn decimal(body: &[u8]) -> Result<String, Error> {
     Ok(format!("{sign}{coefficient}e{exponent}"))
 }
 
-/// Lee todos los valores de nivel superior de un flujo Ion binario.
+/// Reads every top-level value of a binary Ion stream.
 pub fn parse(bytes: &[u8]) -> Result<Vec<Ion>, Error> {
     if !bytes.starts_with(&BVM) {
-        return Err(err("falta el marcador de versión de Ion"));
+        return Err(err("the Ion version marker is missing"));
     }
     let mut reader = Reader::new(bytes);
     let mut values = Vec::new();
@@ -270,7 +270,7 @@ mod tests {
 
     fn one(body: &[u8]) -> Ion {
         let mut values = parse(&doc(body)).unwrap();
-        assert_eq!(values.len(), 1, "se esperaba un solo valor");
+        assert_eq!(values.len(), 1, "expected a single value");
         values.remove(0)
     }
 
@@ -299,7 +299,7 @@ mod tests {
         assert!(parse(&doc(&body)).is_err());
         let mut body = vec![0x28];
         body.extend([0xFF; 8]);
-        assert!(parse(&doc(&body)).is_err(), "u64::MAX no cabe en i64");
+        assert!(parse(&doc(&body)).is_err(), "u64::MAX does not fit in an i64");
     }
 
     #[test]
@@ -324,13 +324,13 @@ mod tests {
 
     #[test]
     fn decimals_keep_coefficient_and_exponent() {
-        // exponente VarInt 0xC1 = -1, coeficiente 15 -> 1.5
+        // VarInt exponent 0xC1 = -1, coefficient 15 -> 1.5
         let v = one(&[0x52, 0xC1, 0x0F]);
         assert_eq!(v, Ion::Decimal("15e-1".into()));
         assert_eq!(v.as_f64(), Some(1.5));
-        // coeficiente negativo: bit de signo en el primer byte
+        // negative coefficient: sign bit in the first byte
         assert_eq!(one(&[0x52, 0xC1, 0x8F]).as_f64(), Some(-1.5));
-        // decimal vacío = 0
+        // empty decimal = 0
         assert_eq!(one(&[0x50]).as_f64(), Some(0.0));
     }
 
@@ -382,7 +382,7 @@ mod tests {
     fn structs() {
         assert_eq!(one(&[0xD3, 0x84, 0x21, 0x07]), Ion::Struct(vec![(4, Ion::Int(7))]));
         assert_eq!(one(&[0xD0]), Ion::Struct(vec![]));
-        // L = 1: struct ordenado, con la longitud como VarUInt
+        // L = 1: sorted struct, with the length as a VarUInt
         assert_eq!(one(&[0xD1, 0x83, 0x84, 0x21, 0x07]), Ion::Struct(vec![(4, Ion::Int(7))]));
     }
 
@@ -411,7 +411,7 @@ mod tests {
         assert_eq!(
             one(&[0xD5, 0x84, 0x21, 0x07, 0x80, 0x00]),
             Ion::Struct(vec![(4, Ion::Int(7))]),
-            "relleno dentro de un struct"
+            "padding inside a struct"
         );
     }
 
@@ -433,13 +433,13 @@ mod tests {
     fn declared_length_beyond_the_buffer_is_an_error() {
         assert!(parse(&doc(&[0x85, b'a', b'b'])).is_err());
         assert!(parse(&doc(&[0xB4, 0x21, 0x01])).is_err());
-        assert!(parse(&doc(&[0x8E])).is_err(), "VarUInt cortado");
+        assert!(parse(&doc(&[0x8E])).is_err(), "VarUInt cut short");
         assert!(parse(&doc(&[0x8E, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0xFF])).is_err());
     }
 
     #[test]
     fn child_longer_than_its_container_is_an_error() {
-        // la lista declara 2 bytes, pero su hijo declara 5
+        // the list declares 2 bytes, but its child declares 5
         assert!(parse(&doc(&[0xB2, 0x85, b'a', b'b', b'c', b'd', b'e'])).is_err());
     }
 

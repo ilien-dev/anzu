@@ -1,5 +1,5 @@
-//! Verificación manual: recorre el mismo camino protegido que la app.
-//! Publicación más reciente -> descarga verificada -> compatibilidad -> desbloqueo.
+//! Manual check: follows the same guarded path as the app.
+//! Latest release -> verified download -> compatibility -> unlock.
 use anzu_core::compat::{self, Compat};
 use anzu_core::unlock::{self, UnlockRequest};
 use anzu_core::{kindle, releases, settings, tool};
@@ -13,18 +13,18 @@ fn main() {
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let data = settings::data_dir();
-    let kindle = kindle::detect().ok_or("Kindle no instalada")?;
+    let kindle = kindle::detect().ok_or("Kindle is not installed")?;
     println!("Kindle {}", kindle.version);
 
     let release = releases::fetch_latest()?;
-    println!("Publicación {} ({})", release.tag, release.published_at);
+    println!("Release {} ({})", release.tag, release.published_at);
 
     let tool = tool::ensure_tool(&release, &data.join("tool"))?;
-    println!("Herramienta verificada en {}: {:?}", tool.dir.display(), tool.exe_names);
+    println!("Tool verified at {}: {:?}", tool.dir.display(), tool.exe_names);
 
     let exe_name = match compat::check(&kindle.version, &tool.exe_names) {
         Compat::Compatible { exe_name } => exe_name,
-        other => return Err(format!("bloqueado: {other:?}").into()),
+        other => return Err(format!("blocked: {other:?}").into()),
     };
     println!("Compatible: {exe_name}");
 
@@ -35,7 +35,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let req = UnlockRequest { exe: &exe, content_dir: &kindle.content_dir, out_dir: &out, keyfile: &keyfile, work_dir: &work };
 
     let unlocked = unlock::unlock(&req, &data, &mut |line| println!("  | {line}"))?;
-    println!("Desbloqueados: {}", unlocked.len());
+    println!("Unlocked: {}", unlocked.len());
     for (asin, path) in unlocked {
         println!("  {asin} -> {}", path.display());
     }

@@ -1,4 +1,4 @@
-//! Iconos dibujados con trazos, todos con el mismo grosor.
+//! Icons drawn with strokes, all of the same weight.
 
 use anzu_core::library::BookState;
 use eframe::egui::{self, Color32, CornerRadius, Pos2, Rect, Shape, Stroke, StrokeKind};
@@ -7,13 +7,13 @@ use super::theme::Palette;
 
 const STROKE: f32 = 1.8;
 
-/// Una marca de verificación dentro de `rect`.
+/// A check mark inside `rect`.
 pub fn check(painter: &egui::Painter, rect: Rect, color: Color32) {
     let at = |x: f32, y: f32| Pos2::new(rect.left() + rect.width() * x, rect.top() + rect.height() * y);
     painter.add(Shape::line(vec![at(0.18, 0.54), at(0.42, 0.76), at(0.84, 0.26)], Stroke::new(STROKE, color)));
 }
 
-/// Una casilla de selección.
+/// A selection box.
 pub fn checkbox(painter: &egui::Painter, rect: Rect, checked: bool, enabled: bool, p: Palette) {
     let radius = CornerRadius::same(2);
     if checked {
@@ -25,7 +25,7 @@ pub fn checkbox(painter: &egui::Painter, rect: Rect, checked: bool, enabled: boo
     }
 }
 
-/// Flecha de ordenación junto a una cabecera de columna.
+/// The sort arrow next to a column header.
 pub fn sort_arrow(painter: &egui::Painter, center: Pos2, ascending: bool, color: Color32) {
     let (w, h) = (4.0, 3.0);
     let points = if ascending {
@@ -36,7 +36,7 @@ pub fn sort_arrow(painter: &egui::Painter, center: Pos2, ascending: bool, color:
     painter.add(Shape::convex_polygon(points, color, Stroke::NONE));
 }
 
-/// Cuántos tramos del recorrido lleva hechos un libro, y de qué color se pintan.
+/// How many stages of the track a book has done, and the colour they are painted in.
 pub fn track_progress(state: BookState, p: Palette) -> (usize, Color32) {
     match state {
         BookState::Locked => (1, p.warn),
@@ -47,7 +47,7 @@ pub fn track_progress(state: BookState, p: Palette) -> (usize, Color32) {
 
 pub const TRACK_WIDTH: f32 = 3.0 * 18.0 + 2.0 * 4.0;
 
-/// El recorrido de un libro: con DRM, desbloqueado, EPUB. Devuelve dónde termina.
+/// The track of a book: with DRM, unlocked, EPUB. Returns where it ends.
 pub fn track(painter: &egui::Painter, left_center: Pos2, state: BookState, enabled: bool, p: Palette) -> f32 {
     let (done, color) = track_progress(state, p);
     let color = if enabled { color } else { p.muted };
@@ -64,7 +64,7 @@ pub fn track(painter: &egui::Painter, left_center: Pos2, state: BookState, enabl
     left_center.x + TRACK_WIDTH
 }
 
-/// Marca del estado de un paso: hecho, en curso, pendiente o no completado.
+/// The mark of a step: done, running, pending or not completed.
 pub enum StepMark {
     Done,
     Running,

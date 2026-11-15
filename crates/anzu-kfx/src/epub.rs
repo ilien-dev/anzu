@@ -1,26 +1,26 @@
-//! Escritor de EPUB 3 a partir del modelo del libro.
+//! EPUB 3 writer, working from the book model.
 //!
-//! Estructura del archivo:
+//! Layout of the file:
 //!
 //! ```text
-//! mimetype                  primero y sin comprimir
+//! mimetype                  first and uncompressed
 //! META-INF/container.xml
-//! OEBPS/content.opf         metadatos, manifiesto y orden de lectura
-//! OEBPS/nav.xhtml           índice (EPUB 3)
-//! OEBPS/toc.ncx             índice (lectores EPUB 2)
+//! OEBPS/content.opf         metadata, manifest and reading order
+//! OEBPS/nav.xhtml           table of contents (EPUB 3)
+//! OEBPS/toc.ncx             table of contents (EPUB 2 readers)
 //! OEBPS/style.css
-//! OEBPS/text/<id>.xhtml     un archivo por capítulo
-//! OEBPS/images/<nombre>
+//! OEBPS/text/<id>.xhtml     one file per chapter
+//! OEBPS/images/<name>
 //! ```
 
 use std::io::Write;
 use std::path::Path;
 
-use crate::Error;
 use crate::book::{Align, Block, Book, Chapter, Length, Span, Style, TocEntry};
+use crate::{Error, Labels};
 
 const MAX_NAME_CHARS: usize = 120;
-const PLACEHOLDER_NAME: &str = "libro";
+const PLACEHOLDER_NAME: &str = "book";
 const ILLEGAL_IN_NAMES: &str = "<>:\"/\\|?*";
 const RESERVED_NAMES: [&str; 22] = [
     "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1",
@@ -36,7 +36,7 @@ img { max-width: 100%; height: auto; }
 nav ol { list-style: none; padding-left: 1.2em; }
 ";
 
-/// Un nombre de archivo (sin extensión) válido en Windows a partir de un título.
+/// A file name (without extension) that is valid on Windows, made from a title.
 pub fn safe_file_name(title: &str) -> String {
     let replaced: String =
         title.chars().map(|c| if c.is_control() || ILLEGAL_IN_NAMES.contains(c) { '_' } else { c }).collect();
@@ -52,11 +52,11 @@ pub fn safe_file_name(title: &str) -> String {
     name.to_string()
 }
 
-/// Segundos desde 1970 como `AAAA-MM-DDThh:mm:ssZ`.
+/// Seconds since 1970 as `YYYY-MM-DDThh:mm:ssZ`.
 pub fn format_utc(seconds: u64) -> String {
     let days = (seconds / 86_400) as i64;
     let rest = seconds % 86_400;
-    // Algoritmo de fecha civil a partir de días (Howard Hinnant).
+    // Civil date from a day count (Howard Hinnant's algorithm).
     let z = days + 719_468;
     let era = z.div_euclid(146_097);
     let day_of_era = z.rem_euclid(146_097);
@@ -69,7 +69,7 @@ pub fn format_utc(seconds: u64) -> String {
     format!("{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z", rest / 3_600, rest % 3_600 / 60, rest % 60)
 }
 
-/// Escapa texto para XML y descarta los caracteres que XML 1.0 no admite.
+/// Escapes text for XML and drops the characters XML 1.0 does not allow.
 fn esc(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     for c in text.chars() {
@@ -132,7 +132,7 @@ fn css_declarations(style: &Style) -> String {
     out.join("; ")
 }
 
-/// Estilos distintos del libro; la posición de cada uno da nombre a su clase CSS.
+/// The distinct styles of the book; each one's position names its CSS class.
 struct Classes {
     styles: Vec<Style>,
 }
@@ -167,7 +167,7 @@ impl Classes {
     }
 }
 
-/// `capítulo#ancla` como ruta relativa desde `prefix`; una URL se deja igual.
+/// `chapter#anchor` as a path relative to `prefix`; a URL is left as it is.
 fn href(target: &str, prefix: &str) -> String {
     if target.contains("://") || target.starts_with("mailto:") {
         return target.to_string();
@@ -241,8 +241,9 @@ fn chapter_xhtml(book: &Book, chapter: &Chapter, classes: &Classes) -> String {
     xhtml_page(&book.meta.language, &book.meta.title, "../style.css", &body)
 }
 
-/// El índice del libro o, si no lo trae, una entrada por capítulo.
-fn effective_toc(book: &Book, chapters: &[&Chapter]) -> Vec<TocEntry> {
+/// The book's table of contents or, if it has none, one entry per chapter. A chapter with
+/// no heading is listed as `chapter_label` and its number.
+fn effective_toc(book: &Book, chapters: &[&Chapter], chapter_label: &str) -> Vec<TocEntry> {
     if !book.toc.is_empty() {
         return book.toc.clone();
     }
@@ -258,7 +259,7 @@ fn effective_toc(book: &Book, chapters: &[&Chapter]) -> Vec<TocEntry> {
                 _ => None,
             });
             TocEntry {
-                label: heading.unwrap_or_else(|| format!("Capítulo {}", i + 1)),
+                label: heading.unwrap_or_else(|| format!("{chapter_label} {}", i + 1)),
                 target: chapter.id.clone(),
                 children: Vec::new(),
             }
@@ -280,9 +281,9 @@ fn nav_list(entries: &[TocEntry]) -> String {
     out
 }
 
-fn nav_xhtml(book: &Book, toc: &[TocEntry]) -> String {
-    let body = format!("<nav epub:type=\"toc\" id=\"toc\">\n<h1>Índice</h1>\n{}</nav>\n", nav_list(toc));
-    xhtml_page(&book.meta.language, "Índice", "style.css", &body)
+fn nav_xhtml(book: &Book, toc: &[TocEntry], title: &str) -> String {
+    let body = format!("<nav epub:type=\"toc\" id=\"toc\">\n<h1>{}</h1>\n{}</nav>\n", esc(title), nav_list(toc));
+    xhtml_page(&book.meta.language, title, "style.css", &body)
 }
 
 fn ncx_points(entries: &[TocEntry], counter: &mut usize) -> String {
@@ -320,7 +321,7 @@ fn toc_ncx(book: &Book, toc: &[TocEntry], identifier: &str) -> String {
     )
 }
 
-/// `urn:asin:<ASIN>`, o un UUID que depende solo del título y los autores.
+/// `urn:asin:<ASIN>`, or a UUID that depends only on the title and the authors.
 fn identifier(book: &Book) -> String {
     if let Some(asin) = &book.meta.asin {
         return format!("urn:asin:{asin}");
@@ -398,10 +399,10 @@ const CONTAINER_XML: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
 </container>\n";
 
 fn zip_error(e: zip::result::ZipError) -> Error {
-    Error::Other(format!("no se pudo escribir el EPUB: {e}"))
+    Error::Other(format!("could not write the EPUB: {e}"))
 }
 
-fn write_archive(book: &Book, chapters: &[&Chapter], file: std::fs::File) -> Result<(), Error> {
+fn write_archive(book: &Book, chapters: &[&Chapter], file: std::fs::File, labels: &Labels) -> Result<(), Error> {
     let stored = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
     let deflated = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
     let mut zip = zip::ZipWriter::new(file);
@@ -411,14 +412,14 @@ fn write_archive(book: &Book, chapters: &[&Chapter], file: std::fs::File) -> Res
     };
 
     let classes = Classes::collect(chapters);
-    let toc = effective_toc(book, chapters);
+    let toc = effective_toc(book, chapters, &labels.chapter);
     let id = identifier(book);
     let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
 
     add(&mut zip, "mimetype", b"application/epub+zip", false)?;
     add(&mut zip, "META-INF/container.xml", CONTAINER_XML.as_bytes(), true)?;
     add(&mut zip, "OEBPS/content.opf", content_opf(book, chapters, &id, &format_utc(now)).as_bytes(), true)?;
-    add(&mut zip, "OEBPS/nav.xhtml", nav_xhtml(book, &toc).as_bytes(), true)?;
+    add(&mut zip, "OEBPS/nav.xhtml", nav_xhtml(book, &toc, &labels.contents).as_bytes(), true)?;
     add(&mut zip, "OEBPS/toc.ncx", toc_ncx(book, &toc, &id).as_bytes(), true)?;
     add(&mut zip, "OEBPS/style.css", classes.css().as_bytes(), true)?;
     for chapter in chapters {
@@ -426,18 +427,25 @@ fn write_archive(book: &Book, chapters: &[&Chapter], file: std::fs::File) -> Res
         add(&mut zip, &name, chapter_xhtml(book, chapter, &classes).as_bytes(), true)?;
     }
     for image in &book.images {
-        // Las imágenes ya vienen comprimidas.
+        // Images are already compressed.
         add(&mut zip, &format!("OEBPS/images/{}", image.name), &image.data, false)?;
     }
     zip.finish().map_err(zip_error)?;
     Ok(())
 }
 
-/// Escribe el libro como EPUB 3 en `out`. Si algo falla, no deja un archivo a medias.
+/// Writes the book as EPUB 3 to `out`, with the default labels. If anything fails, it leaves
+/// no half-written file behind.
 pub fn write_epub(book: &Book, out: &Path) -> Result<(), Error> {
+    write_epub_with(book, out, &Labels::default())
+}
+
+/// Like [`write_epub`], with the navigation title and the fallback chapter label taken from
+/// `labels`.
+pub fn write_epub_with(book: &Book, out: &Path, labels: &Labels) -> Result<(), Error> {
     let chapters: Vec<&Chapter> = book.chapters.iter().filter(|c| !c.blocks.is_empty()).collect();
     if chapters.is_empty() {
-        return Err(Error::Other("el libro no tiene contenido que convertir".to_string()));
+        return Err(Error::Other("the book has no content to convert".to_string()));
     }
     if let Some(parent) = out.parent() {
         std::fs::create_dir_all(parent)?;
@@ -448,7 +456,7 @@ pub fn write_epub(book: &Book, out: &Path) -> Result<(), Error> {
 
     let result = std::fs::File::create(&partial)
         .map_err(Error::Io)
-        .and_then(|file| write_archive(book, &chapters, file))
+        .and_then(|file| write_archive(book, &chapters, file, labels))
         .and_then(|()| std::fs::rename(&partial, out).map_err(Error::Io));
     if result.is_err() {
         let _ = std::fs::remove_file(&partial);
@@ -459,6 +467,7 @@ pub fn write_epub(book: &Book, out: &Path) -> Result<(), Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Labels;
     use crate::book::{Align, Block, Book, Chapter, Image, Length, Meta, Span, Style, TocEntry};
     use std::io::Read;
 
@@ -504,7 +513,7 @@ mod tests {
                         },
                     ],
                 },
-                Chapter { id: "vacio".into(), blocks: vec![] },
+                Chapter { id: "empty".into(), blocks: vec![] },
                 Chapter {
                     id: "c1".into(),
                     blocks: vec![
@@ -532,14 +541,18 @@ mod tests {
 
     impl Epub {
         fn text(&self, name: &str) -> String {
-            String::from_utf8(self.files.get(name).unwrap_or_else(|| panic!("falta {name}: {:?}", self.names)).clone()).unwrap()
+            String::from_utf8(self.files.get(name).unwrap_or_else(|| panic!("{name} is missing: {:?}", self.names)).clone()).unwrap()
         }
     }
 
     fn written(book: &Book) -> Epub {
+        written_with(book, &Labels::default())
+    }
+
+    fn written_with(book: &Book, labels: &Labels) -> Epub {
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("out.epub");
-        write_epub(book, &path).unwrap();
+        write_epub_with(book, &path, labels).unwrap();
         let mut archive = zip::ZipArchive::new(std::fs::File::open(&path).unwrap()).unwrap();
         let mut names = Vec::new();
         let mut files = std::collections::HashMap::new();
@@ -558,7 +571,7 @@ mod tests {
         Epub { names, files, first_is_stored }
     }
 
-    /// Texto de todos los elementos con ese nombre.
+    /// Text of every element with that name.
     fn texts(xml: &str, tag: &str) -> Vec<String> {
         let doc = roxmltree::Document::parse(xml).unwrap();
         doc.descendants()
@@ -593,10 +606,10 @@ mod tests {
             "OEBPS/text/c1.xhtml",
             "OEBPS/images/e1.jpg",
         ] {
-            assert!(epub.files.contains_key(name), "falta {name}: {:?}", epub.names);
+            assert!(epub.files.contains_key(name), "{name} is missing: {:?}", epub.names);
         }
         assert_eq!(epub.files["OEBPS/images/e1.jpg"], vec![0xFF, 0xD8, 0xFF, 0xE0]);
-        assert!(!epub.files.contains_key("OEBPS/text/vacio.xhtml"), "un capítulo vacío no genera archivo");
+        assert!(!epub.files.contains_key("OEBPS/text/empty.xhtml"), "an empty chapter produces no file");
     }
 
     #[test]
@@ -606,7 +619,7 @@ mod tests {
         for name in &epub.names {
             if [".xhtml", ".opf", ".ncx", ".xml"].iter().any(|ext| name.ends_with(ext)) {
                 let text = epub.text(name);
-                roxmltree::Document::parse(&text).unwrap_or_else(|e| panic!("{name} mal formado: {e}\n{text}"));
+                roxmltree::Document::parse(&text).unwrap_or_else(|e| panic!("{name} is not well-formed: {e}\n{text}"));
                 checked += 1;
             }
         }
@@ -675,10 +688,10 @@ mod tests {
         let rule = css
             .split('}')
             .find(|r| r.contains(&format!(".{}", heading_class[0])))
-            .unwrap_or_else(|| panic!("la clase {} no está en el CSS:\n{css}", heading_class[0]));
+            .unwrap_or_else(|| panic!("class {} is not in the CSS:\n{css}", heading_class[0]));
         assert!(rule.contains("text-align: center"), "{rule}");
         assert!(rule.contains("text-indent: 1.5em"), "{rule}");
-        assert!(attrs(&epub.text("OEBPS/text/c1.xhtml"), "p", "class").is_empty(), "sin estilo, sin clase");
+        assert!(attrs(&epub.text("OEBPS/text/c1.xhtml"), "p", "class").is_empty(), "no style, no class");
     }
 
     #[test]
@@ -707,7 +720,7 @@ mod tests {
             "font-weight: bold",
             "font-style: italic",
         ] {
-            assert!(css.contains(expected), "falta `{expected}` en:\n{css}");
+            assert!(css.contains(expected), "`{expected}` is missing from:\n{css}");
         }
     }
 
@@ -726,7 +739,7 @@ mod tests {
         let item = |href: &str| {
             doc.descendants()
                 .find(|n| n.has_tag_name("item") && n.attribute("href") == Some(href))
-                .unwrap_or_else(|| panic!("falta {href} en el manifiesto"))
+                .unwrap_or_else(|| panic!("{href} is missing from the manifest"))
         };
         assert_eq!(item("nav.xhtml").attribute("properties"), Some("nav"));
         assert_eq!(item("images/e1.jpg").attribute("properties"), Some("cover-image"));
@@ -762,7 +775,7 @@ mod tests {
         let first = id(&book);
         assert!(first.starts_with("urn:uuid:"), "{first}");
         assert_eq!(first.len(), "urn:uuid:".len() + 36);
-        assert_eq!(first, id(&book), "el identificador no debe cambiar entre conversiones");
+        assert_eq!(first, id(&book), "the identifier must not change between conversions");
     }
 
     #[test]
@@ -773,7 +786,7 @@ mod tests {
         assert_eq!(texts(&nav, "a"), vec!["Parte I", "Capítulo <1>"]);
         let doc = roxmltree::Document::parse(&nav).unwrap();
         let lists = doc.descendants().filter(|n| n.has_tag_name("ol")).count();
-        assert_eq!(lists, 2, "la entrada hija va en una lista anidada");
+        assert_eq!(lists, 2, "the child entry goes in a nested list");
 
         let ncx = epub.text("OEBPS/toc.ncx");
         assert_eq!(attrs(&ncx, "content", "src"), vec!["text/c0.xhtml#p10", "text/c1.xhtml#p20"]);
@@ -786,7 +799,40 @@ mod tests {
         book.toc.clear();
         let nav = written(&book).text("OEBPS/nav.xhtml");
         assert_eq!(attrs(&nav, "a", "href"), vec!["text/c0.xhtml", "text/c1.xhtml"]);
-        assert_eq!(texts(&nav, "a"), vec!["Parte I", "Capítulo 2"], "usa el primer encabezado o un número");
+        assert_eq!(texts(&nav, "a"), vec!["Parte I", "Chapter 2"], "uses the first heading, or a number");
+    }
+
+    #[test]
+    fn chapter_label_can_be_localised() {
+        let mut book = sample();
+        book.toc.clear();
+        let labels = Labels { chapter: "Kapitel".into(), ..Labels::default() };
+        let epub = written_with(&book, &labels);
+        assert_eq!(texts(&epub.text("OEBPS/nav.xhtml"), "a"), vec!["Parte I", "Kapitel 2"]);
+        assert_eq!(texts(&epub.text("OEBPS/toc.ncx"), "text"), vec!["Mi libro & otros", "Parte I", "Kapitel 2"]);
+    }
+
+    #[test]
+    fn navigation_is_titled_with_the_contents_label() {
+        let nav = written(&sample()).text("OEBPS/nav.xhtml");
+        assert_eq!(texts(&nav, "h1"), vec!["Contents"]);
+        assert_eq!(texts(&nav, "title"), vec!["Contents"]);
+
+        let labels = Labels { contents: "Índice <general>".into(), ..Labels::default() };
+        let nav = written_with(&sample(), &labels).text("OEBPS/nav.xhtml");
+        assert_eq!(texts(&nav, "h1"), vec!["Índice <general>"]);
+        assert_eq!(texts(&nav, "title"), vec!["Índice <general>"]);
+    }
+
+    #[test]
+    fn write_epub_uses_the_default_labels() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("out.epub");
+        write_epub(&sample(), &path).unwrap();
+        let mut archive = zip::ZipArchive::new(std::fs::File::open(&path).unwrap()).unwrap();
+        let mut nav = String::new();
+        archive.by_name("OEBPS/nav.xhtml").unwrap().read_to_string(&mut nav).unwrap();
+        assert_eq!(texts(&nav, "h1"), vec!["Contents"]);
     }
 
     #[test]
@@ -821,7 +867,7 @@ mod tests {
     #[test]
     fn empty_and_reserved_names_get_a_placeholder() {
         for name in ["", "   ", "...", "CON", "con", "NUL", "nul.txt", "COM1", "lpt9", "AUX"] {
-            assert_eq!(safe_file_name(name), "libro", "{name:?}");
+            assert_eq!(safe_file_name(name), "book", "{name:?}");
         }
         assert_eq!(safe_file_name("CONSOLA"), "CONSOLA");
     }
@@ -831,7 +877,7 @@ mod tests {
         let name = safe_file_name(&"ñ".repeat(300));
         assert_eq!(name.chars().count(), 120);
         let cut_on_a_space = safe_file_name(&format!("{}{}", "a".repeat(119), " b"));
-        assert_eq!(cut_on_a_space, "a".repeat(119), "no debe terminar en espacio");
+        assert_eq!(cut_on_a_space, "a".repeat(119), "must not end in a space");
     }
 
     #[test]
@@ -890,7 +936,7 @@ mod tests {
             let tmp = tempfile::tempdir().unwrap();
             let input = tmp.path().join("in.kfx");
             std::fs::write(&input, tiny_kfx(Some("Un libro: prueba?"))).unwrap();
-            let out_dir = tmp.path().join("salida");
+            let out_dir = tmp.path().join("out");
 
             let converted = crate::convert(&input, &out_dir).unwrap();
 
@@ -928,7 +974,7 @@ mod tests {
             assert_eq!(crate::read_title(&input).as_deref(), Some("Un libro"));
             std::fs::write(&input, tiny_kfx(None)).unwrap();
             assert_eq!(crate::read_title(&input), None);
-            assert_eq!(crate::read_title(&tmp.path().join("no-existe.kfx")), None);
+            assert_eq!(crate::read_title(&tmp.path().join("missing.kfx")), None);
         }
 
         #[test]
@@ -937,15 +983,59 @@ mod tests {
             let input = tmp.path().join("in.kfx");
             std::fs::write(&input, tiny_kfx(None)).unwrap();
             let converted = crate::convert(&input, tmp.path()).unwrap();
+            assert_eq!(converted.title, "Untitled");
+            assert_eq!(converted.path, tmp.path().join("Untitled.epub"));
+        }
+
+        #[test]
+        fn untitled_book_takes_the_localised_title() {
+            let tmp = tempfile::tempdir().unwrap();
+            let input = tmp.path().join("in.kfx");
+            std::fs::write(&input, tiny_kfx(None)).unwrap();
+            let labels = crate::Labels { untitled: "Sin título".into(), ..crate::Labels::default() };
+
+            let converted = crate::convert_with(&input, tmp.path(), &labels).unwrap();
+
+            assert_eq!(converted.title, "Sin título");
             assert_eq!(converted.path, tmp.path().join("Sin título.epub"));
+            assert!(converted.path.is_file());
+
+            let labels = crate::Labels { untitled: "Ohne Titel".into(), ..crate::Labels::default() };
+            let converted = crate::convert_with(&input, tmp.path(), &labels).unwrap();
+            assert_eq!(converted.path, tmp.path().join("Ohne Titel.epub"));
+        }
+
+        #[test]
+        fn convert_with_threads_every_label_into_the_book() {
+            let tmp = tempfile::tempdir().unwrap();
+            let input = tmp.path().join("in.kfx");
+            std::fs::write(&input, tiny_kfx(Some("Libro"))).unwrap();
+            let labels = crate::Labels { contents: "Inhalt".into(), chapter: "Kapitel".into(), untitled: "Ohne Titel".into() };
+
+            let converted = crate::convert_with(&input, tmp.path(), &labels).unwrap();
+
+            assert_eq!(converted.title, "Libro");
+            let mut archive = zip::ZipArchive::new(std::fs::File::open(&converted.path).unwrap()).unwrap();
+            let mut nav = String::new();
+            std::io::Read::read_to_string(&mut archive.by_name("OEBPS/nav.xhtml").unwrap(), &mut nav).unwrap();
+            assert!(nav.contains("<h1>Inhalt</h1>"), "{nav}");
+            assert!(nav.contains(">Kapitel 1</a>"), "{nav}");
+        }
+
+        #[test]
+        fn labels_default_to_english() {
+            assert_eq!(
+                crate::Labels::default(),
+                crate::Labels { contents: "Contents".into(), chapter: "Chapter".into(), untitled: "Untitled".into() }
+            );
         }
 
         #[test]
         fn failed_conversion_leaves_no_file_behind() {
             let tmp = tempfile::tempdir().unwrap();
             let input = tmp.path().join("in.kfx");
-            std::fs::write(&input, b"\xeaDRMION\xee cifrado").unwrap();
-            let out_dir = tmp.path().join("salida");
+            std::fs::write(&input, b"\xeaDRMION\xee encrypted").unwrap();
+            let out_dir = tmp.path().join("out");
 
             assert!(matches!(crate::convert(&input, &out_dir), Err(crate::Error::StillEncrypted)));
             let leftovers = std::fs::read_dir(&out_dir).map(|d| d.count()).unwrap_or(0);

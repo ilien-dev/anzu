@@ -1,11 +1,11 @@
-//! Modelo intermedio de un libro: lo que el conversor entiende de un KFX.
+//! Intermediate model of a book: what the converter understands of a KFX.
 //!
-//! Recorrido: orden de lectura -> secciones -> storylines -> nodos de contenido. El texto
-//! de cada nodo se resuelve por referencia a un fragmento de contenido; los enlaces y la
-//! tabla de contenidos apuntan a posiciones, que aquí se traducen a anclas de capítulo.
+//! The walk: reading order -> sections -> storylines -> content nodes. The text of each
+//! node is resolved by reference to a content fragment; links and the table of contents
+//! point at positions, which are translated here into chapter anchors.
 //!
-//! Lo que no se reconoce se omite y deja un aviso en `Book::warnings`; solo la falta de
-//! orden de lectura impide construir el libro.
+//! Anything unrecognised is skipped and leaves a warning in `Book::warnings`; only a
+//! missing reading order prevents the book from being built.
 
 use std::collections::{HashMap, HashSet};
 
@@ -14,7 +14,7 @@ use crate::container::{FragmentValue, Fragments};
 use crate::ion::Ion;
 use crate::yj::*;
 
-/// Una "altura de línea" de KFX expresada en em.
+/// One KFX "line height" expressed in em.
 const LH_IN_EM: f64 = 1.2;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -23,7 +23,7 @@ pub struct Book {
     pub chapters: Vec<Chapter>,
     pub toc: Vec<TocEntry>,
     pub images: Vec<Image>,
-    /// Nombre de archivo de la imagen de portada, si la hay.
+    /// File name of the cover image, if there is one.
     pub cover: Option<String>,
     pub warnings: Vec<String>,
 }
@@ -55,7 +55,7 @@ pub struct Span {
     pub text: String,
     pub bold: bool,
     pub italic: bool,
-    /// `capítulo#ancla` para un enlace interno, o una URL.
+    /// `chapter#anchor` for an internal link, or a URL.
     pub link: Option<String>,
 }
 
@@ -89,7 +89,7 @@ pub struct Style {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TocEntry {
     pub label: String,
-    /// `capítulo#ancla`.
+    /// `chapter#anchor`.
     pub target: String,
     pub children: Vec<TocEntry>,
 }
@@ -101,8 +101,13 @@ pub struct Image {
     pub data: Vec<u8>,
 }
 
-/// Construye el modelo del libro a partir de sus fragmentos.
+/// Builds the book model from its fragments. A book with no title is called "Untitled".
 pub fn build(fragments: &Fragments) -> Result<Book, Error> {
+    build_with(fragments, &crate::Labels::default().untitled)
+}
+
+/// Like [`build`], with `untitled` as the title of a book whose metadata has none.
+pub fn build_with(fragments: &Fragments, untitled: &str) -> Result<Book, Error> {
     let mut builder = Builder::new(fragments);
     let order = builder.reading_order()?;
     for section in order {
@@ -111,13 +116,13 @@ pub fn build(fragments: &Fragments) -> Result<Book, Error> {
     let chapter_ids: Vec<String> = builder.chapters.iter().map(|c| c.id.clone()).collect();
     builder.resolve_links(&chapter_ids);
     let toc = builder.toc(&chapter_ids);
-    let (meta, cover_resource) = builder.metadata();
+    let (meta, cover_resource) = builder.metadata(untitled);
     let cover = cover_resource.and_then(|r| builder.image_file(&r));
     builder.place_anchors();
     Ok(Book { meta, chapters: builder.chapters, toc, images: builder.images, cover, warnings: builder.warnings })
 }
 
-/// Solo el título del libro, sin construir el resto del modelo.
+/// Just the book's title, without building the rest of the model.
 pub fn title(fragments: &Fragments) -> Option<String> {
     for fragment in fragments.of_type(F_BOOK_METADATA) {
         let FragmentValue::Ion(value) = &fragment.value else { continue };
@@ -155,7 +160,7 @@ fn items(v: &Ion) -> Option<&[Ion]> {
     }
 }
 
-/// Un nombre apto para archivo e identificador XML.
+/// A name fit for a file and for an XML identifier.
 fn sanitize(name: &str) -> String {
     let clean: String =
         name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect();
@@ -167,7 +172,7 @@ enum AnchorTarget<'a> {
     Url(&'a str),
 }
 
-/// Lo que un evento de estilo aporta a un tramo de texto.
+/// What a style event contributes to a run of text.
 struct Event<'a> {
     start: usize,
     end: usize,
@@ -182,11 +187,11 @@ struct Builder<'a> {
     raw: HashMap<&'a str, &'a [u8]>,
     warnings: Vec<String>,
     chapters: Vec<Chapter>,
-    /// Posición de cada bloque, en paralelo a `chapters[i].blocks`.
+    /// Position of each block, parallel to `chapters[i].blocks`.
     block_positions: Vec<Vec<Option<i64>>>,
-    /// Posición -> (capítulo, posición del bloque que la representa).
+    /// Position -> (chapter, position of the block that stands for it).
     targets: HashMap<i64, (usize, i64)>,
-    /// Posiciones de contenedores que esperan a su primer bloque.
+    /// Positions of containers still waiting for their first block.
     pending: Vec<i64>,
     images: Vec<Image>,
     image_names: HashMap<String, Option<String>>,
@@ -232,7 +237,7 @@ impl<'a> Builder<'a> {
     }
 
     fn get(&self, ftype: &'a str, fid: &str) -> Option<&'a Ion> {
-        // La clave pide `&'a str` para ambos; `fid` solo se usa para comparar.
+        // The key wants `&'a str` for both; `fid` is only used to compare.
         self.ion.iter().find(|((t, id), _)| *t == ftype && *id == fid).map(|(_, v)| *v)
     }
 
@@ -240,7 +245,7 @@ impl<'a> Builder<'a> {
         self.f.symbols.name(sid).map_or_else(|| format!("${sid}"), str::to_string)
     }
 
-    /// El nombre al que se refiere un símbolo (o una cadena usada como referencia).
+    /// The name a symbol refers to (or a string used as a reference).
     fn name_of(&self, v: &'a Ion) -> Option<&'a str> {
         match v.unannotated() {
             Ion::Symbol(sid) => self.f.symbols.name(*sid),
@@ -279,7 +284,7 @@ impl<'a> Builder<'a> {
 
     fn section(&mut self, name: &'a str) {
         let Some(section) = self.get(F_SECTION, name) else {
-            self.warn(format!("sección {name} no encontrada"));
+            self.warn(format!("section {name} not found"));
             return;
         };
         let chapter = self.chapters.len();
@@ -295,7 +300,7 @@ impl<'a> Builder<'a> {
                             self.node(node, chapter);
                         }
                     }
-                    None => self.warn(format!("contenido {story} de la sección {name} no encontrado")),
+                    None => self.warn(format!("content {story} of section {name} not found")),
                 },
                 None => self.node(template, chapter),
             }
@@ -317,9 +322,9 @@ impl<'a> Builder<'a> {
             return;
         }
         if let Some(other) = kind.filter(|k| *k != NODE_TEXT && *k != NODE_CONTAINER) {
-            // Listas, tablas y demás: se pierde la estructura, pero no el texto que contienen.
+            // Lists, tables and the like: the structure is lost, but not the text inside.
             let name = self.symbol_name(other);
-            self.warn(format!("tipo de nodo desconocido {name}; se conserva solo su texto"));
+            self.warn(format!("unknown node type {name}; only its text is kept"));
         }
         let emitted = node.field(CONTENT).is_some_and(|r| self.text_node(node, r, chapter, position));
         if !emitted && let Some(p) = position {
@@ -341,7 +346,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    /// Devuelve `true` si el nodo produjo un bloque.
+    /// Returns `true` if the node produced a block.
     fn text_node(&mut self, node: &'a Ion, reference: &'a Ion, chapter: usize, position: Option<i64>) -> bool {
         let text = match reference.unannotated() {
             Ion::String(s) => Some(s.as_str()),
@@ -354,7 +359,7 @@ impl<'a> Builder<'a> {
                 });
                 if found.is_none() {
                     self.warn(format!(
-                        "texto no encontrado: {}[{}]",
+                        "text not found: {}[{}]",
                         name.unwrap_or("?"),
                         index.map_or_else(|| "?".to_string(), |i| i.to_string())
                     ));
@@ -432,7 +437,7 @@ impl<'a> Builder<'a> {
 
     fn image_node(&mut self, node: &'a Ion, chapter: usize, position: Option<i64>) {
         let Some(resource) = node.field(RESOURCE_NAME).and_then(|v| self.name_of(v)) else {
-            self.warn("imagen sin recurso; se omite".to_string());
+            self.warn("image with no resource; skipped".to_string());
             return;
         };
         let Some(name) = self.image_file(resource) else { return };
@@ -440,7 +445,7 @@ impl<'a> Builder<'a> {
         self.emit(chapter, position, Block::Image { anchor: None, name, alt });
     }
 
-    /// Nombre de archivo de la imagen de un recurso, añadiéndola al libro la primera vez.
+    /// File name of a resource's image, adding it to the book the first time.
     fn image_file(&mut self, resource: &str) -> Option<String> {
         if let Some(known) = self.image_names.get(resource) {
             return known.clone();
@@ -452,12 +457,12 @@ impl<'a> Builder<'a> {
 
     fn load_image(&mut self, resource: &str) -> Option<String> {
         let Some(info) = self.get(F_RESOURCE, resource) else {
-            self.warn(format!("recurso {resource} no encontrado; se omite la imagen"));
+            self.warn(format!("resource {resource} not found; the image is skipped"));
             return None;
         };
         let data = info.field(LOCATION).and_then(string).and_then(|l| self.raw.get(l).copied());
         let Some(data) = data else {
-            self.warn(format!("la imagen {resource} no tiene datos; se omite"));
+            self.warn(format!("image {resource} has no data; skipped"));
             return None;
         };
         let declared = info.field(MIME).and_then(string).unwrap_or("");
@@ -467,7 +472,7 @@ impl<'a> Builder<'a> {
             "image/gif" => ("image/gif".to_string(), "gif".to_string()),
             "image/svg+xml" => ("image/svg+xml".to_string(), "svg".to_string()),
             other => {
-                self.warn(format!("la imagen {resource} usa un formato poco común ({other})"));
+                self.warn(format!("image {resource} uses an uncommon format ({other})"));
                 let subtype = other.rsplit('/').next().filter(|s| !s.is_empty()).unwrap_or("bin");
                 (if other.is_empty() { "application/octet-stream".to_string() } else { other.to_string() }, sanitize(subtype))
             }
@@ -490,14 +495,14 @@ impl<'a> Builder<'a> {
         anchors
     }
 
-    /// Una posición convertida en `capítulo#ancla`, marcando el bloque como destino.
+    /// A position turned into `chapter#anchor`, marking the block as a target.
     fn target(&mut self, position: i64, chapter_ids: &[String]) -> Option<String> {
         let (chapter, block) = *self.targets.get(&position)?;
         self.referenced.insert(block);
         Some(format!("{}#p{block}", chapter_ids[chapter]))
     }
 
-    /// Durante el recorrido, `Span::link` guarda el nombre del ancla; aquí se resuelve.
+    /// During the walk, `Span::link` holds the anchor's name; it is resolved here.
     fn resolve_links(&mut self, chapter_ids: &[String]) {
         let anchors = self.anchors();
         let mut chapters = std::mem::take(&mut self.chapters);
@@ -512,7 +517,7 @@ impl<'a> Builder<'a> {
                         None => None,
                     };
                     if span.link.is_none() {
-                        self.warn(format!("enlace a un destino desconocido ({anchor}); se deja como texto"));
+                        self.warn(format!("link to an unknown target ({anchor}); left as plain text"));
                     }
                 }
                 merge_equal_spans(spans);
@@ -552,8 +557,8 @@ impl<'a> Builder<'a> {
                 (Some(label), Some(target)) => out.push(TocEntry { label: label.to_string(), target, children }),
                 (label, _) => {
                     self.warn(format!(
-                        "entrada del índice sin destino válido ({}); se omite",
-                        label.unwrap_or("sin título")
+                        "table of contents entry with no valid target ({}); skipped",
+                        label.unwrap_or("untitled")
                     ));
                     out.extend(children);
                 }
@@ -562,7 +567,7 @@ impl<'a> Builder<'a> {
         out
     }
 
-    fn metadata(&self) -> (Meta, Option<String>) {
+    fn metadata(&self, untitled: &str) -> (Meta, Option<String>) {
         let mut title = None;
         let mut authors = Vec::new();
         let mut language = None;
@@ -594,12 +599,12 @@ impl<'a> Builder<'a> {
                 }
             }
         }
-        let title = title.or_else(|| asin.clone()).unwrap_or_else(|| "Sin título".to_string());
+        let title = title.or_else(|| asin.clone()).unwrap_or_else(|| untitled.to_string());
         let meta = Meta { title, authors, language: language.unwrap_or_else(|| "und".to_string()), asin, publisher };
         (meta, cover)
     }
 
-    /// Da ancla solo a los bloques a los que apunta algún enlace o el índice.
+    /// Gives an anchor only to the blocks that a link or the table of contents points at.
     fn place_anchors(&mut self) {
         for (chapter, positions) in self.chapters.iter_mut().zip(&self.block_positions) {
             for (block, position) in chapter.blocks.iter_mut().zip(positions) {
@@ -612,7 +617,7 @@ impl<'a> Builder<'a> {
     }
 }
 
-/// Parte el texto en tramos de formato uniforme. Las posiciones son puntos de código.
+/// Splits the text into runs of uniform formatting. Positions are code points.
 fn split_spans(text: &str, events: &[Event]) -> Vec<Span> {
     let chars: Vec<char> = text.chars().collect();
     let mut cuts: Vec<usize> = vec![0, chars.len()];
@@ -638,7 +643,7 @@ fn split_spans(text: &str, events: &[Event]) -> Vec<Span> {
     spans
 }
 
-/// Une tramos contiguos con el mismo formato.
+/// Merges adjacent runs with the same formatting.
 fn merge_equal_spans(spans: &mut Vec<Span>) {
     let mut merged: Vec<Span> = Vec::with_capacity(spans.len());
     for span in spans.drain(..) {
@@ -658,7 +663,7 @@ mod tests {
     use crate::ion::Ion;
     use crate::testkit::*;
 
-    /// Un libro de prueba en construcción.
+    /// A test book under construction.
     struct T {
         b: BookBuilder,
     }
@@ -774,7 +779,7 @@ mod tests {
             build(&self.b.fragments)
         }
 
-        /// Un libro mínimo: una sección con los textos dados, uno por párrafo.
+        /// A minimal book: one section with the given texts, one per paragraph.
         fn simple(texts: &[&str]) -> T {
             let mut t = T::new();
             t.content("k", texts);
@@ -894,7 +899,7 @@ mod tests {
         let book = t.build().unwrap();
 
         let texts: Vec<String> = book.chapters[0].blocks.iter().map(text_of).collect();
-        assert_eq!(texts, vec!["Uno", "Dos"], "se pierde la estructura, no las palabras");
+        assert_eq!(texts, vec!["Uno", "Dos"], "the structure is lost, not the words");
         assert_eq!(book.warnings.len(), 1);
     }
 
@@ -1056,7 +1061,7 @@ mod tests {
         assert_eq!((spans[0].text.as_str(), spans[0].link.as_deref()), ("ver ", None));
         assert_eq!((spans[1].text.as_str(), spans[1].link.as_deref()), ("capítulo", Some("c1#p20")));
         assert_eq!(anchor_of(&book.chapters[1].blocks[0]), Some("p20"));
-        assert_eq!(anchor_of(&book.chapters[1].blocks[1]), None, "un bloque al que nadie apunta no lleva ancla");
+        assert_eq!(anchor_of(&book.chapters[1].blocks[1]), None, "a block nothing points at gets no anchor");
         assert_eq!(anchor_of(&book.chapters[0].blocks[0]), None);
     }
 
@@ -1092,7 +1097,7 @@ mod tests {
                 assert_eq!(name, "e1.jpg");
                 assert_eq!(alt, "Mapa del reino");
             }
-            other => panic!("se esperaba una imagen, llegó {other:?}"),
+            other => panic!("expected an image, got {other:?}"),
         }
         assert_eq!(
             book.images,
@@ -1178,8 +1183,19 @@ mod tests {
         assert!(meta.authors.is_empty());
 
         let bare = T::simple(&["Uno"]).build().unwrap().meta;
-        assert_eq!(bare.title, "Sin título");
+        assert_eq!(bare.title, "Untitled");
         assert_eq!(bare.asin, None);
+    }
+
+    #[test]
+    fn placeholder_title_can_be_localised() {
+        let bare = T::simple(&["Uno"]);
+        assert_eq!(build_with(&bare.b.fragments, "Sin título").unwrap().meta.title, "Sin título");
+        assert_eq!(build_with(&bare.b.fragments, "Ohne Titel").unwrap().meta.title, "Ohne Titel");
+
+        let mut titled = T::simple(&["Uno"]);
+        titled.metadata(&[("title", "Mi libro")]);
+        assert_eq!(build_with(&titled.b.fragments, "Sin título").unwrap().meta.title, "Mi libro");
     }
 
     #[test]
@@ -1266,7 +1282,7 @@ mod tests {
 
         let book = t.build().unwrap();
 
-        let Block::Paragraph { style, .. } = &book.chapters[0].blocks[0] else { panic!("párrafo") };
+        let Block::Paragraph { style, .. } = &book.chapters[0].blocks[0] else { panic!("expected a paragraph") };
         assert_eq!(style.align, Some(Align::Center));
         assert_eq!(style.indent, Some(Length::Em(1.5)));
         assert!(matches!(style.margin_top, Some(Length::Em(v)) if (v - 2.4).abs() < 1e-9), "{:?}", style.margin_top);
@@ -1309,7 +1325,7 @@ mod tests {
         let book = t.build().unwrap();
 
         for block in &book.chapters[0].blocks {
-            let Block::Paragraph { style, .. } = block else { panic!("párrafo") };
+            let Block::Paragraph { style, .. } = block else { panic!("expected a paragraph") };
             assert_eq!(style, &Style::default());
         }
     }

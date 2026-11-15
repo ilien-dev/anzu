@@ -1,10 +1,10 @@
-//! Regla de compatibilidad entre la app Kindle instalada y los archivers de una publicación.
+//! Compatibility rule between the installed Kindle app and the archivers of a release.
 //!
-//! El nombre de cada ejecutable declara la versión máxima de Kindle que admite:
-//! - `MSIXKFXArchiver_x64_1_<N>.exe` admite Kindle `1.1.<M>` con `M <= N`.
-//! - `MSIXKFXArchiver1_<N>_final.exe` admite Kindle `1.0.<M>` con `M <= N`.
+//! The name of each executable states the highest Kindle version it supports:
+//! - `MSIXKFXArchiver_x64_1_<N>.exe` supports Kindle `1.1.<M>` with `M <= N`.
+//! - `MSIXKFXArchiver1_<N>_final.exe` supports Kindle `1.0.<M>` with `M <= N`.
 //!
-//! Lo que no se puede interpretar con certeza se trata como desconocido, y eso bloquea.
+//! Anything that cannot be interpreted with certainty is treated as unknown, and that blocks.
 
 use crate::KindleVersion;
 

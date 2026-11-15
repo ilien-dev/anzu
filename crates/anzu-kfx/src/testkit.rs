@@ -1,4 +1,4 @@
-//! Utilidades solo para tests: un escritor mínimo de Ion binario y de contenedores KFX.
+//! Test-only helpers: a minimal writer of binary Ion and of KFX containers.
 
 use crate::ion::Ion;
 
@@ -32,7 +32,7 @@ fn magnitude(n: u64) -> Vec<u8> {
     bytes[skip..].to_vec()
 }
 
-/// Codifica un valor, sin marcador de versión.
+/// Encodes one value, without a version marker.
 pub fn encode(value: &Ion) -> Vec<u8> {
     match value {
         Ion::Null => vec![0x0F],
@@ -61,11 +61,11 @@ pub fn encode(value: &Ion) -> Vec<u8> {
             body.extend(encode(inner));
             tlv(14, &body)
         }
-        Ion::Decimal(_) | Ion::Timestamp(_) => unimplemented!("el kit de pruebas no escribe este tipo"),
+        Ion::Decimal(_) | Ion::Timestamp(_) => unimplemented!("the test kit does not write this type"),
     }
 }
 
-/// Un flujo Ion completo con un único valor.
+/// A complete Ion stream holding a single value.
 pub fn ion_doc(value: &Ion) -> Vec<u8> {
     [&BVM[..], &encode(value)].concat()
 }
@@ -90,13 +90,13 @@ pub fn list(items: Vec<Ion>) -> Ion {
     Ion::List(items)
 }
 
-/// Primer identificador de símbolo local con la tabla `YJ_symbols` conocida.
+/// First local symbol identifier with the known `YJ_symbols` table.
 pub const FIRST_LOCAL: u32 = 860;
 
 pub struct TestEntity {
     pub id: u32,
     pub ftype: u32,
-    /// Para un fragmento Ion, un flujo completo (`ion_doc`); para uno crudo, sus bytes.
+    /// For an Ion fragment, a complete stream (`ion_doc`); for a raw one, its bytes.
     pub payload: Vec<u8>,
 }
 
@@ -111,8 +111,8 @@ fn entity_bytes(payload: &[u8]) -> Vec<u8> {
     out
 }
 
-/// Construye un contenedor `CONT` con los símbolos locales y entidades dados.
-/// Con `locals` vacío, el contenedor no declara tabla de símbolos.
+/// Builds a `CONT` container with the given local symbols and entities.
+/// With `locals` empty, the container declares no symbol table.
 pub fn build_container(locals: &[&str], entities: &[TestEntity]) -> Vec<u8> {
     const HEADER: usize = 18;
 
@@ -163,7 +163,7 @@ pub fn build_container(locals: &[&str], entities: &[TestEntity]) -> Vec<u8> {
     out
 }
 
-/// Construye en memoria los fragmentos de un libro de prueba.
+/// Builds the fragments of a test book in memory.
 pub struct BookBuilder {
     pub fragments: crate::container::Fragments,
 }
@@ -173,16 +173,16 @@ impl BookBuilder {
         BookBuilder { fragments: crate::container::Fragments::new() }
     }
 
-    /// Identificador de un símbolo local, registrándolo si hace falta.
+    /// Identifier of a local symbol, registering it if needed.
     pub fn local(&mut self, name: &str) -> u32 {
         if let Some(id) = self.fragments.symbols.id(name) {
             return id;
         }
         self.fragments.symbols.extend_local(vec![name.to_string()]);
-        self.fragments.symbols.id(name).expect("símbolo recién registrado")
+        self.fragments.symbols.id(name).expect("the symbol was just registered")
     }
 
-    /// Un símbolo local como valor Ion.
+    /// A local symbol as an Ion value.
     pub fn lsym(&mut self, name: &str) -> Ion {
         Ion::Symbol(self.local(name))
     }

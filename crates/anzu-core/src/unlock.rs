@@ -1,17 +1,17 @@
-//! Ejecución del archiver de Satsuoni como proceso externo.
+//! Running Satsuoni's archiver as an external process.
 //!
-//! Interfaz confirmada en `Other_Tools/KRFKeyExtractor/MSIXKFXArchiver.cpp`:
+//! Interface confirmed in `Other_Tools/KRFKeyExtractor/MSIXKFXArchiver.cpp`:
 //!
 //! ```text
-//! exe [kindle-documents] [output-folder] [output-k4i] [dll-folder] [extra ...] [--data-dir <ruta absoluta>]
+//! exe [kindle-documents] [output-folder] [output-k4i] [dll-folder] [extra ...] [--data-dir <absolute path>]
 //! ```
 //!
-//! - Escribe `<output-folder>/<ASIN>_EBOK.kfx-zip` por libro y omite los que ya existen.
-//! - Deja `books.keyfile` en el directorio desde el que se lanza.
-//! - Sin `--data-dir` usa `<unidad>:/Data` como zona temporal; aquí siempre se le pasa
-//!   una carpeta propia para no escribir fuera de los datos de Anzu.
+//! - Writes `<output-folder>/<ASIN>_EBOK.kfx-zip` per book and skips the ones that already exist.
+//! - Leaves `books.keyfile` in the directory it is launched from.
+//! - Without `--data-dir` it uses `<drive>:/Data` as its scratch area; here it is always given
+//!   a folder of its own so that it does not write outside Anzu's data.
 //!
-//! Este módulo no descifra nada: solo lanza el proceso y recoge sus archivos.
+//! This module decrypts nothing: it only launches the process and collects its files.
 
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
@@ -26,10 +26,10 @@ const TAIL_LINES: usize = 20;
 pub struct UnlockRequest<'a> {
     pub exe: &'a Path,
     pub content_dir: &'a Path,
-    /// Carpeta de salida del archiver; debe estar vacía para que no omita libros.
+    /// The archiver's output folder; it must be empty so that it skips no books.
     pub out_dir: &'a Path,
     pub keyfile: &'a Path,
-    /// Directorio de trabajo del proceso y raíz de su zona temporal.
+    /// The process's working directory and the root of its scratch area.
     pub work_dir: &'a Path,
 }
 
@@ -44,7 +44,7 @@ pub fn build_command(req: &UnlockRequest) -> Command {
     cmd
 }
 
-/// Los `<ASIN>_EBOK.kfx-zip` de una carpeta, como `(ASIN, ruta)`, ordenados por ASIN.
+/// The `<ASIN>_EBOK.kfx-zip` files of a folder, as `(ASIN, path)`, sorted by ASIN.
 pub fn collect_outputs(out_dir: &Path) -> Vec<(String, PathBuf)> {
     let Ok(entries) = std::fs::read_dir(out_dir) else { return Vec::new() };
     let mut found: Vec<(String, PathBuf)> = entries
@@ -60,7 +60,7 @@ pub fn collect_outputs(out_dir: &Path) -> Vec<(String, PathBuf)> {
     found
 }
 
-/// Mueve cada salida a `data_dir/unlocked/<ASIN>.kfx-zip`, sustituyendo copias anteriores.
+/// Moves each output to `data_dir/unlocked/<ASIN>.kfx-zip`, replacing earlier copies.
 pub fn store_outputs(outputs: Vec<(String, PathBuf)>, data_dir: &Path) -> Result<Vec<(String, PathBuf)>, Error> {
     let mut stored = Vec::with_capacity(outputs.len());
     for (asin, from) in outputs {
@@ -80,15 +80,15 @@ pub fn store_outputs(outputs: Vec<(String, PathBuf)>, data_dir: &Path) -> Result
     Ok(stored)
 }
 
-/// Tiempo máximo sin salida antes de dar la herramienta por colgada.
+/// Longest time without output before the tool is taken to have hung.
 pub const IDLE_LIMIT: std::time::Duration = std::time::Duration::from_secs(600);
 
-/// Lanza el proceso, entrega cada línea de stdout y stderr a `on_line` y devuelve su código de salida.
+/// Launches the process, hands each line of stdout and stderr to `on_line` and returns its exit code.
 pub fn run_streaming(cmd: Command, on_line: &mut dyn FnMut(&str)) -> Result<i32, Error> {
     run_streaming_with(cmd, IDLE_LIMIT, on_line)
 }
 
-/// Como [`run_streaming`], deteniendo el proceso si pasa `idle` sin escribir nada.
+/// Like [`run_streaming`], stopping the process if `idle` passes without it writing anything.
 pub fn run_streaming_with(
     mut cmd: Command,
     idle: std::time::Duration,
@@ -121,10 +121,10 @@ pub fn run_streaming_with(
             Ok(line) => on_line(&line),
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
             Err(mpsc::RecvTimeoutError::Timeout) => {
-                // Los hilos lectores no se esperan: un proceso nieto puede retener la tubería.
+                // The reader threads are not joined: a grandchild process can keep the pipe open.
                 let _ = child.kill();
                 return Err(Error::Other(
-                    "la herramienta de desbloqueo dejó de responder y se detuvo".to_string(),
+                    "the unlock tool stopped responding and was stopped".to_string(),
                 ));
             }
         }
@@ -135,11 +135,11 @@ pub fn run_streaming_with(
     Ok(child.wait()?.code().unwrap_or(-1))
 }
 
-const HIDDEN: &str = "[oculto]";
-/// Lo que se muestra en lugar de una línea que el filtro no reconoce.
-pub const WITHHELD: &str = "[línea de la herramienta omitida por seguridad]";
+const HIDDEN: &str = "[hidden]";
+/// What is shown in place of a line the filter does not recognise.
+pub const WITHHELD: &str = "[tool output line withheld for safety]";
 const MIN_BLOB: usize = 24;
-/// Comienzos de las líneas de progreso que se sabe que no llevan secretos.
+/// Beginnings of the progress lines that are known to carry no secrets.
 const SAFE_PREFIXES: [&str; 10] = [
     "Read file of",
     "Decrypting DRMION",
@@ -153,12 +153,12 @@ const SAFE_PREFIXES: [&str; 10] = [
     "Error",
 ];
 
-/// Filtra una línea de la herramienta antes de mostrarla o guardarla.
+/// Filters a line from the tool before it is shown or stored.
 ///
-/// La herramienta imprime el número de serie del dispositivo, secretos de la cuenta y
-/// claves de libros en muchos formatos distintos. Por eso el filtro es una lista blanca:
-/// solo pasan las líneas de progreso conocidas, y aun en ellas se oculta cualquier
-/// cadena larga que parezca una clave. Todo lo demás se sustituye por [`WITHHELD`].
+/// The tool prints the device serial number, account secrets and book keys in many
+/// different formats. That is why the filter is an allowlist: only the known progress
+/// lines pass, and even in those any long string that looks like a key is hidden.
+/// Everything else is replaced by [`WITHHELD`].
 pub fn redact(line: &str) -> String {
     if line.trim().is_empty() {
         return line.to_string();
@@ -189,8 +189,8 @@ pub fn redact(line: &str) -> String {
     out
 }
 
-/// Como [`run_streaming`], pero cada línea pasa por [`redact`] antes de salir de aquí.
-/// Varias líneas omitidas seguidas se muestran una sola vez.
+/// Like [`run_streaming`], but every line goes through [`redact`] before it leaves here.
+/// Several withheld lines in a row are shown only once.
 pub fn run_redacted(cmd: Command, on_line: &mut dyn FnMut(&str)) -> Result<(i32, Vec<String>), Error> {
     let mut log: Vec<String> = Vec::new();
     let code = run_streaming(cmd, &mut |line| {
@@ -204,8 +204,8 @@ pub fn run_redacted(cmd: Command, on_line: &mut dyn FnMut(&str)) -> Result<(i32,
     Ok((code, log))
 }
 
-/// Deja en `out_dir` un marcador vacío por cada libro que ya está desbloqueado, para que
-/// la herramienta lo omita en lugar de rehacerlo. Devuelve cuántos marcó.
+/// Leaves an empty placeholder in `out_dir` for each book that is already unlocked, so that
+/// the tool skips it instead of redoing it. Returns how many it placed.
 pub fn seed_placeholders(out_dir: &Path, data_dir: &Path) -> Result<usize, Error> {
     let Ok(entries) = std::fs::read_dir(data_dir.join("unlocked")) else { return Ok(0) };
     let mut seeded = 0;
@@ -220,7 +220,7 @@ pub fn seed_placeholders(out_dir: &Path, data_dir: &Path) -> Result<usize, Error
     Ok(seeded)
 }
 
-/// Decide el resultado de una ejecución a partir de su código de salida y de lo que produjo.
+/// Decides the result of a run from its exit code and from what it produced.
 pub fn outcome(code: i32, log: &[String], outputs: Vec<(String, PathBuf)>) -> Result<Vec<(String, PathBuf)>, Error> {
     if code != 0 && outputs.is_empty() {
         let start = log.len().saturating_sub(TAIL_LINES);
@@ -253,7 +253,7 @@ pub fn unlock_with(
     store_outputs(produced, data_dir)
 }
 
-/// Desbloquea los libros de `content_dir`. Devuelve `(ASIN, ruta del .kfx-zip)` por libro.
+/// Unlocks the books in `content_dir`. Returns `(ASIN, path of the .kfx-zip)` per book.
 pub fn unlock(req: &UnlockRequest, data_dir: &Path, on_line: &mut dyn FnMut(&str)) -> Result<Vec<(String, PathBuf)>, Error> {
     unlock_with(req, kindle::is_running(), data_dir, on_line)
 }
@@ -342,19 +342,19 @@ mod tests {
 
         assert!(matches!(result, Err(Error::KindleRunning)));
         assert!(lines.is_empty());
-        assert!(!work.exists(), "no debe prepararse nada si Kindle está abierta");
+        assert!(!work.exists(), "nothing must be prepared while Kindle is open");
     }
 
     #[test]
     fn streams_lines_from_both_pipes_and_returns_the_exit_code() {
         let mut cmd = crate::kindle::quiet_command("cmd");
-        cmd.args(["/C", "echo uno& echo dos 1>&2& exit 3"]);
+        cmd.args(["/C", "echo one& echo two 1>&2& exit 3"]);
         let mut lines = Vec::new();
 
         let code = run_streaming(cmd, &mut |l| lines.push(l.trim().to_string())).unwrap();
 
         lines.sort();
-        assert_eq!(lines, vec!["dos".to_string(), "uno".to_string()]);
+        assert_eq!(lines, vec!["one".to_string(), "two".to_string()]);
         assert_eq!(code, 3);
     }
 
@@ -366,16 +366,16 @@ mod tests {
 
     #[test]
     fn failure_without_outputs_reports_code_and_log_tail() {
-        let log: Vec<String> = (1..=30).map(|i| format!("línea {i}")).collect();
+        let log: Vec<String> = (1..=30).map(|i| format!("line {i}")).collect();
         match outcome(-1, &log, Vec::new()) {
             Err(Error::UnlockFailed { code, tail }) => {
                 assert_eq!(code, -1);
                 let kept: Vec<&str> = tail.lines().collect();
                 assert_eq!(kept.len(), 20);
-                assert_eq!(kept[0], "línea 11");
-                assert_eq!(kept[19], "línea 30");
+                assert_eq!(kept[0], "line 11");
+                assert_eq!(kept[19], "line 30");
             }
-            other => panic!("se esperaba UnlockFailed, llegó {other:?}"),
+            other => panic!("expected UnlockFailed, got {other:?}"),
         }
     }
 
@@ -425,10 +425,10 @@ mod tests {
     fn long_tokens_are_masked_even_in_known_lines() {
         assert_eq!(
             redact("Current keyid amzn1.drm-key.v1.4d3c7674-dc00-4b3b-95b2-07d47e91cede"),
-            "Current keyid amzn1.drm-key.v1.[oculto]"
+            "Current keyid amzn1.drm-key.v1.[hidden]"
         );
-        assert_eq!(redact("Could not open QUJDREVGR0hJSktM/TU5PUFFSU1RVVldYWVo="), "Could not open [oculto]");
-        assert_eq!(redact("Read file of 00112233445566778899aabb bytes"), "Read file of [oculto] bytes");
+        assert_eq!(redact("Could not open QUJDREVGR0hJSktM/TU5PUFFSU1RVVldYWVo="), "Could not open [hidden]");
+        assert_eq!(redact("Read file of 00112233445566778899aabb bytes"), "Read file of [hidden] bytes");
     }
 
     #[test]
@@ -463,16 +463,16 @@ mod tests {
         fs::create_dir_all(&out).unwrap();
         let kept = crate::library::unlocked_path(&data, "B0AAA");
         fs::create_dir_all(kept.parent().unwrap()).unwrap();
-        fs::write(&kept, b"ya desbloqueado").unwrap();
+        fs::write(&kept, b"already unlocked").unwrap();
 
         assert_eq!(seed_placeholders(&out, &data).unwrap(), 1);
 
         assert_eq!(fs::metadata(out.join("B0AAA_EBOK.kfx-zip")).unwrap().len(), 0);
-        assert!(collect_outputs(&out).is_empty(), "un marcador vacío no es un libro");
-        fs::write(out.join("B0BBB_EBOK.kfx-zip"), b"nuevo").unwrap();
+        assert!(collect_outputs(&out).is_empty(), "an empty placeholder is not a book");
+        fs::write(out.join("B0BBB_EBOK.kfx-zip"), b"new").unwrap();
         let stored = store_outputs(collect_outputs(&out), &data).unwrap();
         assert_eq!(stored.len(), 1);
         assert_eq!(stored[0].0, "B0BBB");
-        assert_eq!(fs::read(&kept).unwrap(), b"ya desbloqueado");
+        assert_eq!(fs::read(&kept).unwrap(), b"already unlocked");
     }
 }

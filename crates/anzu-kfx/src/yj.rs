@@ -1,13 +1,13 @@
-//! Nombres para los símbolos de `YJ_symbols` que usa el conversor.
+//! Names for the `YJ_symbols` symbols the converter uses.
 //!
-//! En KFX los campos y valores son símbolos numerados (`$155`, `$260`, ...). Aquí se
-//! les da nombre según su función. Referencia de formato: `kfxlib` del plugin KFX Input
-//! de John Howell (GPL-3.0), contrastada con libros reales.
+//! In KFX, fields and values are numbered symbols (`$155`, `$260`, ...). Here they are
+//! named after what they do. Format reference: `kfxlib` from John Howell's KFX Input
+//! plugin (GPL-3.0), checked against real books.
 
-/// Campo `name` de la tabla de sistema; en una referencia de texto nombra su fragmento.
+/// The `name` field of the system table; in a text reference it names its fragment.
 pub const NAME: u32 = 4;
 
-// Tipos de fragmento.
+// Fragment types.
 pub const F_CONTENT: &str = "$145";
 pub const F_STYLE: &str = "$157";
 pub const F_RESOURCE: &str = "$164";
@@ -20,7 +20,7 @@ pub const F_RAW_MEDIA: &str = "$417";
 pub const F_BOOK_METADATA: &str = "$490";
 pub const F_DOCUMENT: &str = "$538";
 
-// Propiedades de estilo.
+// Style properties.
 pub const LANGUAGE: u32 = 10;
 pub const FONT_STYLE: u32 = 12;
 pub const FONT_WEIGHT: u32 = 13;
@@ -30,17 +30,17 @@ pub const TEXT_INDENT: u32 = 36;
 pub const MARGIN_TOP: u32 = 47;
 pub const MARGIN_BOTTOM: u32 = 49;
 
-// Valores de estilo.
+// Style values.
 pub const ALIGN_LEFT: u32 = 59;
 pub const ALIGN_RIGHT: u32 = 61;
 pub const ALIGN_CENTER: u32 = 320;
 pub const ALIGN_JUSTIFY: u32 = 321;
 pub const ITALIC: u32 = 382;
-/// Pesos a partir de seminegrita (600): `$360`..=`$363`.
+/// Weights from semibold (600) up: `$360`..=`$363`.
 pub const WEIGHT_BOLD_FROM: u32 = 360;
 pub const WEIGHT_BOLD_TO: u32 = 363;
 
-// Medidas: `{ $307: valor, $306: unidad }`.
+// Measures: `{ $307: value, $306: unit }`.
 pub const UNIT: u32 = 306;
 pub const VALUE: u32 = 307;
 pub const UNIT_EM: u32 = 308;
@@ -49,7 +49,7 @@ pub const UNIT_PERCENT: u32 = 314;
 pub const UNIT_PT: u32 = 318;
 pub const UNIT_REM: u32 = 505;
 
-// Secciones, storylines y nodos de contenido.
+// Sections, storylines and content nodes.
 pub const PAGE_TEMPLATES: u32 = 141;
 pub const STYLE_EVENTS: u32 = 142;
 pub const OFFSET: u32 = 143;
@@ -68,24 +68,24 @@ pub const INDEX: u32 = 403;
 pub const ALT_TEXT: u32 = 584;
 pub const HEADING_LEVEL: u32 = 790;
 
-// Tipos de nodo.
+// Node types.
 pub const NODE_TEXT: u32 = 269;
 pub const NODE_CONTAINER: u32 = 270;
 pub const NODE_IMAGE: u32 = 271;
 
-// Recursos.
+// Resources.
 pub const MIME: u32 = 162;
 pub const LOCATION: u32 = 165;
 
-// Orden de lectura.
+// Reading order.
 pub const READING_ORDERS: u32 = 169;
 pub const SECTIONS: u32 = 170;
 
-// Anclas.
+// Anchors.
 pub const ANCHOR_NAME: u32 = 180;
 pub const POSITION: u32 = 183;
 
-// Navegación.
+// Navigation.
 pub const NAV_TYPE: u32 = 235;
 pub const NAV_REPRESENTATION: u32 = 241;
 pub const NAV_LABEL: u32 = 244;
@@ -94,12 +94,12 @@ pub const NAV_ENTRIES: u32 = 247;
 pub const NAV_CONTAINERS: u32 = 392;
 pub const NAV_TOC: u32 = 212;
 
-// Metadatos.
+// Metadata.
 pub const META_VALUE: u32 = 307;
 pub const META_ENTRIES: u32 = 258;
 pub const META_CATEGORIES: u32 = 491;
 pub const META_KEY: u32 = 492;
 pub const META_CATEGORY: u32 = 495;
 
-// Anclas con destino externo.
+// Anchors with an external target.
 pub const ANCHOR_URI: u32 = 186;

@@ -1,4 +1,4 @@
-//! Verificación manual: qué ve Anzu en este equipo.
+//! Manual check: what Anzu sees on this machine.
 use anzu_core::{kindle, library, settings};
 
 fn main() {
@@ -6,12 +6,12 @@ fn main() {
     let s = settings::Settings::load(&data);
     match kindle::detect() {
         Some(k) => {
-            println!("Kindle {} en {}", k.version, k.content_dir.display());
-            println!("En ejecución: {}", kindle::is_running());
+            println!("Kindle {} at {}", k.version, k.content_dir.display());
+            println!("Running: {}", kindle::is_running());
             for b in library::scan(&k.content_dir, &data, &s) {
                 println!("{} {:?} {} bytes", b.asin, b.state, b.size);
             }
         }
-        None => println!("Kindle no instalada"),
+        None => println!("Kindle is not installed"),
     }
 }

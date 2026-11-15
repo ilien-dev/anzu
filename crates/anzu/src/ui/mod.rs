@@ -1,4 +1,4 @@
-//! La interfaz: estado de la ventana, hilos de trabajo y reparto entre pantallas.
+//! The interface: window state, worker threads and the split between screens.
 
 mod blocked;
 mod icons;
@@ -12,11 +12,12 @@ use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
 
 use anzu_core::library::{Book, BookState};
-use anzu_core::settings::{self, Settings, ThemeChoice};
+use anzu_core::settings::{self, Language, Settings, ThemeChoice};
 use anzu_core::{kindle, library as core_library};
 use eframe::egui;
 
 use crate::app::{self, Health, RunPlan};
+use crate::i18n::{self, Strings};
 use crate::pipeline::{self, CoreBackend, Msg, Step};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,7 +34,7 @@ enum Filter {
     Converted,
 }
 
-/// Columna por la que se ordena la tabla de libros.
+/// The column the book table is sorted by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Column {
     Title,
@@ -54,7 +55,7 @@ enum StepState {
     Done,
 }
 
-/// Lo que se sabe de la ejecución en curso o de la última.
+/// What is known about the current run, or the last one.
 #[derive(Default)]
 struct Run {
     asins: Vec<String>,
@@ -76,7 +77,7 @@ pub struct AnzuApp {
     screen: Screen,
     tx: Sender<Msg>,
     rx: Receiver<Msg>,
-    /// Canal para responder a "¿cerrar Kindle?" durante una ejecución.
+    /// Channel to answer "close Kindle?" during a run.
     close_tx: Option<Sender<bool>>,
     asking_to_close: bool,
     run: Run,
@@ -110,15 +111,24 @@ impl AnzuApp {
         app
     }
 
+    /// The text of the language in use.
+    fn t(&self) -> &'static Strings {
+        i18n::strings(self.settings.language)
+    }
+
     fn refresh_books(&mut self) {
+        // What the user chose in this window wins over what is on disk.
+        let (theme, language) = (self.settings.theme, self.settings.language);
         self.settings = Settings::load(&self.data_dir);
+        self.settings.theme = theme;
+        self.settings.language = language;
         self.books = core_library::scan(&self.content_dir, &self.data_dir, &self.settings);
         self.learn_titles();
         let ready = self.ready();
         self.selected.retain(|asin| self.books.iter().any(|b| &b.asin == asin && app::selectable(b.state, ready)));
     }
 
-    /// Lee el título de los libros desbloqueados que aún no lo tienen y lo recuerda.
+    /// Reads the title of unlocked books that do not have one yet, and remembers it.
     fn learn_titles(&mut self) {
         let mut learned = false;
         for book in &mut self.books {
@@ -153,6 +163,12 @@ impl AnzuApp {
         theme::set_choice(ctx, choice);
     }
 
+    fn set_language(&mut self, ctx: &egui::Context, language: Language) {
+        self.settings.language = language;
+        let _ = self.settings.save(&self.data_dir);
+        ctx.send_viewport_cmd(egui::ViewportCommand::Title(self.t().window_title.to_string()));
+    }
+
     fn start_check(&mut self, ctx: &egui::Context) {
         self.health = Health::Checking;
         let (tx, ctx) = (self.tx.clone(), ctx.clone());
@@ -181,12 +197,14 @@ impl AnzuApp {
         let backend = CoreBackend { data_dir: self.data_dir.clone() };
         let books = self.books.clone();
         let out_dir = self.settings.output_dir.clone();
+        let language = self.settings.language;
         std::thread::spawn(move || {
             pipeline::run(
                 &backend,
                 &plan,
                 &books,
                 &out_dir,
+                language,
                 &mut |message| {
                     let _ = tx.send(message);
                     ctx.request_repaint();
@@ -230,7 +248,7 @@ impl AnzuApp {
     }
 
     fn pick_output_dir(&mut self) {
-        let mut dialog = rfd::FileDialog::new().set_title("Carpeta para los EPUB");
+        let mut dialog = rfd::FileDialog::new().set_title(self.t().folder_dialog);
         if self.settings.output_dir.is_dir() {
             dialog = dialog.set_directory(&self.settings.output_dir);
         }
@@ -240,25 +258,26 @@ impl AnzuApp {
         }
     }
 
-    /// Título para mostrar: el real si se conoce, o el ASIN mientras el libro tenga DRM.
-    fn display_title(book: &Book) -> String {
-        book.title.clone().unwrap_or_else(|| format!("Libro {}", book.asin))
+    /// The title to show: the real one when known, or the ASIN while the book has DRM.
+    fn display_title(book: &Book, t: &Strings) -> String {
+        book.title.clone().unwrap_or_else(|| t.book_fallback(&book.asin))
     }
 
     fn close_dialog(&mut self, ctx: &egui::Context) {
         let p = theme::Palette::of(ctx);
+        let t = self.t();
         let mut answer = None;
-        let response = egui::Modal::new(egui::Id::unique("cerrar-kindle")).show(ctx, |ui| {
+        let response = egui::Modal::new(egui::Id::unique("close-kindle")).show(ctx, |ui| {
             ui.set_width(400.0);
-            ui.label(theme::bold("La app Kindle está abierta").size(16.0));
+            ui.label(theme::bold(t.close_title).size(16.0));
             ui.add_space(2.0);
-            ui.label("Para desbloquear hay que cerrarla. Tu posición de lectura se guarda al cerrar.");
+            ui.label(t.close_body);
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                if ui.add(theme::primary_button(p, "Cerrar Kindle y continuar")).clicked() {
+                if ui.add(theme::primary_button(p, t.close_confirm)).clicked() {
                     answer = Some(true);
                 }
-                if ui.button("Cancelar").clicked() {
+                if ui.button(t.cancel).clicked() {
                     answer = Some(false);
                 }
             });
@@ -271,11 +290,11 @@ impl AnzuApp {
         }
     }
 
-    /// El logotipo y el nombre, para la banda de cabecera.
-    fn brand(ui: &mut egui::Ui, p: theme::Palette) {
+    /// The logo and the name, for the header band.
+    fn brand(ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
         logo::badge(ui, 28.0, p.shell_accent, p.on_shell_accent);
         ui.label(theme::bold("anzu").color(p.on_shell).size(17.0));
-        ui.label(egui::RichText::new("de Kindle a EPUB").color(p.shell_muted).size(theme::SMALL));
+        ui.label(egui::RichText::new(t.tagline).color(p.shell_muted).size(theme::SMALL));
     }
 }
 
@@ -298,7 +317,7 @@ impl eframe::App for AnzuApp {
     }
 }
 
-/// Abre la ventana de la app. No vuelve hasta que se cierra.
+/// Opens the app window. Does not return until it is closed.
 pub fn launch() -> Result<(), String> {
     const ICON_SIZE: u32 = 128;
     let icon = egui::IconData {
@@ -306,11 +325,12 @@ pub fn launch() -> Result<(), String> {
         width: ICON_SIZE,
         height: ICON_SIZE,
     };
+    let language = Settings::load(&settings::prepare_data_dir()).language;
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("Anzu: de Kindle a EPUB")
+            .with_title(i18n::strings(language).window_title)
             .with_inner_size([1180.0, 760.0])
-            .with_min_inner_size([760.0, 500.0])
+            .with_min_inner_size([820.0, 500.0])
             .with_icon(icon),
         ..Default::default()
     };

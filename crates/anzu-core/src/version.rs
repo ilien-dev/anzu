@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use crate::Error;
 
-/// Versión de un paquete de Microsoft Store: `major.minor.build.revision`.
+/// Version of a Microsoft Store package: `major.minor.build.revision`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct KindleVersion {
     pub major: u32,

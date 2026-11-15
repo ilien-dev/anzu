@@ -1,4 +1,4 @@
-//! Lector de KFX sin DRM y escritor de EPUB 3.
+//! Reader for DRM-free KFX and writer of EPUB 3.
 
 pub mod book;
 pub mod container;
@@ -9,25 +9,27 @@ pub mod yj;
 #[cfg(test)]
 mod testkit;
 
+use std::path::Path;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Ion no válido: {0}")]
+    #[error("invalid Ion: {0}")]
     Ion(String),
-    #[error("el archivo no es KFX")]
+    #[error("the file is not KFX")]
     NotKfx,
-    #[error("el libro sigue cifrado (DRMION); hay que desbloquearlo antes")]
+    #[error("the book is still encrypted (DRMION); it has to be unlocked first")]
     StillEncrypted,
-    #[error("contenedor KFX no válido: {0}")]
+    #[error("invalid KFX container: {0}")]
     Container(String),
-    #[error("el libro no declara un orden de lectura")]
+    #[error("the book does not declare a reading order")]
     NoReadingOrder,
-    #[error("E/S: {0}")]
+    #[error("I/O: {0}")]
     Io(#[from] std::io::Error),
     #[error("{0}")]
     Other(String),
 }
 
-/// Resultado de una conversión.
+/// Result of a conversion.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Converted {
     pub path: std::path::PathBuf,
@@ -35,13 +37,35 @@ pub struct Converted {
     pub warnings: Vec<String>,
 }
 
-/// Convierte un KFX sin DRM (`.kfx-zip` o contenedor suelto) en un EPUB dentro de `out_dir`.
+/// The few words the converter writes into a book. English by default.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Labels {
+    /// Title of the table of contents. Default: "Contents".
+    pub contents: String,
+    /// Word used for a chapter with no heading, followed by its number. Default: "Chapter".
+    pub chapter: String,
+    /// Title of a book whose metadata has none. Default: "Untitled".
+    pub untitled: String,
+}
+
+impl Default for Labels {
+    fn default() -> Self {
+        Labels { contents: "Contents".to_string(), chapter: "Chapter".to_string(), untitled: "Untitled".to_string() }
+    }
+}
+
+/// Converts a DRM-free KFX (`.kfx-zip` or a single container) into an EPUB inside `out_dir`.
 ///
-/// El archivo se llama como el título del libro. Nunca sobrescribe: si ya existe, añade
-/// ` (2)`, ` (3)`...
-pub fn convert(input: &std::path::Path, out_dir: &std::path::Path) -> Result<Converted, Error> {
+/// The file is named after the book's title. It never overwrites: if the name is taken, it
+/// appends ` (2)`, ` (3)`...
+pub fn convert(input: &Path, out_dir: &Path) -> Result<Converted, Error> {
+    convert_with(input, out_dir, &Labels::default())
+}
+
+/// Like [`convert`], with the words written into the book taken from `labels`.
+pub fn convert_with(input: &Path, out_dir: &Path, labels: &Labels) -> Result<Converted, Error> {
     let fragments = container::open(input)?;
-    let book = book::build(&fragments)?;
+    let book = book::build_with(&fragments, &labels.untitled)?;
     std::fs::create_dir_all(out_dir)?;
 
     let base = epub::safe_file_name(&book.meta.title);
@@ -51,11 +75,11 @@ pub fn convert(input: &std::path::Path, out_dir: &std::path::Path) -> Result<Con
         path = out_dir.join(format!("{base} ({n}).epub"));
         n += 1;
     }
-    epub::write_epub(&book, &path)?;
+    epub::write_epub_with(&book, &path, labels)?;
     Ok(Converted { path, title: book.meta.title, warnings: book.warnings })
 }
 
-/// El título de un KFX sin DRM, o `None` si no se puede leer o no lo declara.
-pub fn read_title(input: &std::path::Path) -> Option<String> {
+/// The title of a DRM-free KFX, or `None` if it cannot be read or the book declares none.
+pub fn read_title(input: &Path) -> Option<String> {
     book::title(&container::open(input).ok()?)
 }
