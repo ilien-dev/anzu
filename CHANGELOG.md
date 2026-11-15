@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.4.0](https://github.com/ilien-dev/anzu/compare/377b4184d73fb8e69d1ed061311fdb032b21ed33..v0.4.0) - 2026-11-15
+#### Features
+- refresh the book list without restarting (#3) - ([377b418](https://github.com/ilien-dev/anzu/commit/377b4184d73fb8e69d1ed061311fdb032b21ed33)) - ilien
+
+- - -
+
 ## [v0.3.0](https://github.com/ilien-dev/anzu/compare/a93d4cd0801dea75c9a6f804f4de72192a5d0c57..v0.3.0) - 2026-11-15
 #### Features
 - installer, self-update and per-book progress (#2) - ([a93d4cd](https://github.com/ilien-dev/anzu/commit/a93d4cd0801dea75c9a6f804f4de72192a5d0c57)) - ilien
