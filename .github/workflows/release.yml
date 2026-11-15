@@ -1,0 +1,117 @@
+name: Release
+
+# On every push to main: Cocogitto reads the commits since the last tag and,
+# if any is a feat, fix or breaking change, commits the new version and the
+# CHANGELOG, tags it and pushes both back to main. Then the Windows build is
+# made from that tag and published as a GitHub Release.
+#
+# The bump commit is pushed with GITHUB_TOKEN, so it does not start this
+# workflow again.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    name: Bump version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: cocogitto/cocogitto-action@v4.2.0
+        with:
+          install-only: true
+
+      - name: cog bump --auto
+        id: bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          before=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo none)
+          cog bump --auto
+          after=$(git describe --tags --abbrev=0 --match 'v*')
+          if [ "$before" = "$after" ]; then
+            echo "Nothing to release."
+            exit 0
+          fi
+          git push origin HEAD:main
+          git push origin "$after"
+          echo "version=${after#v}" >> "$GITHUB_OUTPUT"
+
+  build-windows:
+    name: Build (Windows x64)
+    needs: bump
+    if: needs.bump.outputs.version != ''
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.bump.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: v${{ needs.bump.outputs.version }}
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        # Static CRT: the exe runs without the Visual C++ redistributable.
+        env:
+          RUSTFLAGS: -C target-feature=+crt-static
+        run: cargo build --release --locked -p anzu
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $dir = "anzu-$env:VERSION-windows-x64"
+          New-Item -ItemType Directory $dir | Out-Null
+          Copy-Item target/release/anzu.exe, LICENSE, README.md, README.es.md -Destination $dir
+          Compress-Archive -Path $dir -DestinationPath "$dir.zip"
+          (Get-FileHash "$dir.zip" -Algorithm SHA256).Hash.ToLower() + "  $dir.zip" | Out-File -Encoding ascii "$dir.zip.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: anzu-*-windows-x64.zip*
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: [bump, build-windows]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.bump.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: v${{ needs.bump.outputs.version }}
+          fetch-depth: 0
+
+      - uses: cocogitto/cocogitto-action@v4.2.0
+        with:
+          install-only: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-x64
+
+      - name: Create release
+        run: |
+          cog changelog --at "v$VERSION" > notes.md
+          gh release create "v$VERSION" anzu-*-windows-x64.zip* \
+            --title "Anzu $VERSION" \
+            --notes-file notes.md
