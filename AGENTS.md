@@ -1,4 +1,5 @@
-- There is no CI: run `cargo test --workspace` and `cargo clippy --workspace --all-targets -- -D warnings` before committing; both must be clean.
+- Before committing run `cargo test --workspace` and `cargo clippy --workspace --all-targets -- -D warnings`; CI (`.github/workflows/ci.yml`) runs both on every PR.
+- PRs are squash-merged and the PR title must be a Conventional Commit: Cocogitto (`cog.toml`) bumps the version from it on main.
 - English first: code, comments, docs and commit messages are in English. Spanish lives only in the `ES` strings of `crates/anzu/src/i18n.rs`, in `README.es.md`, and in test data that exercises non-ASCII text.
 - Every user-visible string of the app is a field or method of `i18n::Strings`; add it to both `EN` and `ES`. Do not write interface text inline under `crates/anzu/src/ui/`.
 - `anzu-core` and `anzu-kfx` return English messages; the app translates them in `i18n::core_error` and `i18n::kfx_error`. A new `Error` variant needs a Spanish arm there.
@@ -10,7 +11,7 @@
 - On this machine shell heredocs mangle backslashes and single quotes in Rust source; write Rust with the file tools.
 - To look at the window, capture it with `PrintWindow` on the Anzu window handle. Do not copy from the screen: it can capture the user's other windows.
 - egui is 0.37: `App::ui(ui, frame)` plus `logic`, `Panel::top/bottom(..).show(ui, ..)`, `Id::unique`, `ui.scope_id()`, `ctx.all_styles_mut`. The older names are deprecated or gone.
-- The version lives in `[workspace.package]` of the root `Cargo.toml`.
+- The version lives in `[workspace.package]` of the root `Cargo.toml`, and only `.github/workflows/release.yml` changes it: never bump it or edit `CHANGELOG.md` by hand.
 - `PRODUCT.md` — product facts; read before changing scope or interface copy.
 - `.impeccable/surfaces/main-window.md` — design direction of the main window; read before interface work.
 - `docs/superpowers/` — the original spec and plan; historical, outdated in places.

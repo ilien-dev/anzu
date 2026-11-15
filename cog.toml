@@ -1,0 +1,22 @@
+# Cocogitto: version bumps and changelog from Conventional Commits.
+# The release workflow (.github/workflows/release.yml) runs `cog bump --auto`
+# on every push to main; do not bump the version by hand.
+
+tag_prefix = "v"
+branch_whitelist = ["main"]
+ignore_merge_commits = true
+
+# Run on the Linux release runner, before the bump commit is created.
+# The workspace version is the only line of the root Cargo.toml that starts
+# with `version =`; `cargo update --workspace` then refreshes Cargo.lock.
+pre_bump_hooks = [
+    '''sed -i -E 's/^version = "[^"]+"/version = "{{version}}"/' Cargo.toml''',
+    "cargo update --workspace",
+]
+
+[changelog]
+path = "CHANGELOG.md"
+template = "remote"
+remote = "github.com"
+owner = "ilien-dev"
+repository = "anzu"
