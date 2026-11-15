@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.3.0](https://github.com/ilien-dev/anzu/compare/a93d4cd0801dea75c9a6f804f4de72192a5d0c57..v0.3.0) - 2026-11-15
+#### Features
+- installer, self-update and per-book progress (#2) - ([a93d4cd](https://github.com/ilien-dev/anzu/commit/a93d4cd0801dea75c9a6f804f4de72192a5d0c57)) - ilien
+
+- - -
+
 ## [v0.2.0](https://github.com/ilien-dev/anzu/compare/e7269f583c69579d71fd4ef9b0f302fe59af4413..v0.2.0) - 2026-11-15
 #### Features
 - English-first project with an English/Spanish interface - ([e7269f5](https://github.com/ilien-dev/anzu/commit/e7269f583c69579d71fd4ef9b0f302fe59af4413)) - jesusjimenezc
