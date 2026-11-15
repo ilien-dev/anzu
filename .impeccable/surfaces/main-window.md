@@ -18,8 +18,9 @@ shadows. Light theme “Cold paper”: cold white background #F3F5F7, white pane
 STORY: The user sees whether the system is ready, recognises their books by title,
 ticks the ones they want and presses a button that says what is going to happen.
 
-FIRST VIEWPORT: Header band with logo, theme and “Check again”. Below it, a status
-line. Then the table, which takes up the rest: selection, title, ASIN, size and
+FIRST VIEWPORT: Header band with logo and a cog that opens a floating settings panel
+(theme, language, version and “Check for updates”). Below it, a status line with the
+Kindle and tool facts and, at its end, “Check again”, which checks exactly those. Then the table, which takes up the rest: selection, title, ASIN, size and
 status, with sortable headers. At the bottom, destination folder and the action.
 Everything in a centred column of at most 1160 px.
 

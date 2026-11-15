@@ -17,9 +17,30 @@ El nombre viene de Anzu, el ave mesopotámica que robó la Tablilla de los Desti
   descargados.
 - Conexión a internet para comprobar la herramienta antes de cada desbloqueo.
 
+## Instalación
+
+Descarga `anzu-<versión>-windows-x64-setup.exe` de la
+[última publicación](https://github.com/ilien-dev/anzu/releases/latest) y ábrelo. Se instala
+solo para tu usuario, en `%LOCALAPPDATA%\Programs\Anzu`, sin permisos de administrador. El
+idioma que eliges en el instalador es el idioma con el que se abre Anzu. El instalador aún
+no está firmado, así que Windows SmartScreen puede avisar la primera vez: elige «Más
+información» y luego «Ejecutar de todas formas».
+
+El instalador es el propio `anzu.exe`: con un nombre que contiene `setup` muestra la ventana
+de instalación, se copia a la carpeta elegida, crea los accesos directos y registra Anzu en
+las aplicaciones de Windows (`HKCU`, sin permisos de administrador). Para quitarlo,
+desinstala Anzu desde Configuración › Aplicaciones; pregunta antes y pregunta aparte si
+borrar su carpeta de datos.
+
+Mientras está abierta, Anzu busca una versión nueva 30 segundos después de arrancar y luego
+cada hora, con una sola petición pequeña a GitHub. Si la hay, ofrece descargarla, comprueba
+su huella SHA-256 y, con «Reiniciar y actualizar», se cierra, deja que la versión nueva
+ocupe su lugar (`--update`) y vuelve a abrirse. No se descarga ni se instala nada sin que
+lo pidas.
+
 ## Uso
 
-Abre `anzu.exe`. La ventana muestra:
+Abre Anzu. La ventana muestra:
 
 - **Estado del sistema:** si está lista para desbloquear, con la versión de Kindle y
   la de la herramienta.
@@ -31,10 +52,9 @@ Abre `anzu.exe`. La ventana muestra:
 El título real de un libro se conoce cuando está desbloqueado; hasta entonces se
 muestra su ASIN. Si la app Kindle está abierta, Anzu pide permiso antes de cerrarla.
 
-El tema sigue al del sistema, o se fija en claro u oscuro desde la cabecera.
-
-La interfaz está en inglés por defecto y también en español; el idioma se cambia desde
-la cabecera, junto al selector de tema.
+El tema sigue al del sistema, o se fija en claro u oscuro. La interfaz está en inglés por
+defecto y también en español. Ambos están en el panel de ajustes, tras el engranaje de la
+cabecera, junto a la versión y «Buscar actualizaciones».
 
 También convierte desde la terminal un libro ya desbloqueado:
 
@@ -86,6 +106,7 @@ En `%LOCALAPPDATA%\anzu\`:
 | `unlocked\<ASIN>.kfx-zip` | Copias desbloqueadas de tus libros |
 | `keys\anzu.k4i`, `work\` | **Secretos de tu cuenta de Amazon** |
 | `settings.json` | Carpeta de destino, tema, idioma, títulos y libros convertidos |
+| `updates\` | El instalador de una versión nueva, mientras espera al reinicio |
 
 `keys\` y `work\` equivalen a una contraseña: no los compartas ni los subas a ningún
 sitio. La herramienta de desbloqueo es un programa de terceros y puede dejar datos

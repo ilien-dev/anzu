@@ -9,3 +9,6 @@ eframe = "0.37.0"
 rfd = "0.18.0"
 anzu-core = { path = "../anzu-core" }
 anzu-kfx = { path = "../anzu-kfx" }
+
+[build-dependencies]
+embed-resource = "3.0.12"

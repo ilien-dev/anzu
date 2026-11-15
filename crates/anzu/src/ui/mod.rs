@@ -2,13 +2,17 @@
 
 mod blocked;
 mod icons;
+mod installer;
 mod library;
 mod logo;
+mod mark;
 mod progress;
+mod settings_menu;
 mod theme;
+mod update;
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, Sender};
 
 use anzu_core::library::{Book, BookState};
@@ -18,7 +22,7 @@ use eframe::egui;
 
 use crate::app::{self, Health, RunPlan};
 use crate::i18n::{self, Strings};
-use crate::pipeline::{self, CoreBackend, Msg, Step};
+use crate::pipeline::{self, CoreBackend, Msg, Stage, Step};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Screen {
@@ -53,15 +57,27 @@ struct Sort {
 enum StepState {
     Running,
     Done,
+    Skipped,
 }
 
 /// What is known about the current run, or the last one.
 #[derive(Default)]
 struct Run {
     asins: Vec<String>,
+    /// Whether the run goes through the preparation (check, download, close Kindle).
+    prepares: bool,
     steps: Vec<(Step, StepState)>,
+    /// Why the preparation stopped, if it did.
+    preparation_failed: Option<String>,
     states: HashMap<String, BookState>,
+    /// The stage each book is in right now.
+    active: HashMap<String, Stage>,
+    /// The books that failed, with the stage and the reason.
+    errors: HashMap<String, (Stage, String)>,
+    /// The EPUB written for each book, in the order they were saved.
+    saved: Vec<(String, PathBuf)>,
     log: Vec<String>,
+    show_log: bool,
     result: Option<(usize, Vec<(String, String)>)>,
 }
 
@@ -81,6 +97,8 @@ pub struct AnzuApp {
     close_tx: Option<Sender<bool>>,
     asking_to_close: bool,
     run: Run,
+    /// New versions of Anzu itself.
+    updates: update::Updates,
 }
 
 impl AnzuApp {
@@ -90,6 +108,7 @@ impl AnzuApp {
         theme::set_choice(ctx, settings.theme);
         let local = std::env::var_os("LOCALAPPDATA").map(PathBuf::from).unwrap_or_default();
         let (tx, rx) = mpsc::channel();
+        let updates = update::Updates::start(&data_dir, ctx);
         let mut app = AnzuApp {
             content_dir: kindle::content_dir_in(&local),
             data_dir,
@@ -105,6 +124,7 @@ impl AnzuApp {
             close_tx: None,
             asking_to_close: false,
             run: Run::default(),
+            updates,
         };
         app.refresh_books();
         app.start_check(ctx);
@@ -185,9 +205,9 @@ impl AnzuApp {
         if plan.asins.is_empty() || self.busy() {
             return;
         }
-        self.run = Run { asins: plan.asins.clone(), ..Run::default() };
+        self.run = Run { asins: plan.asins.clone(), prepares: pipeline::prepares(&plan, &self.books), ..Run::default() };
         for book in self.books.iter().filter(|b| plan.asins.contains(&b.asin)) {
-            self.run.states.insert(book.asin.clone(), book.state);
+            self.run.states.insert(book.asin.clone(), progress::starting_state(book.state));
         }
         self.screen = Screen::Progress;
 
@@ -199,6 +219,7 @@ impl AnzuApp {
         let out_dir = self.settings.output_dir.clone();
         let language = self.settings.language;
         std::thread::spawn(move || {
+            let mut pacer = pipeline::Pacer::new(pipeline::MIN_STEP);
             pipeline::run(
                 &backend,
                 &plan,
@@ -206,6 +227,7 @@ impl AnzuApp {
                 &out_dir,
                 language,
                 &mut |message| {
+                    pacer.wait_before(&message);
                     let _ = tx.send(message);
                     ctx.request_repaint();
                 },
@@ -228,14 +250,21 @@ impl AnzuApp {
                 self.refresh_books();
             }
             Msg::StepStarted(step) => self.run.steps.push((step, StepState::Running)),
-            Msg::StepDone(step) => {
-                if let Some(entry) = self.run.steps.iter_mut().find(|(s, _)| *s == step) {
-                    entry.1 = StepState::Done;
-                }
+            Msg::StepDone(step) => self.end_step(step, StepState::Done),
+            Msg::StepSkipped(step) => self.end_step(step, StepState::Skipped),
+            Msg::PreparationFailed(reason) => self.run.preparation_failed = Some(reason),
+            Msg::BookStarted { asin, stage } => {
+                self.run.active.insert(asin, stage);
             }
             Msg::BookProgress { asin, state } => {
+                self.run.active.remove(&asin);
                 self.run.states.insert(asin, state);
             }
+            Msg::BookFailed { asin, stage, reason } => {
+                self.run.active.remove(&asin);
+                self.run.errors.insert(asin, (stage, reason));
+            }
+            Msg::Saved { asin, path } => self.run.saved.push((asin, path)),
             Msg::Log(line) => self.run.log.push(line),
             Msg::NeedCloseKindle => self.asking_to_close = true,
             Msg::Finished { converted, failed } => {
@@ -245,6 +274,19 @@ impl AnzuApp {
                 self.refresh_books();
             }
         }
+    }
+
+    fn end_step(&mut self, step: Step, state: StepState) {
+        if let Some(entry) = self.run.steps.iter_mut().find(|(s, _)| *s == step) {
+            entry.1 = state;
+        }
+    }
+
+    /// Leaves a finished run and shows the books again.
+    fn back_to_library(&mut self) {
+        self.selected.clear();
+        self.refresh_books();
+        self.screen = Screen::Library;
     }
 
     fn pick_output_dir(&mut self) {
@@ -274,10 +316,10 @@ impl AnzuApp {
             ui.label(t.close_body);
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                if ui.add(theme::primary_button(p, t.close_confirm)).clicked() {
+                if theme::button(ui, theme::Surface::Page, true, theme::primary_button(p, t.close_confirm)).clicked() {
                     answer = Some(true);
                 }
-                if ui.button(t.cancel).clicked() {
+                if theme::button(ui, theme::Surface::Page, true, egui::Button::new(t.cancel)).clicked() {
                     answer = Some(false);
                 }
             });
@@ -298,11 +340,39 @@ impl AnzuApp {
     }
 }
 
+/// Opens Explorer on the folder of `path`, with the file selected.
+fn show_in_folder(path: &Path) {
+    let mut command = std::process::Command::new("explorer");
+    #[cfg(windows)]
+    {
+        // Explorer reads `/select,"path"` itself: the default quoting of the whole argument breaks it.
+        use std::os::windows::process::CommandExt;
+        command.raw_arg(format!("/select,\"{}\"", path.display()));
+    }
+    #[cfg(not(windows))]
+    command.arg(path.parent().unwrap_or(path));
+    let _ = command.spawn();
+}
+
+/// Opens a file with the app Windows has for it.
+fn open_file(path: &Path) {
+    let mut command = std::process::Command::new("explorer");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.raw_arg(format!("\"{}\"", path.display()));
+    }
+    #[cfg(not(windows))]
+    command.arg(path);
+    let _ = command.spawn();
+}
+
 impl eframe::App for AnzuApp {
     fn logic(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
         while let Ok(message) = self.rx.try_recv() {
             self.handle(message);
         }
+        self.updates.poll();
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
@@ -310,28 +380,40 @@ impl eframe::App for AnzuApp {
             Screen::Library => library::show(self, ui),
             Screen::Progress => progress::show(self, ui),
         }
+        let ctx = ui.ctx().clone();
         if self.asking_to_close {
-            let ctx = ui.ctx().clone();
             self.close_dialog(&ctx);
+        } else {
+            let (t, busy) = (self.t(), self.busy());
+            update::card(&mut self.updates, &ctx, t, busy);
         }
     }
 }
 
-/// Opens the app window. Does not return until it is closed.
-pub fn launch() -> Result<(), String> {
+/// The logo for the title bar and the taskbar.
+fn window_icon() -> egui::IconData {
     const ICON_SIZE: u32 = 128;
-    let icon = egui::IconData {
+    egui::IconData {
         rgba: logo::icon_rgba(ICON_SIZE, theme::ICON_BACKGROUND, theme::ICON_MARK),
         width: ICON_SIZE,
         height: ICON_SIZE,
-    };
+    }
+}
+
+/// Opens the installer window. Does not return until it is closed.
+pub fn launch_installer() -> Result<(), String> {
+    installer::launch(window_icon())
+}
+
+/// Opens the app window. Does not return until it is closed.
+pub fn launch() -> Result<(), String> {
     let language = Settings::load(&settings::prepare_data_dir()).language;
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title(i18n::strings(language).window_title)
             .with_inner_size([1180.0, 760.0])
             .with_min_inner_size([820.0, 500.0])
-            .with_icon(icon),
+            .with_icon(window_icon()),
         ..Default::default()
     };
     eframe::run_native(

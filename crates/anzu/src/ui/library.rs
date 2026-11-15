@@ -1,10 +1,9 @@
 //! Main screen: system status, the book table and the action.
 
-use anzu_core::library::BookState;
-use anzu_core::settings::{Language, ThemeChoice};
+use anzu_core::library::{Book, BookState};
 use eframe::egui::{self, Align, Align2, Layout, Pos2, Rect, RichText, Sense, Stroke};
 
-use super::{AnzuApp, Column, Filter, Sort, blocked, icons, theme};
+use super::{AnzuApp, Column, Filter, Sort, blocked, icons, settings_menu, theme};
 use crate::app::{self, Health};
 use crate::i18n::Strings;
 
@@ -86,41 +85,26 @@ pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui) {
     });
 }
 
-fn header(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
+fn header(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &'static Strings) {
     ui.horizontal(|ui| {
         AnzuApp::brand(ui, p, t);
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            let checking = app.health == Health::Checking;
-            let label = if checking { t.checking } else { t.recheck };
-            if ui.add_enabled(!checking, theme::shell_button(p, label, false)).clicked() {
-                let ctx = ui.ctx().clone();
-                app.start_check(&ctx);
-            }
-            ui.add_space(10.0);
-            ui.spacing_mut().item_spacing.x = 0.0;
             // Right to left: the first one added ends up furthest right.
-            for (choice, label) in [
-                (ThemeChoice::Dark, t.theme_dark),
-                (ThemeChoice::Light, t.theme_light),
-                (ThemeChoice::System, t.theme_system),
-            ] {
-                if ui.add(theme::shell_button(p, label, app.settings.theme == choice)).clicked() {
-                    let ctx = ui.ctx().clone();
-                    app.set_theme(&ctx, choice);
-                }
-            }
-            ui.add_space(8.0);
-            ui.label(RichText::new(t.theme).color(p.shell_muted).size(theme::SMALL));
-            ui.add_space(14.0);
-            for (language, label) in [(Language::Es, "ES"), (Language::En, "EN")] {
-                if ui.add(theme::shell_button(p, label, app.settings.language == language)).clicked() {
-                    let ctx = ui.ctx().clone();
-                    app.set_language(&ctx, language);
-                }
-            }
-            ui.add_space(8.0);
-            ui.label(RichText::new(t.language).color(p.shell_muted).size(theme::SMALL));
+            settings_menu::show(app, ui, p, t);
         });
+    });
+}
+
+/// "Check again", at the end of the status line: it checks again what the line shows,
+/// the Kindle app and the unlock tool.
+fn recheck_button(app: &mut AnzuApp, ui: &mut egui::Ui, t: &Strings) {
+    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+        let checking = app.health == Health::Checking;
+        let label = if checking { t.checking } else { t.recheck };
+        if theme::button(ui, theme::Surface::Page, !checking, egui::Button::new(label)).clicked() {
+            let ctx = ui.ctx().clone();
+            app.start_check(&ctx);
+        }
     });
 }
 
@@ -133,13 +117,14 @@ fn status(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) 
                 ui.horizontal(|ui| {
                     ui.spinner();
                     ui.label(t.checking_long);
+                    recheck_button(app, ui, t);
                 });
             });
         }
         Health::Ready { kindle, tool_tag, .. } => {
             theme::panel(p).show(ui, |ui| {
                 ui.set_width(ui.available_width());
-                ui.horizontal_wrapped(|ui| {
+                ui.horizontal(|ui| {
                     let (mark, _) = ui.allocate_exact_size(egui::vec2(14.0, 14.0), Sense::hover());
                     icons::check(ui.painter(), mark, p.ok);
                     ui.label(theme::bold(t.ready).color(p.ok));
@@ -147,6 +132,7 @@ fn status(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) 
                     fact(ui, p, t.fact_kindle, &kindle.to_string());
                     fact(ui, p, t.fact_tool, &tool_tag);
                     fact(ui, p, t.fact_digest, t.verified);
+                    recheck_button(app, ui, t);
                 });
             });
         }
@@ -170,7 +156,9 @@ fn toolbar(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings)
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 4.0;
         for (filter, label) in options {
-            if ui.selectable_label(app.filter == filter, label).clicked() {
+            let response = ui.selectable_label(app.filter == filter, label);
+            theme::feedback(ui, theme::Surface::Page, &response);
+            if response.clicked() {
                 app.filter = filter;
             }
         }
@@ -337,13 +325,23 @@ fn table_row(
     let end = icons::track(&painter, c.state.left_center(), row.state, can_select || row.state != BookState::Locked, p);
     let (_, state_color) = icons::track_progress(row.state, p);
     let label_color = if row.state == BookState::Locked && !ready { p.muted } else { state_color };
-    painter.text(
+    let label = painter.text(
         Pos2::new(end + 10.0, c.state.center().y),
         Align2::LEFT_CENTER,
         t.state(row.state, ready),
         small,
         label_color,
     );
+    // A chosen book that already has an EPUB will be converted again: say so on its row.
+    if selected && row.state == BookState::Converted {
+        let text = painter.layout_no_wrap(t.again_badge.to_string(), theme::bold_font(10.0), p.accent);
+        let badge = Rect::from_min_size(
+            Pos2::new(label.right() + 8.0, c.state.center().y - 9.0),
+            egui::vec2(text.size().x + 10.0, 18.0),
+        );
+        painter.rect_stroke(badge, 2, Stroke::new(1.0, p.accent.gamma_multiply(0.6)), egui::StrokeKind::Inside);
+        painter.galley(Pos2::new(badge.left() + 5.0, badge.center().y - text.size().y / 2.0), text, p.accent);
+    }
 
     let response = response.on_hover_cursor(if can_select { egui::CursorIcon::PointingHand } else { egui::CursorIcon::Default });
     if response.clicked() {
@@ -355,20 +353,70 @@ fn table_row(
     }
 }
 
+/// The chosen books that already have an EPUB, in library order.
+fn chosen_converted(app: &AnzuApp) -> Vec<&Book> {
+    app.books.iter().filter(|b| b.state == BookState::Converted && app.selected.contains(&b.asin)).collect()
+}
+
+/// Above the main button: which of the chosen books already have an EPUB, and a way to leave
+/// them out before converting.
+fn reconvert_notice(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
+    let again = chosen_converted(app);
+    if again.is_empty() || app.busy() {
+        return;
+    }
+    let names: Vec<String> = again.iter().map(|b| AnzuApp::display_title(b, t)).collect();
+    let asins: Vec<String> = again.iter().map(|b| b.asin.clone()).collect();
+    let all = asins.len() == app.selected.len();
+    let (title, body) = t.already_epub(&names, app.selected.len());
+    let leave_label = match (all, asins.len()) {
+        (true, _) => t.clear_selection,
+        (false, 1) => t.leave_out_one,
+        (false, _) => t.leave_out_many,
+    };
+    let mut leave = false;
+    theme::panel(p)
+        .fill(p.select_bg)
+        .stroke(Stroke::new(1.0, p.accent.gamma_multiply(0.5)))
+        .inner_margin(egui::Margin::symmetric(14, 12))
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.horizontal(|ui| {
+                let (mark, _) = ui.allocate_exact_size(egui::vec2(20.0, 20.0), Sense::hover());
+                icons::alert(ui.painter(), mark.center(), p.accent);
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if theme::button(ui, theme::Surface::Page, true, egui::Button::new(leave_label)).clicked() {
+                        leave = true;
+                    }
+                    ui.with_layout(Layout::top_down(Align::Min), |ui| {
+                        ui.spacing_mut().item_spacing.y = 3.0;
+                        ui.label(theme::bold(title));
+                        ui.label(theme::muted(p, body).size(theme::SMALL));
+                    });
+                });
+            });
+        });
+    if leave {
+        app.selected.retain(|a| !asins.contains(a));
+    }
+    ui.add_space(6.0);
+}
+
 fn footer(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
+    reconvert_notice(app, ui, p, t);
     theme::panel(p).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.horizontal(|ui| {
             ui.label(theme::muted(p, t.save_in));
             ui.label(app.settings.output_dir.display().to_string());
-            if ui.button(t.change_folder).clicked() {
+            if theme::button(ui, theme::Surface::Page, true, egui::Button::new(t.change_folder)).clicked() {
                 app.pick_output_dir();
             }
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 let plan = app.plan();
                 let enabled = !plan.asins.is_empty() && !app.busy();
-                let label = t.run_label(plan.needs_unlock, plan.asins.len());
-                if ui.add_enabled(enabled, theme::primary_button(p, &label)).clicked() {
+                let label = t.run_button(plan.needs_unlock, plan.asins.len(), chosen_converted(app).len());
+                if theme::button(ui, theme::Surface::Page, enabled, theme::primary_button(p, &label)).clicked() {
                     let ctx = ui.ctx().clone();
                     app.start_run(&ctx);
                 }

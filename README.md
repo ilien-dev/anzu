@@ -17,9 +17,27 @@ The name comes from Anzu, the Mesopotamian bird that stole the Tablet of Destini
   downloaded.
 - An internet connection, to check the tool before each unlock.
 
+## Install
+
+Download `anzu-<version>-windows-x64-setup.exe` from the
+[latest release](https://github.com/ilien-dev/anzu/releases/latest) and run it. It installs
+for your user only, in `%LOCALAPPDATA%\Programs\Anzu`, without administrator rights. The
+language you choose in the installer is the one Anzu opens in. The installer is not signed
+yet, so Windows SmartScreen may warn the first time: choose “More info”, then “Run anyway”.
+
+The installer is `anzu.exe` itself: under a name that contains `setup` it shows the install
+window and copies itself into the chosen folder, creates the shortcuts and registers Anzu in
+the apps of Windows (`HKCU`, no administrator rights). To remove it, uninstall Anzu from
+Settings › Apps; it asks first, and asks separately whether to delete its data folder.
+
+While it is open, Anzu checks for a new version 30 seconds after starting and then every
+hour, with one small request to GitHub. When there is one it offers to download it, checks
+its SHA-256 digest, and on “Restart and update” closes, lets the new version take its place
+(`--update`) and opens again. Nothing is downloaded or installed unless you ask.
+
 ## Use
 
-Open `anzu.exe`. The window shows:
+Open Anzu. The window shows:
 
 - **System status:** whether it is ready to unlock, with the Kindle version and the
   tool version.
@@ -31,10 +49,9 @@ Open `anzu.exe`. The window shows:
 A book's real title is only known once it is unlocked; until then Anzu shows its ASIN.
 If the Kindle app is open, Anzu asks for permission before closing it.
 
-The theme follows the system, or you can set it to light or dark from the header.
-
-The interface is available in English (the default) and Spanish. You switch language
-from the header, next to the theme switch.
+The theme follows the system, or you can set it to light or dark. The interface is
+available in English (the default) and Spanish. Both are in the settings panel, behind the
+cog in the header, together with the version and “Check for updates”.
 
 It can also convert an already unlocked book from the terminal:
 
@@ -86,6 +103,7 @@ In `%LOCALAPPDATA%\anzu\`:
 | `unlocked\<ASIN>.kfx-zip` | Unlocked copies of your books |
 | `keys\anzu.k4i`, `work\` | **Secrets of your Amazon account** |
 | `settings.json` | Destination folder, theme, language, titles and converted books |
+| `updates\` | The installer of a new version, while it waits for the restart |
 
 `keys\` and `work\` are as sensitive as a password: do not share them or upload them
 anywhere. The unlock tool is a third-party program and may leave data of its own

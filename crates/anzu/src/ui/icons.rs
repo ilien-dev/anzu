@@ -13,6 +13,39 @@ pub fn check(painter: &egui::Painter, rect: Rect, color: Color32) {
     painter.add(Shape::line(vec![at(0.18, 0.54), at(0.42, 0.76), at(0.84, 0.26)], Stroke::new(STROKE, color)));
 }
 
+/// A cog with eight teeth and a hole, for the settings button.
+pub fn gear(painter: &egui::Painter, rect: Rect, color: Color32) {
+    use std::f32::consts::{FRAC_PI_4, FRAC_PI_8};
+    let c = rect.center();
+    let r = rect.width().min(rect.height()) / 2.0 - 0.75;
+    let at = |angle: f32, radius: f32| c + egui::vec2(angle.cos(), angle.sin()) * radius;
+    let (outer, inner) = (r, r * 0.72);
+    let (tip, root) = (FRAC_PI_8 * 0.42, FRAC_PI_8 * 0.62);
+    let mut outline = Vec::with_capacity(32);
+    for i in 0..8 {
+        let a = i as f32 * FRAC_PI_4;
+        outline.extend([at(a - root, inner), at(a - tip, outer), at(a + tip, outer), at(a + root, inner)]);
+    }
+    let stroke = Stroke::new(1.5, color);
+    painter.add(Shape::closed_line(outline, stroke));
+    painter.circle_stroke(c, r * 0.3, stroke);
+}
+
+/// An arrow pointing up inside a ring: a new version.
+pub fn update(painter: &egui::Painter, rect: Rect, color: Color32) {
+    let c = rect.center();
+    let r = rect.width().min(rect.height()) / 2.0;
+    let stroke = Stroke::new(1.5, color);
+    painter.circle_stroke(c, r - 0.75, stroke);
+    let (top, bottom) = (c.y - r * 0.45, c.y + r * 0.45);
+    painter.line_segment([Pos2::new(c.x, top), Pos2::new(c.x, bottom)], stroke);
+    let wing = r * 0.38;
+    painter.add(Shape::line(
+        vec![Pos2::new(c.x - wing, top + wing), Pos2::new(c.x, top), Pos2::new(c.x + wing, top + wing)],
+        stroke,
+    ));
+}
+
 /// A selection box.
 pub fn checkbox(painter: &egui::Painter, rect: Rect, checked: bool, enabled: bool, p: Palette) {
     let radius = CornerRadius::same(2);
@@ -64,37 +97,33 @@ pub fn track(painter: &egui::Painter, left_center: Pos2, state: BookState, enabl
     left_center.x + TRACK_WIDTH
 }
 
-/// The mark of a step: done, running, pending or not completed.
-pub enum StepMark {
-    Done,
-    Running,
-    Pending,
-    Failed,
+/// A segment of the step bar for a step that was not needed: diagonal stripes.
+pub fn skipped_bar(painter: &egui::Painter, rect: Rect, p: Palette) {
+    painter.rect_filled(rect, CornerRadius::same(2), p.hover_bg);
+    let clipped = painter.with_clip_rect(rect.intersect(painter.clip_rect()));
+    let stroke = Stroke::new(2.0, p.line);
+    let mut x = rect.left() - rect.height();
+    while x < rect.right() {
+        clipped.line_segment([Pos2::new(x, rect.bottom()), Pos2::new(x + rect.height(), rect.top())], stroke);
+        x += 6.0;
+    }
 }
 
-pub fn step(painter: &egui::Painter, center: Pos2, mark: StepMark, p: Palette) {
-    let r = 7.0;
-    match mark {
-        StepMark::Done => {
-            painter.circle_filled(center, r, p.ok);
-            check(painter, Rect::from_center_size(center, egui::vec2(11.0, 11.0)), p.panel);
-        }
-        StepMark::Running => {
-            painter.circle_stroke(center, r, Stroke::new(STROKE, p.accent));
-            painter.circle_filled(center, 3.0, p.accent);
-        }
-        StepMark::Pending => {
-            painter.circle_stroke(center, r, Stroke::new(1.2, p.line));
-        }
-        StepMark::Failed => {
-            painter.circle_stroke(center, r, Stroke::new(STROKE, p.warn));
-            painter.line_segment(
-                [Pos2::new(center.x, center.y - 3.5), Pos2::new(center.x, center.y + 0.8)],
-                Stroke::new(STROKE, p.warn),
-            );
-            painter.circle_filled(Pos2::new(center.x, center.y + 3.6), 1.0, p.warn);
-        }
-    }
+/// A document with a folded corner, inside `rect`.
+pub fn file(painter: &egui::Painter, rect: Rect, color: Color32) {
+    let fold = rect.width() * 0.35;
+    let (l, t, r, b) = (rect.left(), rect.top(), rect.right(), rect.bottom());
+    let stroke = Stroke::new(1.4, color);
+    let outline = vec![Pos2::new(l, t), Pos2::new(r - fold, t), Pos2::new(r, t + fold), Pos2::new(r, b), Pos2::new(l, b)];
+    painter.add(Shape::closed_line(outline, stroke));
+    painter.add(Shape::line(vec![Pos2::new(r - fold, t), Pos2::new(r - fold, t + fold), Pos2::new(r, t + fold)], stroke));
+}
+
+/// A circled exclamation mark.
+pub fn alert(painter: &egui::Painter, center: Pos2, color: Color32) {
+    painter.circle_stroke(center, 8.0, Stroke::new(1.5, color));
+    painter.line_segment([Pos2::new(center.x, center.y - 4.0), Pos2::new(center.x, center.y + 1.0)], Stroke::new(STROKE, color));
+    painter.circle_filled(Pos2::new(center.x, center.y + 4.0), 1.0, color);
 }
 
 #[cfg(test)]

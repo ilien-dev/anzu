@@ -1,12 +1,15 @@
 //! Kindle detection, tool releases, compatibility and library state.
 
+pub mod catalog;
 pub mod compat;
+pub mod install;
 pub mod kindle;
 pub mod library;
 pub mod releases;
 pub mod settings;
 pub mod tool;
 pub mod unlock;
+pub mod update;
 pub mod version;
 
 pub use version::KindleVersion;
@@ -29,6 +32,18 @@ pub enum Error {
     ChecksumMismatch,
     #[error("the Kindle app is open")]
     KindleRunning,
+    #[error("taskkill did not accept the request: {0}")]
+    CloseRefused(String),
+    #[error("it was still running {0} s after it was asked to close")]
+    CloseTimedOut(u64),
+    #[error("the installer is larger than expected")]
+    InstallerTooLarge,
+    #[error("the installed copy of Anzu is in use; close it and try again")]
+    InstallInUse,
+    #[error("the shortcut could not be created: {0}")]
+    Shortcut(String),
+    #[error("the app could not be registered in Windows: {0}")]
+    Registry(String),
     #[error("unlocking failed (code {code}):\n{tail}")]
     UnlockFailed { code: i32, tail: String },
     #[error("I/O: {0}")]

@@ -4,6 +4,7 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::catalog;
 use crate::settings::Settings;
 
 const FOLDER_SUFFIX: &str = "_EBOK";
@@ -34,6 +35,7 @@ pub fn unlocked_path(data_dir: &Path, asin: &str) -> PathBuf {
 
 pub fn scan(content_dir: &Path, data_dir: &Path, settings: &Settings) -> Vec<Book> {
     let Ok(entries) = std::fs::read_dir(content_dir) else { return Vec::new() };
+    let catalog = catalog::catalog_path(content_dir).map(|p| catalog::read_titles(&p)).unwrap_or_default();
     let mut books: Vec<Book> = entries
         .flatten()
         .filter_map(|entry| {
@@ -49,7 +51,8 @@ pub fn scan(content_dir: &Path, data_dir: &Path, settings: &Settings) -> Vec<Boo
                 (None, Some(_)) => BookState::Unlocked,
                 (None, None) => BookState::Locked,
             };
-            let title = settings.titles.get(&asin).cloned();
+            // The title read from the unlocked book wins over the Kindle app's catalog.
+            let title = settings.titles.get(&asin).or_else(|| catalog.get(&asin)).cloned();
             Some(Book { asin, title, source, size, state, unlocked, epub })
         })
         .collect();
@@ -170,6 +173,34 @@ mod tests {
 
         assert_eq!(books[0].title.as_deref(), Some("My book"));
         assert_eq!(books[1].title, None);
+    }
+
+    #[test]
+    fn locked_books_take_their_title_from_the_kindle_catalog() {
+        let tmp = tempfile::tempdir().unwrap();
+        let content = tmp.path().join("Classic").join("Content");
+        let cache = tmp.path().join("Classic").join("Data").join("Cache");
+        let data = tmp.path().join("data");
+        fs::create_dir_all(&content).unwrap();
+        fs::create_dir_all(&cache).unwrap();
+        for asin in ["B0AAA", "B0BBB", "B0CCC"] {
+            add_book(&content, asin, 10);
+        }
+        fs::write(
+            cache.join("KindleSyncMetadataCache.xml"),
+            "<response><add_update_list>\
+             <meta_data><ASIN>B0AAA</ASIN><title>Catalog A</title></meta_data>\
+             <meta_data><ASIN>B0BBB</ASIN><title>Catalog B</title></meta_data>\
+             </add_update_list></response>",
+        )
+        .unwrap();
+        let mut settings = Settings::default();
+        settings.titles.insert("B0BBB".into(), "From the book".into());
+
+        let books = scan(&content, &data, &settings);
+        let titles: Vec<Option<&str>> = books.iter().map(|b| b.title.as_deref()).collect();
+
+        assert_eq!(titles, vec![Some("Catalog A"), Some("From the book"), None]);
     }
 
     #[test]

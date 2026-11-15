@@ -34,6 +34,13 @@ pub fn prepare_data_dir() -> PathBuf {
     dir
 }
 
+/// Stores the language chosen in the installer, keeping everything else in the settings.
+pub fn save_language(data_dir: &Path, language: Language) -> Result<(), Error> {
+    let mut settings = Settings::load(data_dir);
+    settings.language = language;
+    settings.save(data_dir)
+}
+
 /// Interface theme.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -246,6 +253,24 @@ mod tests {
         let s = Settings::load(dir.path());
         assert_eq!(s.output_dir, PathBuf::from("D:/Books"));
         assert_eq!(s.theme, ThemeChoice::Dark);
+    }
+
+    #[test]
+    fn the_installer_language_is_saved_and_the_rest_is_kept() {
+        let tmp = tempfile::tempdir().unwrap();
+        let data = tmp.path().join("data");
+        save_language(&data, Language::Es).unwrap();
+        assert_eq!(Settings::load(&data).language, Language::Es);
+
+        let mut s = Settings::load(&data);
+        s.theme = ThemeChoice::Dark;
+        s.titles.insert("B0AAA".into(), "My book".into());
+        s.save(&data).unwrap();
+        save_language(&data, Language::En).unwrap();
+        let s = Settings::load(&data);
+        assert_eq!(s.language, Language::En);
+        assert_eq!(s.theme, ThemeChoice::Dark);
+        assert_eq!(s.titles.get("B0AAA").map(String::as_str), Some("My book"));
     }
 
     #[test]
