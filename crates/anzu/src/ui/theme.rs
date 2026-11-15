@@ -89,9 +89,7 @@ pub const DARK: Palette = Palette {
     log_bg: rgb(0x0A0B08),
 };
 
-/// Colours of the window icon: the header ink with the logo in amber.
-pub const ICON_BACKGROUND: [u8; 3] = [0x14, 0x17, 0x1A];
-pub const ICON_MARK: [u8; 3] = [0xFF, 0xB0, 0x00];
+pub use super::mark::{ICON_BACKGROUND, ICON_MARK};
 
 impl Palette {
     /// The palette of the theme that is active right now.
@@ -112,6 +110,8 @@ fn visuals(p: Palette, dark: bool) -> egui::Visuals {
     v.selection.bg_fill = p.select_bg;
     v.selection.stroke = Stroke::new(1.0, p.fg);
     v.hyperlink_color = p.accent;
+    // Every enabled button shows the hand while hovered.
+    v.interact_cursor = Some(egui::CursorIcon::PointingHand);
     v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, p.line);
     v.widgets.noninteractive.corner_radius = RADIUS;
     for w in [&mut v.widgets.inactive, &mut v.widgets.hovered, &mut v.widgets.active] {
@@ -203,19 +203,50 @@ pub fn warn_panel(p: Palette) -> egui::Frame {
     panel(p).fill(p.warn_bg).stroke(Stroke::new(1.0, p.warn_line)).inner_margin(egui::Margin::symmetric(16, 14))
 }
 
+/// Where a button sits, which decides the colours of its hover feedback.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Surface {
+    /// The page and its panels.
+    Page,
+    /// The header band, dark in both themes.
+    Shell,
+}
+
+/// How long the hover and press feedback takes to fade in or out, in seconds.
+const HOVER_TIME: f32 = 0.12;
+const PRESS_TIME: f32 = 0.06;
+
+/// Adds a button with a short animated hover and press feedback. egui gives no hover change
+/// to a button with its own fill, so the feedback is painted over every button the same way.
+pub fn button(ui: &mut egui::Ui, surface: Surface, enabled: bool, widget: impl egui::Widget) -> egui::Response {
+    let response = ui.add_enabled(enabled, widget);
+    feedback(ui, surface, &response);
+    response
+}
+
+/// Paints the animated hover and press feedback over a clickable widget already added.
+pub fn feedback(ui: &egui::Ui, surface: Surface, response: &egui::Response) {
+    let p = Palette::of(ui.ctx());
+    let (tint, edge) = match surface {
+        Surface::Page => (p.fg, p.accent),
+        Surface::Shell => (p.on_shell, p.shell_accent),
+    };
+    let ctx = ui.ctx();
+    let hover = ctx.animate_bool_with_time(response.id.with("hover"), response.hovered(), HOVER_TIME);
+    let press = ctx.animate_bool_with_time(response.id.with("press"), response.is_pointer_button_down_on(), PRESS_TIME);
+    if hover <= 0.0 && press <= 0.0 {
+        return;
+    }
+    let painter = ui.painter();
+    painter.rect_filled(response.rect, RADIUS, tint.gamma_multiply(0.08 * hover + 0.08 * press));
+    painter.rect_stroke(response.rect, RADIUS, Stroke::new(1.0, edge.gamma_multiply(hover)), egui::StrokeKind::Inside);
+}
+
 pub fn primary_button(p: Palette, label: &str) -> egui::Button<'static> {
     egui::Button::new(bold(label.to_string()).color(p.on_accent).size(14.0))
         .fill(p.accent)
         .stroke(Stroke::NONE)
         .min_size(egui::vec2(0.0, 38.0))
-}
-
-/// A button for the header band, which is dark in both themes.
-pub fn shell_button(p: Palette, label: &str, selected: bool) -> egui::Button<'static> {
-    let (fill, text) = if selected { (p.shell_accent, p.on_shell_accent) } else { (p.shell, p.on_shell) };
-    egui::Button::new(RichText::new(label.to_string()).color(text).size(12.0))
-        .fill(fill)
-        .stroke(Stroke::new(1.0, if selected { p.shell_accent } else { p.shell_line }))
 }
 
 /// A borderless band background with the given vertical margin.

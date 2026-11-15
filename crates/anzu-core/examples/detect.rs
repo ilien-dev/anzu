@@ -9,7 +9,7 @@ fn main() {
             println!("Kindle {} at {}", k.version, k.content_dir.display());
             println!("Running: {}", kindle::is_running());
             for b in library::scan(&k.content_dir, &data, &s) {
-                println!("{} {:?} {} bytes", b.asin, b.state, b.size);
+                println!("{} {:?} {} bytes {:?}", b.asin, b.state, b.size, b.title);
             }
         }
         None => println!("Kindle is not installed"),

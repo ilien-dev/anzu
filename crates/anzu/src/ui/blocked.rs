@@ -17,7 +17,7 @@ pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui, reason: &BlockReason) {
         ui.label(body);
         ui.add_space(2.0);
         ui.horizontal_wrapped(|ui| {
-            if ui.button(t.recheck).clicked() {
+            if theme::button(ui, theme::Surface::Page, true, egui::Button::new(t.recheck)).clicked() {
                 let ctx = ui.ctx().clone();
                 app.start_check(&ctx);
             }

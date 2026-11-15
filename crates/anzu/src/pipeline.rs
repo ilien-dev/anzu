@@ -8,6 +8,7 @@
 //! - one failed book does not stop the others.
 
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use anzu_core::Error;
 use anzu_core::kindle::KindleInstall;
@@ -42,11 +43,18 @@ pub trait Backend {
     fn mark_converted(&self, asin: &str, epub: &Path);
 }
 
+/// The preparation: what is done once for the whole run, before any book is unlocked.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Step {
     Check,
     Download,
     CloseKindle,
+}
+
+/// What is done to each book. The tool unlocks every book of a run in one go, so all the
+/// locked books are in [`Stage::Unlock`] at the same time; they are converted one by one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Stage {
     Unlock,
     Convert,
 }
@@ -56,11 +64,96 @@ pub enum Msg {
     Health(Health),
     StepStarted(Step),
     StepDone(Step),
+    /// The step was not needed for this run.
+    StepSkipped(Step),
+    /// The preparation stopped, so no book was unlocked. Said once, not once per book.
+    PreparationFailed(String),
+    BookStarted { asin: String, stage: Stage },
+    /// A book finished a stage and is now in `state`.
     BookProgress { asin: String, state: BookState },
+    BookFailed { asin: String, stage: Stage, reason: String },
+    /// Where the EPUB of a book was written.
+    Saved { asin: String, path: PathBuf },
     Log(String),
     /// The Kindle app is open: ask before closing it.
     NeedCloseKindle,
     Finished { converted: usize, failed: Vec<(String, String)> },
+}
+
+/// The shortest time a step is shown running, so a step that finishes at once still reads
+/// as work done instead of a mark that flips without anything seeming to happen.
+pub const MIN_STEP: Duration = Duration::from_millis(450);
+
+/// What the pacer times: a step of the preparation, or a stage of one book.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Timed {
+    Step(Step),
+    Book(String, Stage),
+}
+
+impl Timed {
+    fn started_by(message: &Msg) -> Option<Timed> {
+        match message {
+            Msg::StepStarted(step) => Some(Timed::Step(*step)),
+            Msg::BookStarted { asin, stage } => Some(Timed::Book(asin.clone(), *stage)),
+            _ => None,
+        }
+    }
+
+    fn ended_by(message: &Msg) -> Option<Timed> {
+        match message {
+            Msg::StepDone(step) | Msg::StepSkipped(step) => Some(Timed::Step(*step)),
+            Msg::BookProgress { asin, state: BookState::Unlocked } => Some(Timed::Book(asin.clone(), Stage::Unlock)),
+            Msg::BookProgress { asin, state: BookState::Converted } => Some(Timed::Book(asin.clone(), Stage::Convert)),
+            Msg::BookFailed { asin, stage, .. } => Some(Timed::Book(asin.clone(), *stage)),
+            _ => None,
+        }
+    }
+}
+
+/// Holds back the end of each step, and of each stage of a book, until it has been shown
+/// running for a minimum time.
+pub struct Pacer {
+    min: Duration,
+    started: Vec<(Timed, Instant)>,
+}
+
+impl Pacer {
+    pub fn new(min: Duration) -> Self {
+        Pacer { min, started: Vec::new() }
+    }
+
+    /// Call before sending `message`: it sleeps when a step would end too soon.
+    pub fn wait_before(&mut self, message: &Msg) {
+        if let Some(timed) = Timed::started_by(message) {
+            self.started.retain(|(t, _)| *t != timed);
+            self.started.push((timed, Instant::now()));
+        } else if let Some(timed) = Timed::ended_by(message)
+            && let Some(index) = self.started.iter().position(|(t, _)| *t == timed)
+        {
+            let (timed, start) = self.started.remove(index);
+            // Conversions are held less, so a library of hundreds of books is not slowed down.
+            let min = if matches!(timed, Timed::Book(_, Stage::Convert)) { self.min / 3 } else { self.min };
+            let left = min.saturating_sub(start.elapsed());
+            if !left.is_zero() {
+                std::thread::sleep(left);
+            }
+        }
+    }
+}
+
+/// The books of `plan` that still have DRM.
+pub fn locked_in(plan: &RunPlan, books: &[Book]) -> Vec<String> {
+    plan.asins
+        .iter()
+        .filter(|asin| books.iter().any(|b| &b.asin == *asin && b.state == BookState::Locked))
+        .cloned()
+        .collect()
+}
+
+/// Whether a run of `plan` goes through the preparation (check, download, close Kindle).
+pub fn prepares(plan: &RunPlan, books: &[Book]) -> bool {
+    plan.needs_unlock && !locked_in(plan, books).is_empty()
 }
 
 /// What is needed to launch the unlock once compatibility is confirmed.
@@ -105,13 +198,13 @@ pub fn check(backend: &dyn Backend) -> (Health, Option<Ready>) {
     check_with(backend, &mut |_, _| {})
 }
 
-/// Unlocks. Returns the unlocked ASINs, or the reason it was not done.
-fn unlock_phase(
+/// Checks, downloads and closes Kindle. Returns what the unlock needs, or why it stopped.
+fn prepare(
     backend: &dyn Backend,
     t: &Strings,
     send: &mut dyn FnMut(Msg),
     confirm_close: &mut dyn FnMut() -> bool,
-) -> Result<Vec<String>, String> {
+) -> Result<Ready, String> {
     let (health, ready) =
         check_with(backend, &mut |step, start| send(if start { Msg::StepStarted(step) } else { Msg::StepDone(step) }));
     let Some(ready) = ready else {
@@ -131,19 +224,61 @@ fn unlock_phase(
             return Err(t.kindle_left_open.to_string());
         }
         backend.close_kindle().map_err(|e| t.could_not_close_kindle(&t.core_error(&e)))?;
+        send(Msg::StepDone(Step::CloseKindle));
+    } else {
+        send(Msg::StepSkipped(Step::CloseKindle));
     }
-    send(Msg::StepDone(Step::CloseKindle));
+    Ok(ready)
+}
 
-    send(Msg::StepStarted(Step::Unlock));
-    let unlocked = backend
-        .unlock(&ready.exe, &ready.content_dir, &mut |line| {
-            // The filter's placeholder is the one line of tool output that is ours to translate.
-            let line = if line == anzu_core::unlock::WITHHELD { t.withheld } else { line };
-            send(Msg::Log(line.to_string()));
-        })
-        .map_err(|e| t.core_error(&e))?;
-    send(Msg::StepDone(Step::Unlock));
-    Ok(unlocked.into_iter().map(|(asin, _)| asin).collect())
+/// Prepares and unlocks the `locked` books, reporting each one. Failures go to `failed`.
+fn unlock_books(
+    backend: &dyn Backend,
+    t: &Strings,
+    locked: &[String],
+    send: &mut dyn FnMut(Msg),
+    confirm_close: &mut dyn FnMut() -> bool,
+    failed: &mut Vec<(String, String)>,
+) {
+    let ready = match prepare(backend, t, send, confirm_close) {
+        Ok(ready) => ready,
+        Err(reason) => {
+            send(Msg::Log(t.unlock_not_done(&reason)));
+            send(Msg::PreparationFailed(reason.clone()));
+            failed.extend(locked.iter().map(|asin| (asin.clone(), reason.clone())));
+            return;
+        }
+    };
+
+    for asin in locked {
+        send(Msg::BookStarted { asin: asin.clone(), stage: Stage::Unlock });
+    }
+    let result = backend.unlock(&ready.exe, &ready.content_dir, &mut |line| {
+        // The filter's placeholder is the one line of tool output that is ours to translate.
+        let line = if line == anzu_core::unlock::WITHHELD { t.withheld } else { line };
+        send(Msg::Log(line.to_string()));
+    });
+    let unlocked: Vec<String> = match result {
+        Ok(unlocked) => unlocked.into_iter().map(|(asin, _)| asin).collect(),
+        Err(error) => {
+            let reason = t.core_error(&error);
+            send(Msg::Log(t.unlock_not_done(&reason)));
+            for asin in locked {
+                send(Msg::BookFailed { asin: asin.clone(), stage: Stage::Unlock, reason: reason.clone() });
+                failed.push((asin.clone(), reason.clone()));
+            }
+            return;
+        }
+    };
+    for asin in locked {
+        if unlocked.contains(asin) {
+            send(Msg::BookProgress { asin: asin.clone(), state: BookState::Unlocked });
+        } else {
+            let reason = t.tool_could_not_unlock.to_string();
+            send(Msg::BookFailed { asin: asin.clone(), stage: Stage::Unlock, reason: reason.clone() });
+            failed.push((asin.clone(), reason));
+        }
+    }
 }
 
 /// Runs the plan. Emits progress messages and always ends with [`Msg::Finished`].
@@ -158,57 +293,36 @@ pub fn run(
 ) {
     let t = i18n::strings(lang);
     let mut failed: Vec<(String, String)> = Vec::new();
-    let locked: Vec<&String> = plan
-        .asins
-        .iter()
-        .filter(|asin| books.iter().any(|b| &b.asin == *asin && b.state == BookState::Locked))
-        .collect();
-
-    if plan.needs_unlock && !locked.is_empty() {
-        match unlock_phase(backend, t, send, confirm_close) {
-            Ok(unlocked) => {
-                for asin in &locked {
-                    if unlocked.contains(asin) {
-                        send(Msg::BookProgress { asin: (*asin).clone(), state: BookState::Unlocked });
-                    } else {
-                        failed.push(((*asin).clone(), t.tool_could_not_unlock.to_string()));
-                    }
-                }
-            }
-            Err(reason) => {
-                send(Msg::Log(t.unlock_not_done(&reason)));
-                failed.extend(locked.iter().map(|asin| ((*asin).clone(), reason.clone())));
-            }
-        }
+    if prepares(plan, books) {
+        unlock_books(backend, t, &locked_in(plan, books), send, confirm_close, &mut failed);
     }
 
     let mut converted = 0;
     let labels = t.labels();
     let pending: Vec<&String> = plan.asins.iter().filter(|a| !failed.iter().any(|(f, _)| f == *a)).collect();
-    if !pending.is_empty() {
-        send(Msg::StepStarted(Step::Convert));
-        for asin in pending {
-            match backend.convert(&backend.unlocked_path(asin), out_dir, &labels) {
-                Ok(result) => {
-                    backend.mark_converted(asin, &result.path);
-                    converted += 1;
-                    for warning in result.warnings.iter().take(MAX_WARNINGS_SHOWN) {
-                        send(Msg::Log(t.warning(warning)));
-                    }
-                    if result.warnings.len() > MAX_WARNINGS_SHOWN {
-                        send(Msg::Log(t.more_warnings(result.warnings.len() - MAX_WARNINGS_SHOWN)));
-                    }
-                    send(Msg::Log(t.epub_saved(&result.path)));
-                    send(Msg::BookProgress { asin: asin.clone(), state: BookState::Converted });
+    for asin in pending {
+        send(Msg::BookStarted { asin: asin.clone(), stage: Stage::Convert });
+        match backend.convert(&backend.unlocked_path(asin), out_dir, &labels) {
+            Ok(result) => {
+                backend.mark_converted(asin, &result.path);
+                converted += 1;
+                for warning in result.warnings.iter().take(MAX_WARNINGS_SHOWN) {
+                    send(Msg::Log(t.warning(warning)));
                 }
-                Err(error) => {
-                    let detail = t.kfx_error(&error);
-                    send(Msg::Log(t.could_not_convert(asin, &detail)));
-                    failed.push((asin.clone(), detail));
+                if result.warnings.len() > MAX_WARNINGS_SHOWN {
+                    send(Msg::Log(t.more_warnings(result.warnings.len() - MAX_WARNINGS_SHOWN)));
                 }
+                send(Msg::Log(t.epub_saved(&result.path)));
+                send(Msg::Saved { asin: asin.clone(), path: result.path.clone() });
+                send(Msg::BookProgress { asin: asin.clone(), state: BookState::Converted });
+            }
+            Err(error) => {
+                let detail = t.kfx_error(&error);
+                send(Msg::Log(t.could_not_convert(asin, &detail)));
+                send(Msg::BookFailed { asin: asin.clone(), stage: Stage::Convert, reason: detail.clone() });
+                failed.push((asin.clone(), detail));
             }
         }
-        send(Msg::StepDone(Step::Convert));
     }
     // Failures are reported in plan order.
     failed.sort_by_key(|(asin, _)| plan.asins.iter().position(|a| a == asin));
@@ -372,7 +486,7 @@ mod tests {
 
         fn close_kindle(&self) -> Result<(), Error> {
             self.note("close");
-            if self.close_ok { Ok(()) } else { Err(Error::KindleRunning) }
+            if self.close_ok { Ok(()) } else { Err(Error::CloseTimedOut(60)) }
         }
 
         fn unlock(
@@ -530,10 +644,145 @@ mod tests {
                 _ => None,
             })
             .collect();
-        assert_eq!(steps, vec![Step::Check, Step::Download, Step::CloseKindle, Step::Unlock, Step::Convert]);
+        assert_eq!(steps, vec![Step::Check, Step::Download, Step::CloseKindle]);
         for step in steps {
-            assert!(messages.contains(&Msg::StepDone(step)), "{step:?} did not finish: {messages:?}");
+            let ended = messages.contains(&Msg::StepDone(step)) || messages.contains(&Msg::StepSkipped(step));
+            assert!(ended, "{step:?} did not finish: {messages:?}");
         }
+        assert!(messages.contains(&Msg::StepSkipped(Step::CloseKindle)), "Kindle was already closed");
+    }
+
+    /// The preparation and the books, in the order they start and end.
+    fn events(messages: &[Msg]) -> Vec<String> {
+        messages
+            .iter()
+            .filter_map(|m| match m {
+                Msg::StepStarted(s) => Some(format!("start {s:?}")),
+                Msg::StepDone(s) => Some(format!("done {s:?}")),
+                Msg::StepSkipped(s) => Some(format!("skip {s:?}")),
+                Msg::PreparationFailed(_) => Some("preparation failed".to_string()),
+                Msg::BookStarted { asin, stage } => Some(format!("{asin} start {stage:?}")),
+                Msg::BookProgress { asin, state } => Some(format!("{asin} {state:?}")),
+                Msg::BookFailed { asin, stage, .. } => Some(format!("{asin} failed {stage:?}")),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn each_book_goes_through_its_own_stages() {
+        let fake = Fake { unlock: Ok(vec!["A", "C"]), ..Fake::ready() };
+        let books = vec![book("A", BookState::Locked), book("B", BookState::Unlocked), book("C", BookState::Locked)];
+        let mut messages = Vec::new();
+        let plan = plan(&["A", "B", "C"], true);
+        run(&fake, &plan, &books, Path::new("out"), Language::En, &mut |m| messages.push(m), &mut || true);
+        assert_eq!(
+            events(&messages),
+            vec![
+                "start Check",
+                "done Check",
+                "start Download",
+                "done Download",
+                "start CloseKindle",
+                "skip CloseKindle",
+                // The tool unlocks every locked book in one go.
+                "A start Unlock",
+                "C start Unlock",
+                "A Unlocked",
+                "C Unlocked",
+                // Then they are converted one by one.
+                "A start Convert",
+                "A Converted",
+                "B start Convert",
+                "B Converted",
+                "C start Convert",
+                "C Converted",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_run_without_unlocking_has_no_preparation() {
+        let fake = Fake::ready();
+        let messages = run_with(&fake, &plan(&["B"], false), true);
+        assert_eq!(events(&messages), vec!["B start Convert", "B Converted"]);
+    }
+
+    #[test]
+    fn a_failed_preparation_is_reported_once_and_not_per_book() {
+        let fake = Fake { running: true, close_ok: false, ..Fake::ready() };
+        let messages = run_with(&fake, &plan(&["A", "B"], true), true);
+        let failures: Vec<&Msg> = messages.iter().filter(|m| matches!(m, Msg::PreparationFailed(_))).collect();
+        assert_eq!(failures.len(), 1, "{messages:?}");
+        let Msg::PreparationFailed(reason) = failures[0] else { unreachable!() };
+        assert!(reason.starts_with("Could not close the Kindle app"), "{reason}");
+        assert!(
+            !messages.iter().any(|m| matches!(m, Msg::BookStarted { asin, .. } | Msg::BookFailed { asin, .. } if asin == "A")),
+            "the locked book never started: {messages:?}"
+        );
+        assert_eq!(finished(&messages), (1, vec!["A".to_string()]), "it still counts as not converted");
+    }
+
+    #[test]
+    fn an_unlock_error_fails_each_locked_book_in_the_unlock_stage() {
+        let fake = Fake { unlock: Err(Error::UnlockFailed { code: -1, tail: "no session".into() }), ..Fake::ready() };
+        let messages = run_with(&fake, &plan(&["A", "B"], true), true);
+        let failed = messages.iter().find_map(|m| match m {
+            Msg::BookFailed { asin, stage: Stage::Unlock, reason } if asin == "A" => Some(reason.clone()),
+            _ => None,
+        });
+        assert!(failed.is_some_and(|r| r.contains("no session")), "{messages:?}");
+    }
+
+    #[test]
+    fn a_failed_conversion_is_reported_before_the_next_book_starts() {
+        let fake = Fake { unlock: Ok(vec!["A"]), failing_conversions: vec!["A"], ..Fake::ready() };
+        let messages = run_with(&fake, &plan(&["A", "B"], true), true);
+        let seen = events(&messages);
+        let failed = seen.iter().position(|e| e == "A failed Convert").expect("A fails on its own");
+        let next = seen.iter().position(|e| e == "B start Convert").expect("B still runs");
+        assert!(failed < next, "{seen:?}");
+    }
+
+    #[test]
+    fn a_conversion_is_held_less_than_a_step() {
+        let mut pacer = Pacer::new(Duration::from_millis(90));
+        let start = Instant::now();
+        pacer.wait_before(&Msg::BookStarted { asin: "A".into(), stage: Stage::Convert });
+        pacer.wait_before(&Msg::BookProgress { asin: "A".into(), state: BookState::Converted });
+        let held = start.elapsed();
+        assert!(held >= Duration::from_millis(30) && held < Duration::from_millis(80), "{held:?}");
+    }
+
+    #[test]
+    fn each_book_is_timed_on_its_own() {
+        let min = Duration::from_millis(60);
+        let mut pacer = Pacer::new(min);
+        pacer.wait_before(&Msg::BookStarted { asin: "A".into(), stage: Stage::Unlock });
+        pacer.wait_before(&Msg::BookStarted { asin: "B".into(), stage: Stage::Unlock });
+        let start = Instant::now();
+        pacer.wait_before(&Msg::BookProgress { asin: "A".into(), state: BookState::Unlocked });
+        assert!(start.elapsed() >= Duration::from_millis(40), "A is held: {:?}", start.elapsed());
+        let second = Instant::now();
+        pacer.wait_before(&Msg::BookProgress { asin: "B".into(), state: BookState::Unlocked });
+        assert!(second.elapsed() < Duration::from_millis(20), "B already ran long enough: {:?}", second.elapsed());
+    }
+
+    #[test]
+    fn the_path_of_each_epub_is_reported() {
+        let fake = Fake::ready();
+        let messages = run_with(&fake, &plan(&["B"], false), true);
+        assert!(messages.contains(&Msg::Saved { asin: "B".into(), path: Path::new("out").join("B.epub") }), "{messages:?}");
+    }
+
+    #[test]
+    fn a_skipped_step_is_held_too() {
+        let min = Duration::from_millis(60);
+        let mut pacer = Pacer::new(min);
+        let start = Instant::now();
+        pacer.wait_before(&Msg::StepStarted(Step::Check));
+        pacer.wait_before(&Msg::StepSkipped(Step::Check));
+        assert!(start.elapsed() >= min, "{:?}", start.elapsed());
     }
 
     #[test]
@@ -610,6 +859,17 @@ mod tests {
     }
 
     #[test]
+    fn closing_kindle_reports_why_it_failed() {
+        let fake = Fake { running: true, close_ok: false, ..Fake::ready() };
+        let messages = run_with(&fake, &plan(&["A"], true), true);
+        let Some(Msg::Finished { failed, .. }) = messages.last() else { panic!("Finished") };
+        assert_eq!(failed[0].1, "Could not close the Kindle app: it was still running 60 s after it was asked to close");
+        let spanish = run_in(&fake, &plan(&["A"], true), true, Language::Es);
+        let Some(Msg::Finished { failed, .. }) = spanish.last() else { panic!("Finished") };
+        assert_eq!(failed[0].1, "No se pudo cerrar la app Kindle: seguía abierta 60 s después de pedirle que se cerrara");
+    }
+
+    #[test]
     fn an_unlock_error_fails_the_locked_books_with_its_message() {
         let fake = Fake { unlock: Err(Error::UnlockFailed { code: -1, tail: "no session".into() }), ..Fake::ready() };
         let messages = run_with(&fake, &plan(&["A", "B"], true), true);
@@ -665,6 +925,28 @@ mod tests {
             accepted.contains(&Msg::Log("[línea de la herramienta omitida por seguridad]".into())),
             "the filter's placeholder is translated: {accepted:?}"
         );
+    }
+
+    #[test]
+    fn a_quick_step_is_held_for_the_minimum_time() {
+        let min = Duration::from_millis(60);
+        let mut pacer = Pacer::new(min);
+        let start = Instant::now();
+        pacer.wait_before(&Msg::StepStarted(Step::Download));
+        pacer.wait_before(&Msg::Log("line".into()));
+        assert!(start.elapsed() < min, "only the end of a step waits");
+        pacer.wait_before(&Msg::StepDone(Step::Download));
+        assert!(start.elapsed() >= min, "{:?}", start.elapsed());
+    }
+
+    #[test]
+    fn a_slow_step_is_not_held_any_longer() {
+        let mut pacer = Pacer::new(Duration::from_millis(30));
+        pacer.wait_before(&Msg::StepStarted(Step::CloseKindle));
+        std::thread::sleep(Duration::from_millis(40));
+        let before_done = Instant::now();
+        pacer.wait_before(&Msg::StepDone(Step::CloseKindle));
+        assert!(before_done.elapsed() < Duration::from_millis(20), "{:?}", before_done.elapsed());
     }
 
     #[test]

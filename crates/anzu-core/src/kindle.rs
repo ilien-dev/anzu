@@ -67,20 +67,62 @@ pub fn is_running() -> bool {
     stdout_of(quiet_command("tasklist").args(["/FI", &filter, "/NH"])).is_some_and(|o| tasklist_shows_kindle(&o))
 }
 
-/// Asks the app to close (without forcing it) and waits up to 10 seconds.
-pub fn close() -> Result<(), Error> {
-    if !is_running() {
+/// How long the app is given to quit after it is asked to. Measured: it hides its window at
+/// once, then its process stays alive for 10.6 to 12 seconds while it saves its state.
+pub const CLOSE_TIMEOUT: Duration = Duration::from_secs(60);
+const CLOSE_POLL: Duration = Duration::from_millis(250);
+
+/// What `taskkill` answered: its exit code and what it printed.
+#[derive(Debug)]
+pub struct Asked {
+    pub code: i32,
+    pub text: String,
+}
+
+fn ask_to_close() -> Result<Asked, Error> {
+    let out = quiet_command("taskkill").args(["/IM", PROCESS_IMAGE]).output()?;
+    let mut text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    if !stderr.trim().is_empty() {
+        if !text.is_empty() {
+            text.push('\n');
+        }
+        text.push_str(stderr.trim());
+    }
+    Ok(Asked { code: out.status.code().unwrap_or(-1), text })
+}
+
+/// Asks the app to close, without forcing it, and waits until its process has gone.
+///
+/// Forcing it is avoided on purpose: the app saves the reading position as it quits.
+pub fn close_with(
+    mut running: impl FnMut() -> bool,
+    ask: impl FnOnce() -> Result<Asked, Error>,
+    timeout: Duration,
+    poll: Duration,
+) -> Result<(), Error> {
+    if !running() {
         return Ok(());
     }
-    quiet_command("taskkill").args(["/IM", PROCESS_IMAGE]).output()?;
-    let deadline = Instant::now() + Duration::from_secs(10);
-    while Instant::now() < deadline {
-        if !is_running() {
+    let asked = ask()?;
+    if asked.code != 0 && running() {
+        return Err(Error::CloseRefused(asked.text));
+    }
+    let deadline = Instant::now() + timeout;
+    loop {
+        if !running() {
             return Ok(());
         }
-        std::thread::sleep(Duration::from_millis(250));
+        if Instant::now() >= deadline {
+            return Err(Error::CloseTimedOut(timeout.as_secs()));
+        }
+        std::thread::sleep(poll);
     }
-    Err(Error::KindleRunning)
+}
+
+/// Asks the app to close and waits up to [`CLOSE_TIMEOUT`].
+pub fn close() -> Result<(), Error> {
+    close_with(is_running, ask_to_close, CLOSE_TIMEOUT, CLOSE_POLL)
 }
 
 #[cfg(test)]
@@ -123,6 +165,62 @@ mod tests {
                    ========================= ======== ================\r\n\
                    Kindle.exe                  131024 Console\r\n";
         assert!(tasklist_shows_kindle(out));
+    }
+
+    fn asked(code: i32, text: &str) -> Result<Asked, Error> {
+        Ok(Asked { code, text: text.to_string() })
+    }
+
+    #[test]
+    fn closing_waits_for_an_app_that_takes_longer_than_ten_seconds() {
+        // Measured: Kindle hides its window at once and its process lingers for 10.6 to 12 s.
+        assert!(CLOSE_TIMEOUT >= Duration::from_secs(30), "{CLOSE_TIMEOUT:?}");
+        let mut polls = 0;
+        let result = close_with(
+            || {
+                polls += 1;
+                polls < 6
+            },
+            || asked(0, "SUCCESS: Sent termination signal"),
+            Duration::from_secs(5),
+            Duration::from_millis(1),
+        );
+        assert!(result.is_ok(), "{result:?}");
+        assert_eq!(polls, 6);
+    }
+
+    #[test]
+    fn an_app_that_is_not_running_is_not_asked() {
+        let result = close_with(|| false, || panic!("taskkill must not run"), CLOSE_TIMEOUT, Duration::ZERO);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn a_refusal_carries_what_taskkill_said() {
+        let said = "ERROR: The process \"Kindle.exe\" with PID 4 could not be terminated.";
+        let result = close_with(|| true, || asked(1, said), CLOSE_TIMEOUT, Duration::ZERO);
+        match result {
+            Err(Error::CloseRefused(text)) => assert_eq!(text, said),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_failed_taskkill_for_an_app_that_already_left_is_fine() {
+        let mut first = true;
+        let result = close_with(
+            || std::mem::replace(&mut first, false),
+            || asked(128, "ERROR: The process \"Kindle.exe\" not found."),
+            CLOSE_TIMEOUT,
+            Duration::ZERO,
+        );
+        assert!(result.is_ok(), "{result:?}");
+    }
+
+    #[test]
+    fn an_app_that_never_leaves_times_out_with_the_wait_in_the_error() {
+        let result = close_with(|| true, || asked(0, "SUCCESS"), Duration::from_millis(20), Duration::from_millis(2));
+        assert!(matches!(result, Err(Error::CloseTimedOut(_))), "{result:?}");
     }
 
     #[test]

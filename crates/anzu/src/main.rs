@@ -7,30 +7,52 @@ mod app;
 mod cli;
 mod i18n;
 mod pipeline;
+mod setup;
 mod ui;
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use anzu_core::install;
 use anzu_core::settings::{self, Settings};
+
+fn window(result: Result<(), String>) -> ExitCode {
+    match result {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("Error: {}: {error}", i18n::EN.window_error);
+            ExitCode::FAILURE
+        }
+    }
+}
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.is_empty() {
-        return match ui::launch() {
-            Ok(()) => ExitCode::SUCCESS,
-            Err(error) => {
-                eprintln!("Error: {}: {error}", i18n::EN.window_error);
-                ExitCode::FAILURE
-            }
-        };
+        // Published as `…-setup.exe`, the same program is the installer.
+        let is_setup = std::env::current_exe().is_ok_and(|exe| install::is_setup_name(&exe));
+        return window(if is_setup { ui::launch_installer() } else { ui::launch() });
+    }
+    // These run without a console: they come from the app, the installer or Windows.
+    match cli::parse(&args) {
+        Ok(cli::Command::Install) => return window(ui::launch_installer()),
+        Ok(cli::Command::Update { dir }) => {
+            return if setup::update(&dir).is_ok() { ExitCode::SUCCESS } else { ExitCode::FAILURE };
+        }
+        Ok(cli::Command::Uninstall) => {
+            setup::uninstall();
+            return ExitCode::SUCCESS;
+        }
+        _ => {}
     }
 
     attach_parent_console();
     // The command line speaks the language chosen in the app.
     let t = i18n::strings(Settings::load(&settings::data_dir()).language);
     match cli::parse(&args) {
-        Ok(cli::Command::Gui) => ExitCode::SUCCESS,
+        Ok(cli::Command::Gui | cli::Command::Install | cli::Command::Update { .. } | cli::Command::Uninstall) => {
+            ExitCode::SUCCESS
+        }
         Ok(cli::Command::Help) => {
             println!("{}", t.usage);
             ExitCode::SUCCESS

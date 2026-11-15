@@ -73,19 +73,21 @@ jobs:
           RUSTFLAGS: -C target-feature=+crt-static
         run: cargo build --release --locked -p anzu
 
+      # The installer is anzu.exe itself: under a name with "setup" it opens the install
+      # window (anzu_core::install). The app finds its updates by this file name
+      # (anzu_core::update::SETUP_SUFFIX) and checks them against the SHA-256 digest
+      # GitHub publishes for each asset.
       - name: Package
         shell: pwsh
         run: |
-          $dir = "anzu-$env:VERSION-windows-x64"
-          New-Item -ItemType Directory $dir | Out-Null
-          Copy-Item target/release/anzu.exe, LICENSE, README.md, README.es.md -Destination $dir
-          Compress-Archive -Path $dir -DestinationPath "$dir.zip"
-          (Get-FileHash "$dir.zip" -Algorithm SHA256).Hash.ToLower() + "  $dir.zip" | Out-File -Encoding ascii "$dir.zip.sha256"
+          $setup = "anzu-$env:VERSION-windows-x64-setup.exe"
+          Copy-Item target/release/anzu.exe $setup
+          (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower() + "  $setup" | Out-File -Encoding ascii "$setup.sha256"
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-x64
-          path: anzu-*-windows-x64.zip*
+          path: anzu-*-windows-x64-setup.exe*
           if-no-files-found: error
 
   publish:
@@ -112,6 +114,6 @@ jobs:
       - name: Create release
         run: |
           cog changelog --at "v$VERSION" > notes.md
-          gh release create "v$VERSION" anzu-*-windows-x64.zip* \
+          gh release create "v$VERSION" anzu-*-windows-x64-setup.exe* \
             --title "Anzu $VERSION" \
             --notes-file notes.md

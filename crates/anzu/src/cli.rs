@@ -9,6 +9,13 @@ pub enum Command {
     Convert { input: PathBuf, out_dir: Option<PathBuf> },
     Help,
     Version,
+    /// Open the installer, whatever the name of the executable.
+    Install,
+    /// Replace the installation in `dir` with this executable once the app there has
+    /// closed, then open it. The app runs this when the user restarts to update.
+    Update { dir: PathBuf },
+    /// Remove the installation. Windows runs this from the list of apps.
+    Uninstall,
 }
 
 /// What was wrong with the arguments. The text for each lives in `i18n`.
@@ -28,6 +35,14 @@ pub fn parse(args: &[String]) -> Result<Command, CliError> {
         "-h" | "--help" => Ok(Command::Help),
         "-V" | "--version" => Ok(Command::Version),
         "convert" => parse_convert(rest),
+        "--install" => Ok(Command::Install),
+        "--uninstall" => Ok(Command::Uninstall),
+        "--update" => match rest {
+            [flag, dir] if flag == "--dir" => Ok(Command::Update { dir: PathBuf::from(dir) }),
+            [flag] if flag == "--dir" => Err(CliError::MissingValue(flag.clone())),
+            [] => Err(CliError::MissingValue("--dir".to_string())),
+            [other, ..] => Err(CliError::UnknownOption(other.clone())),
+        },
         other => Err(CliError::UnknownCommand(other.to_string())),
     }
 }
@@ -109,6 +124,19 @@ mod tests {
         assert_eq!(parse(&args(&["convert", "a.kfx", "--nope"])), Err(CliError::UnknownOption("--nope".into())));
         assert_eq!(parse(&args(&["explode"])), Err(CliError::UnknownCommand("explode".into())));
         assert_eq!(parse(&args(&["a.kfx"])), Err(CliError::UnknownCommand("a.kfx".into())));
+    }
+
+    #[test]
+    fn install_update_and_uninstall() {
+        assert_eq!(parse(&args(&["--install"])), Ok(Command::Install));
+        assert_eq!(parse(&args(&["--uninstall"])), Ok(Command::Uninstall));
+        assert_eq!(
+            parse(&args(&["--update", "--dir", r"C:\Programs\Anzu"])),
+            Ok(Command::Update { dir: PathBuf::from(r"C:\Programs\Anzu") })
+        );
+        assert_eq!(parse(&args(&["--update"])), Err(CliError::MissingValue("--dir".into())));
+        assert_eq!(parse(&args(&["--update", "--dir"])), Err(CliError::MissingValue("--dir".into())));
+        assert_eq!(parse(&args(&["--update", "--x"])), Err(CliError::UnknownOption("--x".into())));
     }
 
     #[test]
