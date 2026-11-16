@@ -2,6 +2,18 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.8.0](https://github.com/ilien-dev/anzu/compare/53bf58f58c17a47e5e2b8116e59fe318163829f8..v0.8.0) - 2026-11-16
+#### Features
+- convert books in parallel and show the run as one step list (#15) - ([b7181e4](https://github.com/ilien-dev/anzu/commit/b7181e4780847d264caf6f034c09f1e6a9d049b9)) - ilien
+- animate screens and controls and show the right pointer (#14) - ([2614b72](https://github.com/ilien-dev/anzu/commit/2614b72e057957c2a94456560dc0a3a657a2520c)) - ilien
+#### Bug Fixes
+- refresh the cached icons after installing or updating (#13) - ([192b86b](https://github.com/ilien-dev/anzu/commit/192b86ba017fa8ff94d6710d4783529e436af5a9)) - ilien
+#### Documentation
+- rename the readme hero gifs so github shows the new ones (#12) - ([815d09b](https://github.com/ilien-dev/anzu/commit/815d09b86759a93b87e042f0b96a0793eedfb84a)) - ilien
+- readme hero, badges and credits in the coloured paper style (#11) - ([53bf58f](https://github.com/ilien-dev/anzu/commit/53bf58f58c17a47e5e2b8116e59fe318163829f8)) - ilien
+
+- - -
+
 ## [v0.7.0](https://github.com/ilien-dev/anzu/compare/8d7ea77e3ee04d1b07b7ab65af05dc5bcbcef9d0..v0.7.0) - 2026-11-16
 #### Features
 - coloured paper redesign with shelves, step list and icons (#10) - ([8d7ea77](https://github.com/ilien-dev/anzu/commit/8d7ea77e3ee04d1b07b7ab65af05dc5bcbcef9d0)) - ilien
