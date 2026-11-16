@@ -2,9 +2,10 @@
 //! and updates. They used to sit in the header itself.
 
 use anzu_core::settings::{Language, ThemeChoice};
-use eframe::egui::{self, RectAlign, RichText, Stroke};
+use eframe::egui::{self, RectAlign, Stroke};
 
-use super::{AnzuApp, icons, theme, update};
+use super::icons::{self, Icon};
+use super::{AnzuApp, theme, update};
 use crate::i18n::Strings;
 
 const BUTTON: f32 = 30.0;
@@ -37,13 +38,17 @@ pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &'static
 fn panel(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &'static Strings) {
     ui.set_width(PANEL_WIDTH);
     ui.spacing_mut().item_spacing.y = 6.0;
-    ui.label(theme::bold(t.settings).size(14.0));
+    ui.horizontal(|ui| {
+        icons::tile(ui, Icon::Gear, 26.0, p.quiet, p.fg);
+        ui.label(theme::display(t.settings).size(17.0));
+    });
     ui.add_space(6.0);
 
     ui.label(theme::muted(p, t.theme).size(theme::SMALL));
     let themes = [ThemeChoice::System, ThemeChoice::Light, ThemeChoice::Dark];
     let current = themes.iter().position(|c| *c == app.settings.theme).unwrap_or(0);
-    if let Some(i) = segmented(ui, p, &[t.theme_system, t.theme_light, t.theme_dark], current) {
+    let options = [(Icon::Monitor, t.theme_system), (Icon::Sun, t.theme_light), (Icon::Moon, t.theme_dark)];
+    if let Some(i) = segmented(ui, p, &options, current) {
         let ctx = ui.ctx().clone();
         app.set_theme(&ctx, themes[i]);
     }
@@ -52,7 +57,7 @@ fn panel(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &'static St
     ui.label(theme::muted(p, t.language).size(theme::SMALL));
     let languages = [Language::En, Language::Es];
     let current = languages.iter().position(|l| *l == app.settings.language).unwrap_or(0);
-    if let Some(i) = segmented(ui, p, &[t.language_en, t.language_es], current) {
+    if let Some(i) = segmented(ui, p, &[(Icon::Globe, t.language_en), (Icon::Globe, t.language_es)], current) {
         let ctx = ui.ctx().clone();
         app.set_language(&ctx, languages[i]);
     }
@@ -65,28 +70,36 @@ fn panel(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &'static St
     update::settings_section(&mut app.updates, ui, t, busy);
 }
 
-/// A row of joined buttons where one is chosen. Returns the one clicked, if another.
-pub(super) fn segmented(ui: &mut egui::Ui, p: theme::Palette, labels: &[&str], selected: usize) -> Option<usize> {
+/// A row of options on a quiet track where one is chosen, each with its icon. Returns the
+/// one clicked, if another.
+pub(super) fn segmented(ui: &mut egui::Ui, p: theme::Palette, options: &[(Icon, &str)], selected: usize) -> Option<usize> {
     let mut clicked = None;
-    let width = ui.available_width() / labels.len() as f32;
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        for (i, label) in labels.iter().enumerate() {
-            let chosen = i == selected;
-            let text = if chosen {
-                theme::bold(label.to_string()).color(p.on_accent).size(12.0)
-            } else {
-                RichText::new(label.to_string()).color(p.fg).size(12.0)
-            };
-            let button = egui::Button::new(text)
-                .fill(if chosen { p.accent } else { p.panel })
-                .stroke(Stroke::new(1.0, if chosen { p.accent } else { p.line }))
-                .corner_radius(0)
-                .min_size(egui::vec2(width, 30.0));
-            if theme::button(ui, theme::Surface::Page, true, button).clicked() && !chosen {
-                clicked = Some(i);
-            }
+    let (track, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 38.0), egui::Sense::hover());
+    ui.painter().rect_filled(track, theme::RADIUS, p.quiet);
+    let inner = track.shrink(3.0);
+    let width = inner.width() / options.len() as f32;
+    for (i, (icon, label)) in options.iter().enumerate() {
+        let rect = egui::Rect::from_min_size(egui::pos2(inner.left() + i as f32 * width, inner.top()), egui::vec2(width, inner.height()));
+        let chosen = i == selected;
+        let response = ui.interact(rect, ui.scope_id().with(("segment", i)), egui::Sense::click());
+        response.widget_info(|| egui::WidgetInfo::selected(egui::Role::RadioButton, true, chosen, *label));
+        let painter = ui.painter();
+        if chosen {
+            painter.rect_filled(rect, egui::CornerRadius::same(8), p.panel);
+            painter.rect_stroke(rect, egui::CornerRadius::same(8), Stroke::new(1.0, p.line_strong), egui::StrokeKind::Inside);
+        } else if response.hovered() {
+            painter.rect_filled(rect, egui::CornerRadius::same(8), p.hover_bg);
         }
-    });
+        let ink = if chosen { p.fg } else { p.muted };
+        let font = if chosen { theme::bold_font(12.5) } else { theme::regular_font(12.5) };
+        let galley = painter.layout_no_wrap(label.to_string(), font, ink);
+        let content = 14.0 + 6.0 + galley.size().x;
+        let left = rect.center().x - content / 2.0;
+        icons::paint(painter, *icon, egui::Rect::from_min_size(egui::pos2(left, rect.center().y - 7.0), egui::vec2(14.0, 14.0)), ink);
+        painter.galley(egui::pos2(left + 20.0, rect.center().y - galley.size().y / 2.0), galley, ink);
+        if response.clicked() && !chosen {
+            clicked = Some(i);
+        }
+    }
     clicked
 }

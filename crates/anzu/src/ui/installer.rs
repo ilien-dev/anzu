@@ -11,7 +11,9 @@ use anzu_core::install;
 use anzu_core::settings::{self, Language, Settings, ThemeChoice};
 use eframe::egui::{self, Align, Layout, RichText, Sense, Stroke};
 
-use super::{icons, logo, settings_menu, theme};
+use super::icons::{self, Icon};
+use super::theme::{self, Kind};
+use super::{logo, settings_menu};
 use crate::i18n::{self, Strings};
 
 const WIDTH: f32 = 720.0;
@@ -204,8 +206,8 @@ impl eframe::App for Installer {
 
 fn header(app: &Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     ui.horizontal(|ui| {
-        logo::badge(ui, 28.0, p.shell_accent, p.on_shell_accent);
-        ui.label(theme::bold("anzu").color(p.on_shell).size(16.0));
+        logo::badge(ui, 30.0, p.shell_chip);
+        ui.label(theme::display("Anzu").color(p.on_shell).size(19.0));
         ui.label(RichText::new(format!("{} · {}", t.setup_badge, env!("CARGO_PKG_VERSION"))).color(p.shell_muted).size(theme::SMALL));
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             let (filled, label, color) = match app.page {
@@ -230,14 +232,17 @@ fn header(app: &Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     });
 }
 
-fn heading(ui: &mut egui::Ui, p: theme::Palette, title: &str, intro: &str) {
-    ui.label(theme::bold(title).size(20.0));
+fn heading(ui: &mut egui::Ui, p: theme::Palette, icon: Icon, fill: egui::Color32, title: &str, intro: &str) {
+    ui.horizontal(|ui| {
+        icons::tile(ui, icon, 34.0, fill, theme::INK);
+        ui.label(theme::display(title).size(22.0));
+    });
     ui.label(theme::muted(p, intro));
     ui.add_space(6.0);
 }
 
 fn language_page(app: &mut Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
-    heading(ui, p, t.setup_title, t.setup_intro);
+    heading(ui, p, Icon::Globe, theme::INFO, t.setup_title, t.setup_intro);
     theme::panel(p).inner_margin(egui::Margin::same(16)).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.label(theme::muted(p, t.setup_language).size(theme::SMALL));
@@ -245,7 +250,8 @@ fn language_page(app: &mut Installer, ui: &mut egui::Ui, p: theme::Palette, t: &
         let current = languages.iter().position(|l| *l == app.language).unwrap_or(0);
         ui.scope(|ui| {
             ui.set_max_width(320.0);
-            if let Some(i) = settings_menu::segmented(ui, p, &[t.language_en, t.language_es], current) {
+            let options = [(Icon::Globe, t.language_en), (Icon::Globe, t.language_es)];
+            if let Some(i) = settings_menu::segmented(ui, p, &options, current) {
                 app.language = languages[i];
                 let title = app.t().setup_window_title.to_string();
                 ui.ctx().send_viewport_cmd(egui::ViewportCommand::Title(title));
@@ -256,28 +262,32 @@ fn language_page(app: &mut Installer, ui: &mut egui::Ui, p: theme::Palette, t: &
 }
 
 fn folder_page(app: &mut Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
-    heading(ui, p, t.setup_folder_title, t.setup_folder_intro);
+    heading(ui, p, Icon::Folder, theme::UNLOCKED, t.setup_folder_title, t.setup_folder_intro);
     theme::panel(p).inner_margin(egui::Margin::same(16)).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.label(theme::muted(p, t.setup_folder_label).size(theme::SMALL));
         ui.horizontal(|ui| {
-            let button_width = 150.0;
+            let button_width = 170.0;
             let field = egui::TextEdit::singleline(&mut app.dir).desired_width(ui.available_width() - button_width - 8.0);
             ui.add_sized([ui.available_width() - button_width - 8.0, 34.0], field);
-            if theme::button(ui, theme::Surface::Page, true, egui::Button::new(t.setup_change_folder).min_size(egui::vec2(button_width, 34.0)))
-                .clicked()
-            {
+            if theme::icon_button_wide(ui, Kind::Secondary, true, Icon::Folder, t.setup_change_folder, button_width).clicked() {
                 app.pick_folder();
             }
         });
     });
     ui.add_space(4.0);
-    ui.checkbox(&mut app.desktop, t.setup_desktop);
-    ui.checkbox(&mut app.start_menu, t.setup_start_menu);
+    ui.horizontal(|ui| {
+        icons::show(ui, Icon::Monitor, 16.0, p.muted);
+        ui.checkbox(&mut app.desktop, t.setup_desktop);
+    });
+    ui.horizontal(|ui| {
+        icons::show(ui, Icon::Book, 16.0, p.muted);
+        ui.checkbox(&mut app.start_menu, t.setup_start_menu);
+    });
 }
 
 fn installing_page(app: &Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
-    heading(ui, p, t.setup_installing_title, t.setup_installing_intro);
+    heading(ui, p, Icon::Download, theme::BUTTER, t.setup_installing_title, t.setup_installing_intro);
     theme::panel(p).inner_margin(egui::Margin::symmetric(16, 6)).show(ui, |ui| {
         ui.set_width(ui.available_width());
         for (i, label) in [t.setup_task_copy, t.setup_task_shortcuts, t.setup_task_register].into_iter().enumerate() {
@@ -288,8 +298,8 @@ fn installing_page(app: &Installer, ui: &mut egui::Ui, p: theme::Palette, t: &St
                     icons::check(ui.painter(), mark, p.ok);
                     (t.setup_state_done, p.ok)
                 } else if i == app.tasks_done {
-                    ui.put(mark, egui::Spinner::new().size(14.0).color(p.accent));
-                    (t.setup_state_running, p.accent)
+                    ui.put(mark, egui::Spinner::new().size(14.0).color(p.fg));
+                    (t.setup_state_running, p.fg)
                 } else {
                     ui.painter().rect_stroke(mark, 2.0, Stroke::new(1.0, p.line), egui::StrokeKind::Inside);
                     (t.setup_state_pending, p.muted)
@@ -301,21 +311,21 @@ fn installing_page(app: &Installer, ui: &mut egui::Ui, p: theme::Palette, t: &St
             });
         }
     });
-    ui.add(egui::ProgressBar::new(app.tasks_done as f32 / 3.0).desired_height(6.0).fill(p.accent).corner_radius(1));
+    ui.add(egui::ProgressBar::new(app.tasks_done as f32 / 3.0).desired_height(6.0).fill(p.progress).corner_radius(3));
 }
 
 fn done_page(app: &Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     ui.add_space(8.0);
     ui.horizontal(|ui| {
-        let (mark, _) = ui.allocate_exact_size(egui::vec2(24.0, 24.0), Sense::hover());
-        icons::check(ui.painter(), mark, p.ok);
-        ui.label(theme::bold(t.setup_done_title).size(20.0));
+        icons::tile(ui, Icon::Check, 34.0, theme::EPUB, theme::INK);
+        ui.label(theme::display(t.setup_done_title).size(22.0));
     });
     ui.label(theme::muted(p, t.setup_done_body));
     ui.add_space(6.0);
     theme::panel(p).inner_margin(egui::Margin::symmetric(16, 12)).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.horizontal(|ui| {
+            icons::show(ui, Icon::Folder, 16.0, p.muted);
             ui.label(theme::muted(p, t.setup_installed_in).size(12.0));
             let dir = app.installed.as_deref().and_then(Path::parent).map(|d| d.display().to_string()).unwrap_or_default();
             ui.label(RichText::new(dir).size(12.0));
@@ -324,7 +334,10 @@ fn done_page(app: &Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings)
 }
 
 fn failed_page(app: &Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
-    ui.label(theme::bold(t.setup_failed_title).color(p.warn).size(20.0));
+    ui.horizontal(|ui| {
+        icons::tile(ui, Icon::Alert, 34.0, theme::DRM, theme::INK);
+        ui.label(theme::display(t.setup_failed_title).size(22.0));
+    });
     if let Some(error) = &app.error {
         theme::warn_panel(p).show(ui, |ui| {
             ui.set_width(ui.available_width());
@@ -333,17 +346,16 @@ fn failed_page(app: &Installer, ui: &mut egui::Ui, p: theme::Palette, t: &String
     }
 }
 
-fn footer(app: &mut Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
-    let secondary = |label: &str| egui::Button::new(label.to_string()).min_size(egui::vec2(0.0, 38.0));
+fn footer(app: &mut Installer, ui: &mut egui::Ui, _p: theme::Palette, t: &Strings) {
     ui.horizontal(|ui| {
         let ctx = ui.ctx().clone();
         let left = match app.page {
-            Page::Language | Page::Done | Page::Failed => Some(t.setup_close),
-            Page::Folder => Some(t.setup_back),
+            Page::Language | Page::Done | Page::Failed => Some((Icon::Close, t.setup_close)),
+            Page::Folder => Some((Icon::ArrowLeft, t.setup_back)),
             Page::Installing => None,
         };
-        if let Some(label) = left
-            && theme::button(ui, theme::Surface::Page, true, secondary(label)).clicked()
+        if let Some((icon, label)) = left
+            && theme::icon_button(ui, Kind::Secondary, true, icon, label).clicked()
         {
             match app.page {
                 Page::Folder => app.page = Page::Language,
@@ -352,21 +364,21 @@ fn footer(app: &mut Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings
         }
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| match app.page {
             Page::Language => {
-                if theme::button(ui, theme::Surface::Page, true, theme::primary_button(p, t.setup_continue)).clicked() {
+                if theme::icon_button(ui, Kind::Primary, true, Icon::ArrowRight, t.setup_continue).clicked() {
                     app.page = Page::Folder;
                 }
             }
             Page::Folder => {
                 let ready = !app.dir.trim().is_empty();
-                if theme::button(ui, theme::Surface::Page, ready, theme::primary_button(p, t.setup_install)).clicked() {
+                if theme::icon_button(ui, Kind::Primary, ready, Icon::Download, t.setup_install).clicked() {
                     app.start(&ctx);
                 }
             }
             Page::Installing => {
-                theme::button(ui, theme::Surface::Page, false, theme::primary_button(p, t.setup_installing_button));
+                theme::icon_button(ui, Kind::Primary, false, Icon::Clock, t.setup_installing_button);
             }
             Page::Done => {
-                if theme::button(ui, theme::Surface::Page, true, theme::primary_button(p, t.setup_open)).clicked() {
+                if theme::icon_button(ui, Kind::Primary, true, Icon::External, t.setup_open).clicked() {
                     if let Some(exe) = &app.installed {
                         let _ = std::process::Command::new(exe).spawn();
                     }
@@ -374,7 +386,7 @@ fn footer(app: &mut Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings
                 }
             }
             Page::Failed => {
-                if theme::button(ui, theme::Surface::Page, true, theme::primary_button(p, t.setup_retry)).clicked() {
+                if theme::icon_button(ui, Kind::Primary, true, Icon::Refresh, t.setup_retry).clicked() {
                     app.start(&ctx);
                 }
             }

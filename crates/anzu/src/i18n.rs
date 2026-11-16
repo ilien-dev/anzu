@@ -29,18 +29,30 @@ pub struct Strings {
     pub fact_tool: &'static str,
     pub fact_digest: &'static str,
     pub verified: &'static str,
-    pub filter_all: &'static str,
-    pub filter_locked: &'static str,
-    pub filter_unlocked: &'static str,
-    pub filter_converted: &'static str,
-    pub col_title: &'static str,
-    pub col_asin: &'static str,
-    pub col_size: &'static str,
-    pub col_state: &'static str,
+    pub shelf: &'static str,
+    pub shelf_locked: &'static str,
+    pub shelf_unlocked: &'static str,
+    pub shelf_converted: &'static str,
+    pub shelf_show: &'static str,
+    pub shelf_hide: &'static str,
+    pub unmark_all: &'static str,
+    pub title_after_unlock: &'static str,
+    pub sort_by: &'static str,
+    pub sort_title: &'static str,
+    pub sort_asin: &'static str,
+    pub sort_size: &'static str,
     pub sort_hint: &'static str,
+    pub plan_unlock: &'static str,
+    pub plan_convert: &'static str,
+    pub plan_again: &'static str,
+    pub kindle_note: &'static str,
+    pub working: &'static str,
+    pub finished_band: &'static str,
+    pub run_books: &'static str,
+    pub failure_note: &'static str,
+    pub failed_stays: &'static str,
     pub select_all: &'static str,
     pub clear_selection: &'static str,
-    pub empty_group: &'static str,
     pub empty_title: &'static str,
     pub empty_steps: [&'static str; 3],
     pub empty_note: &'static str,
@@ -172,18 +184,30 @@ pub const EN: Strings = Strings {
     fact_tool: "Tool",
     fact_digest: "Checksum",
     verified: "verified",
-    filter_all: "All",
-    filter_locked: "With DRM",
-    filter_unlocked: "Unlocked",
-    filter_converted: "Converted",
-    col_title: "TITLE",
-    col_asin: "ASIN",
-    col_size: "SIZE",
-    col_state: "STATE",
-    sort_hint: "Sort by this column",
+    shelf: "Your shelf",
+    shelf_locked: "To unlock",
+    shelf_unlocked: "Ready for EPUB",
+    shelf_converted: "In EPUB",
+    shelf_show: "Show",
+    shelf_hide: "Hide",
+    unmark_all: "Unmark all",
+    title_after_unlock: "title once unlocked",
+    sort_by: "Sort by",
+    sort_title: "Title",
+    sort_asin: "ASIN",
+    sort_size: "Size",
+    sort_hint: "Click again to reverse the order",
+    plan_unlock: "unlock + EPUB",
+    plan_convert: "EPUB only",
+    plan_again: "EPUB again",
+    kindle_note: "Unlocking needs the Kindle app closed. Anzu asks you first.",
+    working: "Working · do not open the Kindle app until it finishes",
+    finished_band: "Finished · you can open the Kindle app again",
+    run_books: "Books in this run",
+    failure_note: "If a book fails, it is marked with the reason and the others go on.",
+    failed_stays: "A book with an error stays on your shelf: you can try it again whenever you like.",
     select_all: "Select all",
     clear_selection: "Clear the selection",
-    empty_group: "No books in this group.",
     empty_title: "No books to convert yet",
     empty_steps: [
         "1. Open the Kindle app from the Microsoft Store and sign in.",
@@ -327,18 +351,30 @@ pub const ES: Strings = Strings {
     fact_tool: "Herramienta",
     fact_digest: "Huella",
     verified: "verificada",
-    filter_all: "Todos",
-    filter_locked: "Con DRM",
-    filter_unlocked: "Desbloqueados",
-    filter_converted: "Convertidos",
-    col_title: "TÍTULO",
-    col_asin: "ASIN",
-    col_size: "TAMAÑO",
-    col_state: "ESTADO",
-    sort_hint: "Ordenar por esta columna",
+    shelf: "Tu estantería",
+    shelf_locked: "Por desbloquear",
+    shelf_unlocked: "Listos para EPUB",
+    shelf_converted: "En EPUB",
+    shelf_show: "Mostrar",
+    shelf_hide: "Ocultar",
+    unmark_all: "Desmarcar todos",
+    title_after_unlock: "título al desbloquear",
+    sort_by: "Ordenar por",
+    sort_title: "Título",
+    sort_asin: "ASIN",
+    sort_size: "Tamaño",
+    sort_hint: "Vuelve a pulsar para invertir el orden",
+    plan_unlock: "desbloquear + EPUB",
+    plan_convert: "solo EPUB",
+    plan_again: "EPUB de nuevo",
+    kindle_note: "Para desbloquear hay que cerrar la app Kindle. Anzu te lo pregunta antes.",
+    working: "Trabajando · no abras la app Kindle hasta que termine",
+    finished_band: "Terminado · ya puedes volver a abrir la app Kindle",
+    run_books: "Libros de la tanda",
+    failure_note: "Si un libro falla, se marca con el motivo y los demás siguen.",
+    failed_stays: "Un libro con error sigue en tu estantería: puedes volver a intentarlo cuando quieras.",
     select_all: "Seleccionar todos",
     clear_selection: "Quitar la selección",
-    empty_group: "No hay libros en este grupo.",
     empty_title: "Aún no hay libros que convertir",
     empty_steps: [
         "1. Abre la app Kindle de Microsoft Store e inicia sesión.",
@@ -616,6 +652,41 @@ impl Strings {
             (true, 0) => format!("Terminado: {converted} convertidos"),
             (true, f) => format!("Terminado: {converted} convertidos, {f} con problemas"),
         }
+    }
+
+    /// "Mark all 3".
+    pub fn mark_all(&self, n: usize) -> String {
+        match (self.es(), n) {
+            (false, 1) => "Mark it".to_string(),
+            (false, n) => format!("Mark all {n}"),
+            (true, 1) => "Marcarlo".to_string(),
+            (true, n) => format!("Marcar los {n}"),
+        }
+    }
+
+    /// "and 3 more", below a list cut short.
+    pub fn and_more(&self, n: usize) -> String {
+        if self.es() { format!("y {n} más") } else { format!("and {n} more") }
+    }
+
+    /// "Step 2 of 5".
+    pub fn step_of(&self, n: usize, total: usize) -> String {
+        if self.es() { format!("Paso {n} de {total}") } else { format!("Step {n} of {total}") }
+    }
+
+    /// The unlock step of a run: "Unlock 2 books".
+    pub fn unlock_step(&self, n: usize) -> String {
+        if self.es() { format!("Desbloquear {}", self.books(n)) } else { format!("Unlock {}", self.books(n)) }
+    }
+
+    /// The convert step of a run: "Convert 3 books to EPUB".
+    pub fn convert_step(&self, n: usize) -> String {
+        if self.es() { format!("Convertir {} a EPUB", self.books(n)) } else { format!("Convert {} to EPUB", self.books(n)) }
+    }
+
+    /// How far a step of the run has got: "1 of 2 done".
+    pub fn done_of(&self, done: usize, total: usize) -> String {
+        if self.es() { format!("{done} de {total} hechos") } else { format!("{done} of {total} done") }
     }
 
     /// "Preparing: step 2 of 3".
