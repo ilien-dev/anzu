@@ -131,6 +131,7 @@ impl Installer {
                 install::create_shortcuts(&exe, desktop, start_menu)?;
                 send(Event::Progress(2));
                 install::register(&dir, env!("CARGO_PKG_VERSION"))?;
+                install::refresh_icons(&exe);
                 settings::save_language(&data_dir, language)?;
                 send(Event::Progress(3));
                 Ok(exe)

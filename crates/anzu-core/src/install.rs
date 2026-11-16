@@ -109,6 +109,38 @@ fn write_shortcut(_exe: &Path, _path: &Path) -> Result<(), Error> {
     Ok(())
 }
 
+/// Tells Explorer that the icon of `exe` may have changed. Windows caches icons by path, so
+/// after an update replaces `anzu.exe` the taskbar, a pinned shortcut and the Start menu
+/// would keep the old icon until the cache is rebuilt.
+#[cfg(windows)]
+pub fn refresh_icons(exe: &Path) {
+    use std::ffi::c_void;
+    use std::os::windows::ffi::OsStrExt;
+
+    #[link(name = "shell32")]
+    unsafe extern "system" {
+        fn SHChangeNotify(event: i32, flags: u32, item1: *const c_void, item2: *const c_void);
+    }
+    const SHCNE_UPDATEITEM: i32 = 0x0000_2000;
+    const SHCNE_ASSOCCHANGED: i32 = 0x0800_0000;
+    const SHCNF_IDLIST: u32 = 0x0000;
+    const SHCNF_PATHW: u32 = 0x0005;
+
+    let pinned = dirs::data_dir()
+        .map(|d| d.join(r"Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar").join(SHORTCUT_NAME));
+    let paths = std::iter::once(Some(exe.to_path_buf())).chain(shortcut_paths()).chain([pinned]).flatten();
+    for path in paths.filter(|p| p.exists()) {
+        let wide: Vec<u16> = path.as_os_str().encode_wide().chain([0]).collect();
+        // SAFETY: `wide` is a NUL-terminated UTF-16 path that outlives the call.
+        unsafe { SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATHW, wide.as_ptr().cast(), std::ptr::null()) };
+    }
+    // SAFETY: this event takes no items.
+    unsafe { SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, std::ptr::null(), std::ptr::null()) };
+}
+
+#[cfg(not(windows))]
+pub fn refresh_icons(_exe: &Path) {}
+
 /// Removes the shortcuts, wherever they were created.
 pub fn remove_shortcuts() {
     for path in shortcut_paths().into_iter().flatten() {
