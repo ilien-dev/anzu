@@ -50,15 +50,19 @@ why and does nothing. The KFX to EPUB converter is its own code.
 - The interface is in English by default and also available in Spanish.
 - Light and dark theme: it follows the system or the user sets it.
 - The content has a maximum width and is centred on large monitors.
-- The book table sorts by any column. Undecided: search for libraries of hundreds of books;
+- The books sit on shelves by what they still need (to unlock, ready for EPUB, in EPUB) and
+  sort by title, ASIN or size. Undecided: search for libraries of hundreds of books;
   cancelling a run in progress.
 
 ## Brand Commitments
 
 - Name: Anzu, after the Mesopotamian bird that stole the Tablet of Destinies.
-- Logo: an A monogram formed by two open wings over a tablet.
-- Style chosen by the user: “Amber console” (monospaced, technical, dense, amber
-  accent). The light theme must not be the typical yellowish background.
+- Logo: an A monogram formed by two open wings over a tablet, each part in its own colour:
+  a lilac wing, a peach wing and a butter tablet, on an ink tile.
+- Style chosen by the user: “Coloured paper” (proposal 2A of the redesign canvas): ink on
+  cool white or light ink on night, four pastels that name the state of a book, Space
+  Grotesk headings over Inter text, soft corners and many drawn icons. It replaced “Amber
+  console”. The light theme must not be the typical yellowish background.
 
 ## Evidence on Hand
 

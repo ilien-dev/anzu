@@ -13,7 +13,8 @@ use std::time::Duration;
 use anzu_core::update::{self, AppVersion, Offer};
 use eframe::egui::{self, Align2, RichText, Stroke};
 
-use super::{icons, theme};
+use super::icons::{self, Icon};
+use super::theme::{self, Kind};
 use crate::i18n::Strings;
 
 /// The first look waits, so it does not compete with the start-up check of the tool.
@@ -238,59 +239,64 @@ pub fn card(updates: &mut Updates, ctx: &egui::Context, t: &Strings, busy: bool)
                     State::Available(offer) => {
                         let (version, page) = (offer.version.to_string(), offer.page.clone());
                         ui.horizontal(|ui| {
-                            let (mark, _) = ui.allocate_exact_size(egui::vec2(16.0, 16.0), egui::Sense::hover());
-                            icons::update(ui.painter(), mark, p.accent);
-                            ui.label(theme::bold(t.update_new).size(14.0));
+                            icons::tile(ui, Icon::Download, 28.0, theme::INFO, theme::INK);
+                            ui.label(theme::display(t.update_new).size(16.0));
                         });
                         ui.label(t.update_available(&version, &current));
                         ui.label(theme::muted(p, t.update_body).size(12.0));
                         ui.horizontal(|ui| {
-                            if theme::button(ui, theme::Surface::Page, true, theme::primary_button(p, t.update_download)).clicked() {
+                            if theme::icon_button(ui, Kind::Primary, true, Icon::Download, t.update_download).clicked() {
                                 updates.download(ui.ctx());
                             }
-                            if theme::button(ui, theme::Surface::Page, true, egui::Button::new(t.update_later).min_size(egui::vec2(0.0, 38.0))).clicked() {
+                            if theme::icon_button(ui, Kind::Secondary, true, Icon::Clock, t.update_later).clicked() {
                                 updates.later();
                             }
                             if !page.is_empty() {
                                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                    ui.hyperlink_to(RichText::new(t.update_notes).color(p.accent).size(12.0), page);
+                                    ui.hyperlink_to(RichText::new(t.update_notes).color(p.fg).size(12.0), page);
+                                    icons::show(ui, Icon::External, 14.0, p.fg);
                                 });
                             }
                         });
                     }
                     State::Downloading { offer, done } => {
                         let fraction = if offer.size > 0 { (*done as f32 / offer.size as f32).min(1.0) } else { 0.0 };
-                        ui.label(theme::bold(t.update_downloading(&offer.version.to_string())).size(14.0));
-                        ui.add(egui::ProgressBar::new(fraction).desired_height(6.0).fill(p.accent).corner_radius(1));
+                        ui.horizontal(|ui| {
+                            icons::tile(ui, Icon::Download, 28.0, theme::INFO, theme::INK);
+                            ui.label(theme::display(t.update_downloading(&offer.version.to_string())).size(16.0));
+                        });
+                        ui.add(egui::ProgressBar::new(fraction).desired_height(6.0).fill(p.progress).corner_radius(3));
                         ui.label(theme::muted(p, t.update_progress(*done, offer.size)).size(12.0));
                     }
                     State::Ready { offer, .. } => {
                         let version = offer.version.to_string();
                         ui.horizontal(|ui| {
-                            let (mark, _) = ui.allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::hover());
-                            icons::check(ui.painter(), mark, p.ok);
-                            ui.label(theme::bold(t.update_ready(&version)).size(14.0));
+                            icons::tile(ui, Icon::Check, 28.0, theme::EPUB, theme::INK);
+                            ui.label(theme::display(t.update_ready(&version)).size(16.0));
                         });
                         let body = if busy { t.update_wait_run } else { t.update_ready_body };
                         ui.label(theme::muted(p, body).size(12.0));
                         ui.horizontal(|ui| {
-                            if theme::button(ui, theme::Surface::Page, !busy, theme::primary_button(p, t.update_restart)).clicked() {
+                            if theme::icon_button(ui, Kind::Primary, !busy, Icon::Refresh, t.update_restart).clicked() {
                                 updates.restart(ui.ctx());
                             }
-                            if theme::button(ui, theme::Surface::Page, true, egui::Button::new(t.update_later).min_size(egui::vec2(0.0, 38.0))).clicked() {
+                            if theme::icon_button(ui, Kind::Secondary, true, Icon::Clock, t.update_later).clicked() {
                                 updates.later();
                             }
                         });
                     }
                     State::Failed { stage, error, .. } => {
                         let message = failure(t, *stage, error);
-                        ui.label(theme::bold(t.update_new).size(14.0));
+                        ui.horizontal(|ui| {
+                            icons::tile(ui, Icon::Alert, 28.0, theme::DRM, theme::INK);
+                            ui.label(theme::display(t.update_new).size(16.0));
+                        });
                         ui.label(RichText::new(message).color(p.warn).size(12.0));
                         ui.horizontal(|ui| {
-                            if theme::button(ui, theme::Surface::Page, true, theme::primary_button(p, t.update_retry)).clicked() {
+                            if theme::icon_button(ui, Kind::Primary, true, Icon::Refresh, t.update_retry).clicked() {
                                 updates.download(ui.ctx());
                             }
-                            if theme::button(ui, theme::Surface::Page, true, egui::Button::new(t.update_later).min_size(egui::vec2(0.0, 38.0))).clicked() {
+                            if theme::icon_button(ui, Kind::Secondary, true, Icon::Clock, t.update_later).clicked() {
                                 updates.later();
                             }
                         });
@@ -306,6 +312,7 @@ pub fn settings_section(updates: &mut Updates, ui: &mut egui::Ui, t: &Strings, b
     let p = theme::Palette::of(ui.ctx());
     let current = AppVersion::current().to_string();
     ui.horizontal(|ui| {
+        icons::show(ui, Icon::Package, 14.0, p.muted);
         ui.label(theme::muted(p, t.version).size(theme::SMALL));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.label(RichText::new(&current).size(12.0));
@@ -320,8 +327,7 @@ pub fn settings_section(updates: &mut Updates, ui: &mut egui::Ui, t: &Strings, b
         }
         State::Current => {
             ui.horizontal(|ui| {
-                let (mark, _) = ui.allocate_exact_size(egui::vec2(12.0, 12.0), egui::Sense::hover());
-                icons::check(ui.painter(), mark, p.ok);
+                icons::show(ui, Icon::Check, 14.0, p.ok);
                 ui.label(RichText::new(t.update_current).color(p.ok).size(12.0));
             });
         }
@@ -330,15 +336,15 @@ pub fn settings_section(updates: &mut Updates, ui: &mut egui::Ui, t: &Strings, b
         }
         State::Downloading { offer, done } => {
             let text = format!("{} · {}", t.update_downloading(&offer.version.to_string()), t.update_progress(*done, offer.size));
-            ui.label(RichText::new(text).color(p.accent).size(12.0));
+            ui.label(RichText::new(text).color(p.fg).size(12.0));
         }
         State::Ready { offer, .. } => {
-            ui.label(RichText::new(t.update_ready(&offer.version.to_string())).color(p.accent).size(12.0));
+            ui.label(RichText::new(t.update_ready(&offer.version.to_string())).color(p.fg).size(12.0));
         }
         State::Unknown => {}
         State::Available(_) | State::Failed { .. } => {
             if let Some(offer) = updates.offered() {
-                ui.label(RichText::new(t.update_available(&offer.version.to_string(), &current)).color(p.accent).size(12.0));
+                ui.label(RichText::new(t.update_available(&offer.version.to_string(), &current)).color(p.fg).size(12.0));
             }
         }
     }
@@ -349,15 +355,17 @@ pub fn settings_section(updates: &mut Updates, ui: &mut egui::Ui, t: &Strings, b
         Download,
         Restart,
     }
-    let (label, action, enabled) = match &updates.state {
-        State::Available(_) | State::Failed { offer: Some(_), .. } => (t.update_download, Action::Download, true),
-        State::Downloading { .. } => (t.update_download, Action::Download, false),
-        State::Ready { .. } => (t.update_restart, Action::Restart, !busy),
-        State::Checking => (t.check_updates, Action::Check, false),
-        State::Unknown | State::Current | State::Failed { offer: None, .. } => (t.check_updates, Action::Check, true),
+    let (label, action, enabled, icon) = match &updates.state {
+        State::Available(_) | State::Failed { offer: Some(_), .. } => (t.update_download, Action::Download, true, Icon::Download),
+        State::Downloading { .. } => (t.update_download, Action::Download, false, Icon::Download),
+        State::Ready { .. } => (t.update_restart, Action::Restart, !busy, Icon::Refresh),
+        State::Checking => (t.check_updates, Action::Check, false, Icon::Update),
+        State::Unknown | State::Current | State::Failed { offer: None, .. } => {
+            (t.check_updates, Action::Check, true, Icon::Update)
+        }
     };
-    let button = egui::Button::new(RichText::new(label).size(12.0)).min_size(egui::vec2(ui.available_width(), 32.0));
-    if theme::button(ui, theme::Surface::Page, enabled, button).clicked() {
+    let width = ui.available_width();
+    if theme::icon_button_wide(ui, Kind::Secondary, enabled, icon, label, width).clicked() {
         // Bring the card back if it was put away: it shows the progress.
         updates.dismissed = None;
         match action {

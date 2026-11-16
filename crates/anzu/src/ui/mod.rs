@@ -32,22 +32,16 @@ enum Screen {
     Progress,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Filter {
-    All,
-    Locked,
-    Unlocked,
-    Converted,
-}
-
-/// The column the book table is sorted by.
+/// What the books on each shelf are sorted by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Column {
     Title,
     Asin,
     Size,
-    State,
 }
+
+/// Which shelves show their books: with DRM, unlocked, EPUB. The EPUB shelf starts folded.
+const SHELVES_OPEN: [bool; 3] = [true, true, false];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Sort {
@@ -66,6 +60,8 @@ enum StepState {
 #[derive(Default)]
 struct Run {
     asins: Vec<String>,
+    /// The books of the run that start with DRM.
+    unlock_asins: Vec<String>,
     /// Whether the run goes through the preparation (check, download, close Kindle).
     prepares: bool,
     steps: Vec<(Step, StepState)>,
@@ -90,7 +86,7 @@ pub struct AnzuApp {
     health: Health,
     books: Vec<Book>,
     selected: Vec<String>,
-    filter: Filter,
+    shelf_open: [bool; 3],
     sort: Sort,
     /// How many new books the last "Refresh list" found, until the next run.
     refreshed: Option<usize>,
@@ -122,7 +118,7 @@ impl AnzuApp {
             health: Health::Checking,
             books: Vec::new(),
             selected: Vec::new(),
-            filter: Filter::All,
+            shelf_open: SHELVES_OPEN,
             sort: Sort { column: Column::Title, ascending: true },
             refreshed: None,
             screen: Screen::Library,
@@ -163,7 +159,7 @@ impl AnzuApp {
             health: Health::Checking,
             books: Vec::new(),
             selected: Vec::new(),
-            filter: Filter::All,
+            shelf_open: SHELVES_OPEN,
             sort: Sort { column: Column::Title, ascending: true },
             refreshed: None,
             screen: Screen::Library,
@@ -286,7 +282,18 @@ impl AnzuApp {
         if plan.asins.is_empty() || self.busy() {
             return;
         }
-        self.run = Run { asins: plan.asins.clone(), prepares: pipeline::prepares(&plan, &self.books), ..Run::default() };
+        let unlock_asins = self
+            .books
+            .iter()
+            .filter(|b| b.state == BookState::Locked && plan.asins.contains(&b.asin))
+            .map(|b| b.asin.clone())
+            .collect();
+        self.run = Run {
+            asins: plan.asins.clone(),
+            unlock_asins,
+            prepares: pipeline::prepares(&plan, &self.books),
+            ..Run::default()
+        };
         for book in self.books.iter().filter(|b| plan.asins.contains(&b.asin)) {
             self.run.states.insert(book.asin.clone(), progress::starting_state(book.state));
         }
@@ -406,23 +413,28 @@ impl AnzuApp {
         let p = theme::Palette::of(ctx);
         let t = self.t();
         let mut answer = None;
-        let response = egui::Modal::new(egui::Id::unique("close-kindle")).show(ctx, |ui| {
-            ui.set_width(400.0);
-            ui.label(theme::bold(t.close_title).size(16.0));
-            ui.add_space(2.0);
-            ui.label(t.close_body);
-            ui.add_space(8.0);
-            ui.horizontal(|ui| {
-                let confirm = theme::button(ui, theme::Surface::Page, true, theme::primary_button(p, t.close_confirm));
-                self.mark(demo::Target::CloseConfirm, confirm.rect);
-                if confirm.clicked() {
-                    answer = Some(true);
-                }
-                if theme::button(ui, theme::Surface::Page, true, egui::Button::new(t.cancel)).clicked() {
-                    answer = Some(false);
-                }
+        let response = egui::Modal::new(egui::Id::unique("close-kindle"))
+            .frame(theme::panel(p).inner_margin(egui::Margin::same(22)))
+            .show(ctx, |ui| {
+                ui.set_width(420.0);
+                ui.horizontal(|ui| {
+                    icons::tile(ui, icons::Icon::Device, 36.0, theme::DRM, theme::INK);
+                    ui.label(theme::display(t.close_title).size(18.0));
+                });
+                ui.add_space(4.0);
+                ui.label(t.close_body);
+                ui.add_space(10.0);
+                ui.horizontal(|ui| {
+                    let confirm = theme::icon_button(ui, theme::Kind::Primary, true, icons::Icon::Close, t.close_confirm);
+                    self.mark(demo::Target::CloseConfirm, confirm.rect);
+                    if confirm.clicked() {
+                        answer = Some(true);
+                    }
+                    if theme::icon_button(ui, theme::Kind::Secondary, true, icons::Icon::ArrowLeft, t.cancel).clicked() {
+                        answer = Some(false);
+                    }
+                });
             });
-        });
         if response.should_close() {
             answer = answer.or(Some(false));
         }
@@ -433,8 +445,8 @@ impl AnzuApp {
 
     /// The logo and the name, for the header band.
     fn brand(ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
-        logo::badge(ui, 28.0, p.shell_accent, p.on_shell_accent);
-        ui.label(theme::bold("anzu").color(p.on_shell).size(17.0));
+        logo::badge(ui, 32.0, p.shell_chip);
+        ui.label(theme::display("Anzu").color(p.on_shell).size(20.0));
         ui.label(egui::RichText::new(t.tagline).color(p.shell_muted).size(theme::SMALL));
     }
 }
