@@ -96,12 +96,6 @@ fn title_of(app: &AnzuApp, t: &Strings, asin: &str) -> String {
     app.books.iter().find(|b| b.asin == asin).map_or_else(|| t.book_fallback(asin), |b| AnzuApp::display_title(b, t))
 }
 
-/// A slow pulse between 0.45 and 1, for what is running.
-fn pulse(ui: &egui::Ui) -> f32 {
-    let time = ui.input(|i| i.time);
-    0.45 + 0.55 * (0.5 + 0.5 * (time * 4.0).sin() as f32)
-}
-
 /// One line of the list of steps.
 struct Line {
     title: String,
@@ -277,9 +271,9 @@ fn steps_panel(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings)
             };
             ui.add(egui::Label::new(theme::display(title).size(24.0)).wrap());
             ui.add_space(12.0);
-            let pulse = pulse(ui);
+            let time = ui.input(|i| i.time) as f32;
             for (i, line) in lines.iter().enumerate() {
-                step_line(ui, p, t, i + 1, line, i + 1 < lines.len(), pulse);
+                step_line(ui, p, t, i + 1, line, i + 1 < lines.len(), time);
             }
             if let Some(reason) = &app.run.preparation_failed {
                 ui.add_space(8.0);
@@ -306,7 +300,7 @@ fn note(ui: &mut egui::Ui, fill: egui::Color32, line: egui::Color32, icon: Icon,
 }
 
 /// One step: its circle, the line to the next one, its title and its detail.
-fn step_line(ui: &mut egui::Ui, p: theme::Palette, t: &Strings, number: usize, line: &Line, more: bool, pulse: f32) {
+fn step_line(ui: &mut egui::Ui, p: theme::Palette, t: &Strings, number: usize, line: &Line, more: bool, time: f32) {
     const DOT: f32 = 30.0;
     let width = ui.available_width();
     let text_left = DOT + 14.0;
@@ -343,9 +337,10 @@ fn step_line(ui: &mut egui::Ui, p: theme::Palette, t: &Strings, number: usize, l
             icons::paint(painter, Icon::Check, dot.shrink(8.0), theme::INK);
         }
         Look::Running => {
+            // The step at work turns: a butter disc with an ink arc spinning inside it, where
+            // the number or the check sits on the other steps.
             painter.circle_filled(center, DOT / 2.0, theme::BUTTER);
-            painter.circle_stroke(center, DOT / 2.0 - 1.0, Stroke::new(2.0, theme::INK.gamma_multiply(pulse)));
-            number_text(theme::INK);
+            spinner_arc(painter, center, DOT / 2.0 - 6.5, time, theme::INK);
         }
         Look::Failed => {
             painter.circle_filled(center, DOT / 2.0, theme::DRM);
@@ -364,6 +359,18 @@ fn step_line(ui: &mut egui::Ui, p: theme::Palette, t: &Strings, number: usize, l
     let title_height = title.size().y;
     painter.galley(Pos2::new(rect.left() + text_left, top), title, title_color);
     painter.galley(Pos2::new(rect.left() + text_left, top + title_height + 2.0), detail, detail_color);
+}
+
+/// A three-quarter arc that turns once a second around `center`.
+fn spinner_arc(painter: &egui::Painter, center: Pos2, radius: f32, time: f32, color: egui::Color32) {
+    let start = time * std::f32::consts::TAU;
+    let points: Vec<Pos2> = (0..=24)
+        .map(|i| {
+            let a = start + i as f32 / 24.0 * std::f32::consts::TAU * 0.72;
+            center + egui::vec2(a.cos(), a.sin()) * radius
+        })
+        .collect();
+    painter.add(egui::Shape::line(points, Stroke::new(2.4, color)));
 }
 
 /// Every book of the run with where it stands. The list is not clipped: the column scrolls.
