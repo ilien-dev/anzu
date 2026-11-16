@@ -163,18 +163,26 @@ fn ready_line(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strin
     let label = ui.painter().layout_no_wrap(t.recheck.to_string(), theme::bold_font(13.0), p.fg);
     let button_width = 14.0 + 16.0 + 8.0 + label.size().x + 14.0;
     let facts_width = (ui.available_width() - button_width - 12.0).max(120.0);
+    // The chips are lower than the button: their first row is moved down to the button's
+    // middle, so that the line sits in the middle of the panel.
+    const ROW: f32 = 28.0;
+    const BUTTON: f32 = 34.0;
     ui.horizontal_top(|ui| {
-        ui.allocate_ui_with_layout(egui::vec2(facts_width, 0.0), Layout::left_to_right(Align::Center).with_main_wrap(true), |ui| {
-            ui.spacing_mut().item_spacing = egui::vec2(6.0, 6.0);
-            // A wrapping row centres each item on the row height known when it is placed;
-            // set it to the chips' height so the text lines up with them.
-            ui.set_row_height(28.0);
-            icons::tile(ui, Icon::Shield, 26.0, theme::EPUB, theme::INK);
-            ui.label(theme::bold(t.ready));
-            ui.add_space(6.0);
-            theme::chip(ui, Icon::Device, p.quiet, p.fg, &format!("{} {kindle}", t.fact_kindle));
-            theme::chip(ui, Icon::Package, p.quiet, p.fg, &format!("{} {tool_tag}", t.fact_tool));
-            theme::chip(ui, Icon::Hash, p.quiet, p.fg, &format!("{} {}", t.fact_digest, t.verified));
+        ui.allocate_ui_with_layout(egui::vec2(facts_width, 0.0), Layout::top_down(Align::Min), |ui| {
+            ui.add_space((BUTTON - ROW) / 2.0);
+            let wrap = Layout::left_to_right(Align::Center).with_main_wrap(true);
+            ui.allocate_ui_with_layout(egui::vec2(facts_width, 0.0), wrap, |ui| {
+                ui.spacing_mut().item_spacing = egui::vec2(6.0, 6.0);
+                // A wrapping row centres each item on the row height known when it is placed;
+                // set it to the chips' height so the text lines up with them.
+                ui.set_row_height(ROW);
+                icons::tile(ui, Icon::Shield, 26.0, theme::EPUB, theme::INK);
+                ui.label(theme::bold(t.ready));
+                ui.add_space(6.0);
+                theme::chip(ui, Icon::Device, p.quiet, p.fg, &format!("{} {kindle}", t.fact_kindle));
+                theme::chip(ui, Icon::Package, p.quiet, p.fg, &format!("{} {tool_tag}", t.fact_tool));
+                theme::chip(ui, Icon::Hash, p.quiet, p.fg, &format!("{} {}", t.fact_digest, t.verified));
+            });
         });
         ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
             if theme::icon_button(ui, Kind::Secondary, true, Icon::Refresh, t.recheck).clicked() {
