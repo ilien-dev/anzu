@@ -146,7 +146,7 @@ pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| column(ui, |ui| body(app, ui, p, t)));
     });
     if app.busy() {
-        // The running step pulses: keep drawing while the run goes on.
+        // The running step pulses and the spinners turn: keep drawing while the run goes on.
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(33));
     }
 }
@@ -294,12 +294,11 @@ fn now(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
         ui.label(theme::muted(p, t.processing(app.run.asins.len())).size(theme::SMALL));
         return;
     };
-    let pulse = pulse(ui);
     theme::panel(p).inner_margin(egui::Margin::symmetric(16, 14)).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.horizontal(|ui| {
-            let (dot, _) = ui.allocate_exact_size(egui::vec2(10.0, 10.0), Sense::hover());
-            ui.painter().circle_filled(dot.center(), 4.0, p.accent.gamma_multiply(pulse));
+            let (mark, _) = ui.allocate_exact_size(egui::vec2(14.0, 14.0), Sense::hover());
+            ui.put(mark, egui::Spinner::new().size(14.0).color(p.accent));
             ui.vertical(|ui| {
                 ui.spacing_mut().item_spacing.y = 2.0;
                 ui.label(theme::bold(title));
@@ -313,7 +312,6 @@ fn now(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
 /// Every book of the run with its own track and where it stands. The list is not clipped:
 /// the page scrolls instead.
 fn books(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
-    let pulse = pulse(ui);
     theme::panel(p).inner_margin(egui::Margin::symmetric(16, 12)).show(ui, |ui| {
         ui.set_width(ui.available_width());
         for (index, asin) in app.run.asins.iter().enumerate() {
@@ -339,8 +337,8 @@ fn books(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
                 let ok = !matches!(status, Status::Failed(_) | Status::NotStarted);
                 icons::track(ui.painter(), rect.left_center(), state, ok, p);
                 if running {
-                    let (dot, _) = ui.allocate_exact_size(egui::vec2(8.0, 8.0), Sense::hover());
-                    ui.painter().circle_filled(dot.center(), 3.0, p.accent.gamma_multiply(pulse));
+                    let (mark, _) = ui.allocate_exact_size(egui::vec2(12.0, 12.0), Sense::hover());
+                    ui.put(mark, egui::Spinner::new().size(12.0).color(p.accent));
                 }
                 let label = RichText::new(text).color(color).size(12.0);
                 ui.label(if running { label.strong() } else { label });
