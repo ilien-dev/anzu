@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.8.1](https://github.com/ilien-dev/anzu/compare/da747920456fc34ba9770ddcf92dc36a3753d0c6..v0.8.1) - 2026-11-16
+#### Bug Fixes
+- show a hand pointer over buttons in the web demo (#19) - ([da74792](https://github.com/ilien-dev/anzu/commit/da747920456fc34ba9770ddcf92dc36a3753d0c6)) - ilien
+
+- - -
+
 ## [v0.8.0](https://github.com/ilien-dev/anzu/compare/53bf58f58c17a47e5e2b8116e59fe318163829f8..v0.8.0) - 2026-11-16
 #### Features
 - convert books in parallel and show the run as one step list (#15) - ([b7181e4](https://github.com/ilien-dev/anzu/commit/b7181e4780847d264caf6f034c09f1e6a9d049b9)) - ilien
