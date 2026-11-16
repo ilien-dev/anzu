@@ -206,6 +206,7 @@ dependencies = [
  "eframe",
  "embed-resource",
  "rfd",
+ "tempfile",
 ]
 
 [[package]]

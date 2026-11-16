@@ -83,6 +83,9 @@ pub struct Settings {
     pub output_dir: PathBuf,
     /// ASIN -> path of the generated EPUB.
     pub converted: BTreeMap<String, PathBuf>,
+    /// ASIN -> EPUBs made before the one in `converted`, oldest first. A book converted again
+    /// gets a numbered copy; if the user deletes that copy, the book is still converted.
+    pub earlier_epubs: BTreeMap<String, Vec<PathBuf>>,
     /// ASIN -> book title, read from its unlocked copy.
     pub titles: BTreeMap<String, String>,
     pub theme: ThemeChoice,
@@ -97,6 +100,7 @@ impl Default for Settings {
         Settings {
             output_dir: home.join("Documents").join("EPUB"),
             converted: BTreeMap::new(),
+            earlier_epubs: BTreeMap::new(),
             titles: BTreeMap::new(),
             theme: ThemeChoice::System,
             language: Language::En,
@@ -111,6 +115,45 @@ impl Settings {
             .ok()
             .and_then(|s| serde_json::from_str(s.trim_start_matches('\u{feff}')).ok())
             .unwrap_or_default()
+    }
+
+    /// Records a new EPUB of a book, keeping the ones made before it.
+    pub fn record_epub(&mut self, asin: &str, epub: &Path) {
+        let Some(previous) = self.converted.insert(asin.to_string(), epub.to_path_buf()) else { return };
+        if previous == epub {
+            return;
+        }
+        let earlier = self.earlier_epubs.entry(asin.to_string()).or_default();
+        earlier.retain(|p| p != &previous && p != epub);
+        earlier.push(previous);
+    }
+
+    /// The newest EPUB of a book that is still on disk.
+    pub fn epub_of(&self, asin: &str) -> Option<PathBuf> {
+        let earlier = self.earlier_epubs.get(asin).into_iter().flatten().rev();
+        self.converted.get(asin).into_iter().chain(earlier).find(|p| p.is_file()).cloned()
+    }
+
+    /// Forgets the EPUBs that are no longer on disk. A book whose newest EPUB was deleted
+    /// takes the newest one left; a book with none left is no longer converted. Returns
+    /// whether anything changed.
+    pub fn prune_missing_epubs(&mut self) -> bool {
+        let asins: Vec<String> = self.converted.keys().chain(self.earlier_epubs.keys()).cloned().collect();
+        let mut changed = false;
+        for asin in asins {
+            let mut epubs = self.earlier_epubs.remove(&asin).unwrap_or_default();
+            epubs.extend(self.converted.remove(&asin));
+            let before = epubs.len();
+            epubs.retain(|p| p.is_file());
+            changed |= epubs.len() != before;
+            if let Some(newest) = epubs.pop() {
+                self.converted.insert(asin.clone(), newest);
+            }
+            if !epubs.is_empty() {
+                self.earlier_epubs.insert(asin, epubs);
+            }
+        }
+        changed
     }
 
     pub fn save(&self, dir: &Path) -> Result<(), Error> {
@@ -271,6 +314,81 @@ mod tests {
         assert_eq!(s.language, Language::En);
         assert_eq!(s.theme, ThemeChoice::Dark);
         assert_eq!(s.titles.get("B0AAA").map(String::as_str), Some("My book"));
+    }
+
+    #[test]
+    fn a_book_converted_again_keeps_its_earlier_epubs() {
+        let mut s = Settings::default();
+        s.record_epub("B0AAA", Path::new("a.epub"));
+        s.record_epub("B0AAA", Path::new("a (2).epub"));
+        s.record_epub("B0AAA", Path::new("a (2).epub"));
+        s.record_epub("B0AAA", Path::new("a (3).epub"));
+        assert_eq!(s.converted.get("B0AAA"), Some(&PathBuf::from("a (3).epub")));
+        assert_eq!(s.earlier_epubs.get("B0AAA"), Some(&vec![PathBuf::from("a.epub"), PathBuf::from("a (2).epub")]));
+    }
+
+    #[test]
+    fn the_epub_of_a_book_is_the_newest_one_still_on_disk() {
+        let dir = tempfile::tempdir().unwrap();
+        let [a, b, c] = ["a.epub", "a (2).epub", "a (3).epub"].map(|n| dir.path().join(n));
+        let mut s = Settings::default();
+        for p in [&a, &b, &c] {
+            std::fs::write(p, b"e").unwrap();
+            s.record_epub("B0AAA", p);
+        }
+        assert_eq!(s.epub_of("B0AAA"), Some(c.clone()));
+        std::fs::remove_file(&c).unwrap();
+        assert_eq!(s.epub_of("B0AAA"), Some(b.clone()));
+        std::fs::remove_file(&b).unwrap();
+        assert_eq!(s.epub_of("B0AAA"), Some(a.clone()));
+        std::fs::remove_file(&a).unwrap();
+        assert_eq!(s.epub_of("B0AAA"), None);
+        assert_eq!(s.epub_of("B0ZZZ"), None);
+    }
+
+    #[test]
+    fn pruning_forgets_the_epubs_that_were_deleted() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = |n: &str| dir.path().join(n);
+        let mut s = Settings::default();
+        for n in ["a.epub", "a (2).epub", "a (3).epub"] {
+            s.record_epub("B0AAA", &path(n));
+        }
+        for n in ["b.epub", "b (2).epub"] {
+            s.record_epub("B0BBB", &path(n));
+        }
+        s.record_epub("B0CCC", &path("c.epub"));
+        // Still on disk: the first EPUB of A, the newest of B and the only one of C.
+        for n in ["a.epub", "b (2).epub", "c.epub"] {
+            std::fs::write(path(n), b"e").unwrap();
+        }
+        s.record_epub("B0DDD", &path("d.epub"));
+
+        assert!(s.prune_missing_epubs());
+
+        // A's newest was deleted: its earlier one takes its place.
+        assert_eq!(s.converted.get("B0AAA"), Some(&path("a.epub")));
+        assert_eq!(s.converted.get("B0BBB"), Some(&path("b (2).epub")));
+        assert_eq!(s.converted.get("B0CCC"), Some(&path("c.epub")));
+        // Nothing of D is left: the book goes back to the ones ready for EPUB.
+        assert_eq!(s.converted.get("B0DDD"), None);
+        assert!(s.earlier_epubs.is_empty(), "{:?}", s.earlier_epubs);
+
+        assert!(!s.prune_missing_epubs(), "a second pass has nothing to forget");
+    }
+
+    #[test]
+    fn settings_without_earlier_epubs_still_load() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("settings.json"),
+            br#"{"output_dir":"D:/Books","converted":{"B0AAA":"D:/Books/a.epub"},"titles":{},"theme":"dark","language":"es"}"#,
+        )
+        .unwrap();
+        let s = Settings::load(dir.path());
+        assert_eq!(s.converted.get("B0AAA"), Some(&PathBuf::from("D:/Books/a.epub")));
+        assert!(s.earlier_epubs.is_empty());
+        assert_eq!(s.language, Language::Es);
     }
 
     #[test]

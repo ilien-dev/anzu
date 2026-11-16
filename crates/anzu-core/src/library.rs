@@ -45,7 +45,7 @@ pub fn scan(content_dir: &Path, data_dir: &Path, settings: &Settings) -> Vec<Boo
             let size = std::fs::metadata(&source).ok().filter(|m| m.is_file())?.len();
 
             let unlocked = Some(unlocked_path(data_dir, &asin)).filter(|p| p.is_file());
-            let epub = settings.converted.get(&asin).filter(|p| p.is_file()).cloned();
+            let epub = settings.epub_of(&asin);
             let state = match (&epub, &unlocked) {
                 (Some(_), _) => BookState::Converted,
                 (None, Some(_)) => BookState::Unlocked,
@@ -150,6 +150,22 @@ mod tests {
         let books = scan(&f.content, &f.data, &settings);
         assert_eq!(books[0].state, BookState::Unlocked);
         assert_eq!(books[0].epub, None);
+    }
+
+    #[test]
+    fn deleting_a_duplicate_epub_keeps_the_book_converted() {
+        let f = fixture();
+        add_book(&f.content, "B0AAA", 10);
+        let (first, copy) = (f.out.join("a.epub"), f.out.join("a (2).epub"));
+        fs::write(&first, b"e").unwrap();
+        let mut settings = Settings::default();
+        settings.record_epub("B0AAA", &first);
+        settings.record_epub("B0AAA", &copy);
+
+        let books = scan(&f.content, &f.data, &settings);
+
+        assert_eq!(books[0].state, BookState::Converted);
+        assert_eq!(books[0].epub, Some(first));
     }
 
     #[test]

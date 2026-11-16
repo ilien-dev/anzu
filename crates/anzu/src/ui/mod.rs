@@ -154,6 +154,7 @@ impl AnzuApp {
         let settings = Settings {
             output_dir: PathBuf::from(crate::demo::OUTPUT_DIR),
             converted: Default::default(),
+            earlier_epubs: Default::default(),
             titles: Default::default(),
             theme,
             language,
@@ -206,6 +207,10 @@ impl AnzuApp {
         self.settings = Settings::load(&self.data_dir);
         self.settings.theme = theme;
         self.settings.language = language;
+        // EPUBs the user deleted are forgotten; a book with none left is ready for EPUB again.
+        if self.settings.prune_missing_epubs() {
+            let _ = self.settings.save(&self.data_dir);
+        }
         self.books = core_library::scan(&self.content_dir, &self.data_dir, &self.settings);
         self.learn_titles();
         let ready = self.ready();
