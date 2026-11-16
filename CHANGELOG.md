@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.7.0](https://github.com/ilien-dev/anzu/compare/8d7ea77e3ee04d1b07b7ab65af05dc5bcbcef9d0..v0.7.0) - 2026-11-16
+#### Features
+- coloured paper redesign with shelves, step list and icons (#10) - ([8d7ea77](https://github.com/ilien-dev/anzu/commit/8d7ea77e3ee04d1b07b7ab65af05dc5bcbcef9d0)) - ilien
+
+- - -
+
 ## [v0.6.1](https://github.com/ilien-dev/anzu/compare/d8c0d9a84a7307a45731f99be040bd922a7cbf42..v0.6.1) - 2026-11-16
 #### Bug Fixes
 - lay out the web demo in the room the page gives it (#9) - ([d8c0d9a](https://github.com/ilien-dev/anzu/commit/d8c0d9a84a7307a45731f99be040bd922a7cbf42)) - ilien
