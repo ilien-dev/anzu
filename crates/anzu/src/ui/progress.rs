@@ -1,20 +1,29 @@
-//! Progress screen: on the left, the list of steps of the whole run, which says what Anzu is
-//! doing now and what comes next; on the right, each book of the run with where it stands,
-//! then the saved files and the log behind a link.
+//! Progress screen: one column with the steps of the whole run, which says what Anzu is
+//! doing now and what comes next. Under the conversion step every book is a tile in the
+//! pastel of its state; the last step saves them and says where, with one way to reach them.
+
+use std::path::{Path, PathBuf};
 
 use anzu_core::library::BookState;
-use eframe::egui::{self, Align, Align2, Layout, Pos2, Rect, RichText, Sense, Stroke};
+use eframe::egui::{self, Align, Layout, Pos2, Rect, RichText, Sense, Stroke};
 
 use super::icons::{self, Icon};
 use super::theme::{self, Kind};
-use super::{AnzuApp, StepState, demo, open_file, show_in_folder};
+use super::{AnzuApp, Screen, StepState, demo, open_file, show_in_folder};
 use crate::i18n::Strings;
-use crate::pipeline::{Stage, Step};
+use crate::pipeline::{self, Stage, Step};
 
 /// The preparation, done once for all the books.
 const STEPS: [Step; 3] = [Step::Check, Step::Download, Step::CloseKindle];
-const STEPS_WIDTH: f32 = 360.0;
-const GAP: f32 = 20.0;
+/// The widest the column of the run gets.
+const COLUMN_WIDTH: f32 = 700.0;
+/// The circle of a step, and where its text starts.
+const DOT: f32 = 30.0;
+const TEXT_LEFT: f32 = DOT + 16.0;
+/// How long a step takes to turn from running to done, in seconds.
+const STEP_DONE_TIME: f32 = 0.28;
+/// How long a tile takes to turn into an EPUB, in seconds.
+const TILE_DONE_TIME: f32 = 0.3;
 
 /// How a step is drawn.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,11 +105,24 @@ fn title_of(app: &AnzuApp, t: &Strings, asin: &str) -> String {
     app.books.iter().find(|b| b.asin == asin).map_or_else(|| t.book_fallback(asin), |b| AnzuApp::display_title(b, t))
 }
 
+/// What a step holds below its title.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Part {
+    Preparation,
+    /// The tiles of the books.
+    Convert,
+    /// Where the EPUB files went, and the ways to reach them.
+    Save,
+}
+
 /// One line of the list of steps.
 struct Line {
     title: String,
     detail: String,
     look: Look,
+    part: Part,
+    /// "7 / 12", on the right of the title.
+    count: Option<String>,
 }
 
 /// How far a stage of the books has got: how many are past it, how many failed in it, and
@@ -126,6 +148,18 @@ fn stage_look(tally: Tally, finished: bool, preparation_failed: bool) -> Look {
     }
 }
 
+/// The look of the last step: it runs from the moment every book is converted until the
+/// run says it has finished, and is done when something was saved.
+fn save_look(convert: Tally, finished: bool, saved: usize) -> Look {
+    if finished {
+        if saved > 0 { Look::Done } else { Look::Skipped }
+    } else if convert.total > 0 && convert.done + convert.failed >= convert.total && !convert.running {
+        Look::Running
+    } else {
+        Look::Waiting
+    }
+}
+
 fn unlock_tally(app: &AnzuApp) -> Tally {
     let asins = &app.run.unlock_asins;
     Tally {
@@ -146,13 +180,33 @@ fn convert_tally(app: &AnzuApp) -> Tally {
     }
 }
 
-/// Every step of the run in order: the preparation, unlocking and converting.
+/// How many books are converted at the same time. The web demo converts one at a time.
+fn workers(app: &AnzuApp) -> usize {
+    if app.demo.is_some() { 1 } else { pipeline::convert_workers(app.run.asins.len()) }
+}
+
+/// The folder the EPUB files go to.
+fn out_dir(app: &AnzuApp) -> PathBuf {
+    app.run
+        .saved
+        .first()
+        .and_then(|(_, path)| path.parent())
+        .map_or_else(|| app.settings.output_dir.clone(), Path::to_path_buf)
+}
+
+/// Every step of the run in order: the preparation, unlocking, converting and saving.
 fn lines(app: &AnzuApp, t: &Strings) -> Vec<Line> {
     let mut lines = Vec::new();
     if app.run.prepares {
         for step in STEPS {
             let (title, detail) = t.step(step);
-            lines.push(Line { title: title.to_string(), detail: detail.to_string(), look: look(app, step) });
+            lines.push(Line {
+                title: title.to_string(),
+                detail: detail.to_string(),
+                look: look(app, step),
+                part: Part::Preparation,
+                count: None,
+            });
         }
     }
     let finished = app.run.result.is_some();
@@ -162,15 +216,21 @@ fn lines(app: &AnzuApp, t: &Strings) -> Vec<Line> {
         let look = stage_look(unlock, finished, stopped);
         let detail =
             if look == Look::Waiting { t.stage(Stage::Unlock).1.to_string() } else { t.done_of(unlock.done, unlock.total) };
-        lines.push(Line { title: t.unlock_step(unlock.total), detail, look });
+        lines.push(Line { title: t.unlock_step(unlock.total), detail, look, part: Part::Preparation, count: None });
     }
     let convert = convert_tally(app);
     let look = stage_look(convert, finished, stopped);
     let detail = match look {
         Look::Waiting => t.stage(Stage::Convert).1.to_string(),
+        Look::Running => t.at_a_time(workers(app)),
         _ => t.done_of(convert.done, convert.total),
     };
-    lines.push(Line { title: t.convert_step(convert.total), detail, look });
+    let count = (look != Look::Waiting).then(|| format!("{} / {}", convert.done + convert.failed, convert.total));
+    lines.push(Line { title: t.convert_step(convert.total), detail, look, part: Part::Convert, count });
+    let saved = app.run.saved.len();
+    let look = save_look(convert, finished, saved);
+    let title = if look == Look::Done { t.epubs_ready(saved) } else { t.save_step.to_string() };
+    lines.push(Line { title, detail: t.in_folder(&out_dir(app)), look, part: Part::Save, count: None });
     lines
 }
 
@@ -183,38 +243,38 @@ pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui) {
     let p = theme::Palette::of(ui.ctx());
     let t = app.t();
     egui::Panel::top("progress-header").frame(theme::band(p.shell, 10)).show_separator_line(false).show(ui, |ui| {
-        theme::centered(ui, |ui| {
-            ui.horizontal(|ui| {
-                let home = !app.busy();
-                if home_link(ui, p, t, home) {
-                    app.back_to_library();
-                }
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| band_status(app, ui, p, t));
+        super::enter(ui, Screen::Progress, false, |ui| {
+            theme::centered(ui, |ui| {
+                ui.horizontal(|ui| {
+                    let home = !app.busy();
+                    if home_link(ui, p, t, home) {
+                        app.back_to_library();
+                    }
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| band_status(app, ui, p, t));
+                });
             });
         });
     });
     egui::CentralPanel::default().frame(theme::band(p.bg, 18)).show(ui, |ui| {
-        theme::centered(ui, |ui| {
-            let area = ui.available_rect_before_wrap();
-            let steps_width = STEPS_WIDTH.min(area.width() * 0.42);
-            let left = Rect::from_min_max(area.min, Pos2::new(area.left() + steps_width, area.bottom()));
-            let right = Rect::from_min_max(Pos2::new(left.right() + GAP, area.top()), area.max);
-            ui.scope_builder(egui::UiBuilder::new().max_rect(left), |ui| steps_panel(app, ui, p, t));
-            ui.scope_builder(egui::UiBuilder::new().max_rect(right), |ui| {
+        super::enter(ui, Screen::Progress, true, |ui| {
+            theme::centered(ui, |ui| {
                 egui::ScrollArea::vertical().id_salt("run").auto_shrink([false, false]).show(ui, |ui| {
-                    ui.set_width(ui.available_width());
-                    books(app, ui, p, t);
-                    if app.run.result.is_some() {
-                        result(app, ui, p, t);
-                    }
-                    log(app, ui, p, t);
+                    let width = ui.available_width().min(COLUMN_WIDTH);
+                    let margin = ((ui.available_width() - width) / 2.0).max(0.0);
+                    ui.horizontal_top(|ui| {
+                        ui.add_space(margin);
+                        ui.vertical(|ui| {
+                            ui.set_width(width);
+                            run_card(app, ui, p, t);
+                            log(app, ui, p, t);
+                        });
+                    });
                 });
-            });
-            ui.allocate_rect(area, Sense::hover());
+            })
         });
     });
     if app.busy() {
-        // The running step pulses and the bars move: keep drawing while the run goes on.
+        // The running step turns and the tiles change: keep drawing while the run goes on.
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(33));
     }
 }
@@ -243,41 +303,67 @@ fn home_link(ui: &mut egui::Ui, p: theme::Palette, t: &Strings, enabled: bool) -
     let sense = if enabled { Sense::click() } else { Sense::hover() };
     let response = ui.interact(rect, ui.scope_id().with("home"), sense);
     if !enabled {
+        theme::pointer(&response, false);
         response.on_hover_text(t.wait_hint);
         return false;
     }
     theme::feedback(ui, theme::Surface::Shell, &response);
-    response.on_hover_cursor(egui::CursorIcon::PointingHand).on_hover_text(t.back).clicked()
+    response.on_hover_text(t.back).clicked()
 }
 
-/// The list of steps of the whole run, with the heading on top.
-fn steps_panel(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
-    let rect = ui.max_rect();
-    ui.painter().rect_filled(rect, theme::CARD_RADIUS, p.panel);
-    ui.painter().rect_stroke(rect, theme::CARD_RADIUS, Stroke::new(1.0, p.line), egui::StrokeKind::Inside);
-    let inner = rect.shrink(22.0);
-    ui.scope_builder(egui::UiBuilder::new().max_rect(inner), |ui| {
-        egui::ScrollArea::vertical().id_salt("steps").auto_shrink([false, false]).show(ui, |ui| {
-            ui.set_width(ui.available_width());
-            let lines = lines(app, t);
-            let kicker = match &app.run.result {
-                Some((converted, failed)) => t.finished(*converted, failed.len()),
-                None => t.step_of(step_number(&lines), lines.len()),
-            };
-            ui.label(theme::bold(kicker).size(12.5).color(p.muted));
-            let title = match app.run.asins.as_slice() {
-                [asin] => title_of(app, t, asin),
-                asins => t.books(asins.len()),
-            };
-            ui.add(egui::Label::new(theme::display(title).size(24.0)).wrap());
-            ui.add_space(12.0);
-            let time = ui.input(|i| i.time) as f32;
-            for (i, line) in lines.iter().enumerate() {
-                step_line(ui, p, t, i + 1, line, i + 1 < lines.len(), time);
+/// The card of the run: the heading, every step with what it holds, and the way back.
+fn run_card(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
+    theme::panel(p).inner_margin(egui::Margin::symmetric(28, 24)).show(ui, |ui| {
+        ui.set_width(ui.available_width());
+        let lines = lines(app, t);
+        let kicker = match &app.run.result {
+            Some((converted, failed)) => t.finished(*converted, failed.len()),
+            None => t.step_of(step_number(&lines), lines.len()),
+        };
+        ui.label(theme::bold(kicker).size(12.5).color(p.muted));
+        let title = match app.run.asins.as_slice() {
+            [asin] => title_of(app, t, asin),
+            asins => t.books(asins.len()),
+        };
+        ui.add(egui::Label::new(theme::display(title).size(26.0)).wrap());
+        ui.add_space(14.0);
+        let time = ui.input(|i| i.time) as f32;
+        let count = lines.len();
+        for (i, line) in lines.iter().enumerate() {
+            step(ui, p, t, i + 1, line, i + 1 < count, time, |ui| match line.part {
+                Part::Preparation => {}
+                Part::Convert => tiles(app, ui, p, t, time),
+                Part::Save => saved(app, ui, p, t),
+            });
+        }
+        if let Some(reason) = &app.run.preparation_failed {
+            ui.add_space(8.0);
+            theme::copyable(ui, |ui| note(ui, p.warn_bg, p.warn_line, Icon::Alert, p.warn, reason));
+        }
+        if app.run.result.is_none() {
+            if app.run.asins.len() > 1 {
+                ui.add_space(10.0);
+                ui.horizontal_top(|ui| {
+                    icons::show(ui, Icon::Info, 16.0, p.muted);
+                    ui.add(egui::Label::new(theme::muted(p, t.failure_note).size(12.5)).wrap());
+                });
             }
-            if let Some(reason) = &app.run.preparation_failed {
-                ui.add_space(8.0);
-                note(ui, p.warn_bg, p.warn_line, Icon::Alert, p.warn, reason);
+            return;
+        }
+        ui.add_space(16.0);
+        let (line, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 1.0), Sense::hover());
+        ui.painter().rect_filled(line, 0.0, p.line);
+        ui.add_space(12.0);
+        if !app.run.errors.is_empty() {
+            note(ui, p.warn_bg, p.warn_line, Icon::Alert, p.fg, t.failed_stays);
+            ui.add_space(8.0);
+        }
+        ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
+            let kind = if app.run.saved.is_empty() { Kind::Primary } else { Kind::Secondary };
+            let more = theme::icon_button(ui, kind, true, Icon::Book, t.convert_more);
+            app.mark(demo::Target::ConvertMore, more.rect);
+            if more.clicked() {
+                app.back_to_library();
             }
         });
     });
@@ -299,12 +385,45 @@ fn note(ui: &mut egui::Ui, fill: egui::Color32, line: egui::Color32, icon: Icon,
         });
 }
 
-/// One step: its circle, the line to the next one, its title and its detail.
-fn step_line(ui: &mut egui::Ui, p: theme::Palette, t: &Strings, number: usize, line: &Line, more: bool, time: f32) {
-    const DOT: f32 = 30.0;
+/// One step: its circle and title, what it holds below, and the line to the next one.
+#[allow(clippy::too_many_arguments)]
+fn step(
+    ui: &mut egui::Ui,
+    p: theme::Palette,
+    t: &Strings,
+    number: usize,
+    line: &Line,
+    more: bool,
+    time: f32,
+    body: impl FnOnce(&mut egui::Ui),
+) {
     let width = ui.available_width();
-    let text_left = DOT + 14.0;
-    let title_font = if line.look == Look::Running { theme::bold_font(14.5) } else { theme::regular_font(14.5) };
+    let center = step_head(ui, p, t, number, line, width, time);
+    ui.horizontal_top(|ui| {
+        ui.add_space(TEXT_LEFT);
+        ui.vertical(|ui| {
+            ui.set_width((width - TEXT_LEFT).max(0.0));
+            body(ui);
+        });
+    });
+    if more {
+        ui.add_space(18.0);
+        let bottom = ui.cursor().min.y - 4.0;
+        let color = if line.look == Look::Done { p.fg } else { p.line_strong };
+        ui.painter().line_segment(
+            [Pos2::new(center.x, center.y + DOT / 2.0 + 3.0), Pos2::new(center.x, bottom)],
+            Stroke::new(2.0, color),
+        );
+    }
+}
+
+/// The circle, the title, the detail and the count of a step. Returns the circle's centre.
+fn step_head(ui: &mut egui::Ui, p: theme::Palette, t: &Strings, number: usize, line: &Line, width: f32, time: f32) -> Pos2 {
+    let title_font = match (line.part, line.look) {
+        (Part::Save, Look::Done) => theme::display_font(18.0),
+        (_, Look::Running) => theme::bold_font(14.5),
+        _ => theme::regular_font(14.5),
+    };
     let quiet = matches!(line.look, Look::Waiting | Look::Skipped);
     let title_color = if quiet { p.muted } else { p.fg };
     let detail = match line.look {
@@ -313,28 +432,24 @@ fn step_line(ui: &mut egui::Ui, p: theme::Palette, t: &Strings, number: usize, l
         _ => line.detail.clone(),
     };
     let detail_color = if line.look == Look::Failed { p.warn } else { p.muted };
-    let title = ui.painter().layout(line.title.clone(), title_font, title_color, width - text_left);
-    let detail = ui.painter().layout(detail, theme::regular_font(12.5), detail_color, width - text_left);
+    let count = line.count.as_ref().map(|c| ui.painter().layout_no_wrap(c.clone(), theme::display_font(20.0), p.fg));
+    let count_width = count.as_ref().map_or(0.0, |g| g.size().x + 12.0);
+    let title = ui.painter().layout(line.title.clone(), title_font, title_color, (width - TEXT_LEFT - count_width).max(40.0));
+    let detail = ui.painter().layout(detail, theme::regular_font(12.5), detail_color, (width - TEXT_LEFT).max(40.0));
     let text_height = title.size().y + 2.0 + detail.size().y;
-    let height = text_height.max(DOT) + if more { 22.0 } else { 4.0 };
-    let (rect, _) = ui.allocate_exact_size(egui::vec2(width, height), Sense::hover());
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(width, text_height.max(DOT)), Sense::hover());
     let painter = ui.painter();
     let center = Pos2::new(rect.left() + DOT / 2.0, rect.top() + DOT / 2.0);
-    if more {
-        let color = if line.look == Look::Done { p.fg } else { p.line_strong };
-        painter.line_segment(
-            [Pos2::new(center.x, center.y + DOT / 2.0 + 3.0), Pos2::new(center.x, rect.bottom() - 2.0)],
-            Stroke::new(2.0, color),
-        );
-    }
     let dot = Rect::from_center_size(center, egui::vec2(DOT, DOT));
     let number_text = |color| {
-        painter.text(center, Align2::CENTER_CENTER, number.to_string(), theme::bold_font(13.0), color);
+        painter.text(center, egui::Align2::CENTER_CENTER, number.to_string(), theme::bold_font(13.0), color);
     };
+    // A step that finishes turns from butter to mint, and its tick fades in over the spinner.
+    let done = ui.ctx().animate_bool_with_time(egui::Id::unique(("run-step", number)), line.look == Look::Done, STEP_DONE_TIME);
     match line.look {
         Look::Done => {
-            painter.circle_filled(center, DOT / 2.0, theme::EPUB);
-            icons::paint(painter, Icon::Check, dot.shrink(8.0), theme::INK);
+            painter.circle_filled(center, DOT / 2.0, theme::blend(theme::BUTTER, theme::EPUB, done));
+            icons::paint(painter, Icon::Check, dot.shrink(8.0), theme::INK.gamma_multiply(done));
         }
         Look::Running => {
             // The step at work turns: a butter disc with an ink arc spinning inside it, where
@@ -357,8 +472,13 @@ fn step_line(ui: &mut egui::Ui, p: theme::Palette, t: &Strings, number: usize, l
     }
     let top = rect.top() + (DOT - title.size().y).max(0.0) / 2.0 - 2.0;
     let title_height = title.size().y;
-    painter.galley(Pos2::new(rect.left() + text_left, top), title, title_color);
-    painter.galley(Pos2::new(rect.left() + text_left, top + title_height + 2.0), detail, detail_color);
+    painter.galley(Pos2::new(rect.left() + TEXT_LEFT, top), title, title_color);
+    painter.galley(Pos2::new(rect.left() + TEXT_LEFT, top + title_height + 2.0), detail, detail_color);
+    if let Some(count) = count {
+        let at = Pos2::new(rect.right() - count.size().x, rect.top() + (DOT - count.size().y) / 2.0);
+        painter.galley(at, count, p.fg);
+    }
+    center
 }
 
 /// A three-quarter arc that turns once a second around `center`.
@@ -373,187 +493,166 @@ fn spinner_arc(painter: &egui::Painter, center: Pos2, radius: f32, time: f32, co
     painter.add(egui::Shape::line(points, Stroke::new(2.4, color)));
 }
 
-/// Every book of the run with where it stands. The list is not clipped: the column scrolls.
-fn books(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
-    ui.horizontal(|ui| {
-        ui.label(theme::display(t.run_books).size(18.0));
-        ui.label(theme::muted(p, app.run.asins.len().to_string()).size(15.0));
-    });
-    ui.add_space(2.0);
-    let time = ui.input(|i| i.time) as f32;
-    for asin in &app.run.asins {
-        book_card(app, ui, p, t, asin, time);
-    }
-    if app.run.result.is_none() && app.run.asins.len() > 1 {
-        ui.horizontal_top(|ui| {
-            icons::show(ui, Icon::Info, 16.0, p.muted);
-            ui.add(egui::Label::new(theme::muted(p, t.failure_note).size(12.5)).wrap());
-        });
+/// The size of the tiles of a run of `books`, and the gap between them: large for a few
+/// books, small enough that hundreds still fit in a few rows.
+fn tile_size(books: usize) -> (f32, f32, f32) {
+    match books {
+        0..=2 => (40.0, 54.0, 8.0),
+        3..=12 => (30.0, 40.0, 6.0),
+        13..=40 => (20.0, 27.0, 5.0),
+        _ => (14.0, 19.0, 4.0),
     }
 }
 
-fn book_card(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings, asin: &str, time: f32) {
+/// Every book of the run as a tile, and the books that failed with their reason.
+fn tiles(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings, time: f32) {
+    let asins = &app.run.asins;
+    if asins.is_empty() {
+        return;
+    }
+    let (w, h, gap) = tile_size(asins.len());
+    ui.add_space(10.0);
+    let width = ui.available_width();
+    let columns = (((width + gap) / (w + gap)).floor() as usize).max(1);
+    let rows = asins.len().div_ceil(columns);
+    let (area, _) = ui.allocate_exact_size(egui::vec2(width, rows as f32 * (h + gap) - gap), Sense::hover());
+    for (i, asin) in asins.iter().enumerate() {
+        let at = area.min + egui::vec2((i % columns) as f32 * (w + gap), (i / columns) as f32 * (h + gap));
+        tile(app, ui, p, t, asin, Rect::from_min_size(at, egui::vec2(w, h)), time);
+    }
+    // The reason of a stopped preparation is said once, below the steps.
+    let shared = app.run.preparation_failed.as_deref();
+    let failed: Vec<String> = asins
+        .iter()
+        .filter_map(|asin| {
+            let (_, reason) = app.run.errors.get(asin)?;
+            // Compared whole, then shortened: a reason of several lines is still the same one.
+            if Some(reason.as_str()) == shared {
+                return None;
+            }
+            let first = reason.lines().next().unwrap_or(reason);
+            Some(format!("{} · {first}", title_of(app, t, asin)))
+        })
+        .collect();
+    if !failed.is_empty() {
+        ui.add_space(10.0);
+        theme::copyable(ui, |ui| note(ui, p.warn_bg, p.warn_line, Icon::Alert, p.fg, &failed.join("\n")));
+    }
+}
+
+/// One book: a quiet tile while it waits, butter while it is worked on, and a short swell
+/// into mint when it turns into an EPUB.
+fn tile(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings, asin: &str, rect: Rect, time: f32) {
     let state = app.run.states.get(asin).copied().unwrap_or(BookState::Locked);
     let status = status_of(app, asin);
-    let running = matches!(status, Status::Unlocking | Status::Converting);
-    let failed = matches!(status, Status::Failed(_));
-    let (text, pill_fill, pill_ink) = match status {
-        Status::Queued => (t.queued, p.quiet, p.muted),
-        Status::Unlocking => (t.unlocking, p.accent, p.on_accent),
-        Status::Unlocked => (t.state_unlocked, theme::UNLOCKED, theme::INK),
-        Status::Converting => (t.converting, p.accent, p.on_accent),
-        Status::Converted => (t.state_converted, theme::EPUB, theme::INK),
-        Status::Failed(Stage::Unlock) => (t.failed_unlock, p.panel, p.warn),
-        Status::Failed(Stage::Convert) => (t.failed_convert, p.panel, p.warn),
-        Status::NotStarted => (t.not_started, p.quiet, p.muted),
-    };
-    let (fill, stroke) = if running {
-        (p.select_bg, Stroke::new(2.0, p.select_line))
-    } else if failed {
-        (p.warn_bg, Stroke::new(1.0, p.warn_line))
-    } else if status == Status::Converted {
-        (p.epub_tint, Stroke::new(1.0, p.line))
-    } else {
-        (p.panel, Stroke::new(1.0, p.line))
-    };
-    let detail = match app.run.errors.get(asin) {
-        Some((_, reason)) => reason.lines().next().unwrap_or(reason).to_string(),
-        None => match app.books.iter().find(|b| b.asin == asin) {
-            Some(b) if b.title.is_some() => format!("{} · {}", b.asin, t.human_size(b.size)),
-            Some(b) => t.human_size(b.size),
-            None => asin.to_string(),
-        },
-    };
-    egui::Frame::new()
-        .fill(fill)
-        .stroke(stroke)
-        .corner_radius(theme::CARD_RADIUS)
-        .inner_margin(egui::Margin::symmetric(14, 12))
-        .show(ui, |ui| {
-            ui.set_width(ui.available_width());
-            ui.horizontal(|ui| {
-                let (cover, _) = ui.allocate_exact_size(egui::vec2(34.0, 46.0), Sense::hover());
-                let painter = ui.painter();
-                painter.rect_filled(cover, egui::CornerRadius::same(6), icons::state_fill(state));
-                icons::paint(painter, icons::state_icon(state), cover.shrink2(egui::vec2(8.0, 14.0)), theme::INK);
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    // Right to left: the pill first, then the title takes what is left.
-                    pill(ui, text, pill_fill, pill_ink, running);
-                    ui.with_layout(Layout::top_down(Align::Min), |ui| {
-                        ui.spacing_mut().item_spacing.y = 4.0;
-                        ui.add(egui::Label::new(theme::bold(title_of(app, t, asin)).size(14.5)).truncate());
-                        ui.horizontal(|ui| {
-                            // The three-stage track of the book: with DRM, unlocked, EPUB.
-                            let (track, _) = ui.allocate_exact_size(egui::vec2(icons::TRACK_WIDTH, 16.0), Sense::hover());
-                            icons::track(ui.painter(), track.left_center(), state, !failed, p);
-                            let color = if failed { p.warn } else { p.muted };
-                            ui.add(egui::Label::new(RichText::new(detail).size(12.0).color(color)).truncate());
-                        });
-                    });
-                });
-            });
-            if running {
-                ui.add_space(4.0);
-                moving_bar(ui, p, time);
-            }
-        });
-}
-
-/// A small rounded label with the status of a book.
-fn pill(ui: &mut egui::Ui, text: &str, fill: egui::Color32, ink: egui::Color32, running: bool) {
-    let galley = ui.painter().layout_no_wrap(text.to_string(), theme::bold_font(12.0), ink);
-    let spinner = if running { 18.0 } else { 0.0 };
-    let (rect, _) = ui.allocate_exact_size(egui::vec2(galley.size().x + 20.0 + spinner, 26.0), Sense::hover());
-    ui.painter().rect_filled(rect, 13, fill);
-    if running {
-        let at = Rect::from_center_size(Pos2::new(rect.left() + 17.0, rect.center().y), egui::vec2(12.0, 12.0));
-        ui.put(at, egui::Spinner::new().size(12.0).color(ink));
-    }
-    ui.painter().galley(Pos2::new(rect.left() + 10.0 + spinner, rect.center().y - galley.size().y / 2.0), galley, ink);
-}
-
-/// A bar that moves while a book is worked on. The tool and the converter give no
-/// percentage, so it shows that something is happening, not how much is left.
-fn moving_bar(ui: &mut egui::Ui, p: theme::Palette, time: f32) {
-    let (bar, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 6.0), Sense::hover());
+    let id = egui::Id::unique(("run-tile", asin));
+    let done = ui.ctx().animate_bool_with_time(id, status == Status::Converted, TILE_DONE_TIME);
+    let swell = 1.0 + 0.14 * (done * std::f32::consts::PI).sin();
+    let shown = Rect::from_center_size(rect.center(), rect.size() * swell);
+    let radius = egui::CornerRadius::same((rect.width() * 0.18).round() as u8);
     let painter = ui.painter();
-    painter.rect_filled(bar, 3, p.progress_track);
-    let span = bar.width() * 0.3;
-    let phase = (time * 0.6).fract();
-    let left = bar.left() - span + (bar.width() + span) * phase;
-    let piece = Rect::from_min_max(
-        Pos2::new(left.max(bar.left()), bar.top()),
-        Pos2::new((left + span).min(bar.right()), bar.bottom()),
-    );
-    if piece.width() > 0.0 {
-        painter.rect_filled(piece, 3, p.progress);
+    match status {
+        Status::Unlocking | Status::Converting => {
+            painter.rect_filled(shown, radius, theme::BUTTER);
+        }
+        Status::Converted => {
+            painter.rect_filled(shown, radius, theme::blend(theme::BUTTER, theme::EPUB, done));
+        }
+        Status::Failed(_) => {
+            painter.rect_filled(shown, radius, icons::state_fill(state));
+            painter.rect_stroke(shown, radius, Stroke::new(2.0, p.warn), egui::StrokeKind::Inside);
+        }
+        Status::Queued | Status::Unlocked | Status::NotStarted => {
+            painter.rect_filled(shown, radius, p.quiet);
+            painter.rect_stroke(shown, radius, Stroke::new(1.0, p.line), egui::StrokeKind::Inside);
+        }
     }
+    match status {
+        Status::Unlocking | Status::Converting if rect.width() >= 20.0 => {
+            spinner_arc(painter, shown.center(), rect.width() * 0.22, time, theme::INK);
+        }
+        Status::Converted if rect.width() >= 30.0 => {
+            icons::paint(painter, Icon::Check, shown.shrink(rect.width() * 0.26), theme::INK.gamma_multiply(done));
+        }
+        _ => {}
+    }
+    ui.interact(rect, id.with("hover"), Sense::hover()).on_hover_text(title_of(app, t, asin));
 }
 
-/// The saved files, each with a way to reach it, and the way back to the books.
-fn result(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
+/// Once the run has finished: what was saved, with one way to the folder, and the books.
+fn saved(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
+    if app.run.result.is_none() || app.run.saved.is_empty() {
+        return;
+    }
     let saved = app.run.saved.clone();
-    ui.add_space(8.0);
-    if !saved.is_empty() {
-        theme::panel(p).inner_margin(egui::Margin::same(18)).show(ui, |ui| {
-            ui.set_width(ui.available_width());
-            ui.horizontal(|ui| {
-                icons::tile(ui, Icon::Check, 28.0, theme::EPUB, theme::INK);
-                ui.label(theme::display(t.epubs_ready(saved.len())).size(18.0));
-            });
-            ui.add_space(6.0);
-            let single = saved.len() == 1;
-            for (index, (_, path)) in saved.iter().enumerate() {
-                if index > 0 {
-                    ui.add_space(4.0);
-                    let (line, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 1.0), Sense::hover());
-                    ui.painter().rect_filled(line, 0.0, p.line);
-                    ui.add_space(4.0);
-                }
-                ui.horizontal_top(|ui| {
-                    icons::tile(ui, Icon::File, 34.0, p.epub_tint, p.fg);
-                    ui.vertical(|ui| {
-                        ui.spacing_mut().item_spacing.y = 3.0;
-                        let name =
-                            path.file_name().map_or_else(|| path.display().to_string(), |n| n.to_string_lossy().to_string());
-                        ui.add(egui::Label::new(theme::bold(name)).truncate());
-                        if let Some(dir) = path.parent() {
-                            ui.add(egui::Label::new(theme::muted(p, t.in_folder(dir)).size(theme::SMALL)).truncate());
-                        }
-                        ui.add_space(4.0);
-                        ui.horizontal_wrapped(|ui| {
-                            let kind = if single { Kind::Primary } else { Kind::Secondary };
-                            if theme::icon_button(ui, kind, true, Icon::Folder, t.show_in_folder).clicked() {
-                                show_in_folder(path);
-                            }
-                            if theme::icon_button(ui, Kind::Secondary, true, Icon::External, t.open_epub).clicked() {
-                                open_file(path);
-                            }
-                        });
-                    });
-                });
+    ui.add_space(10.0);
+    if app.run.renamed > 0 {
+        ui.add(egui::Label::new(theme::muted(p, t.copies_note(app.run.renamed)).size(12.5)).wrap());
+        ui.add_space(8.0);
+    }
+    ui.horizontal_wrapped(|ui| {
+        if theme::icon_button(ui, Kind::Primary, true, Icon::Folder, t.show_in_folder).clicked() {
+            show_in_folder(&saved[0].1);
+        }
+        if let [(_, path)] = saved.as_slice() {
+            if theme::icon_button(ui, Kind::Secondary, true, Icon::External, t.open_epub).clicked() {
+                open_file(path);
             }
-        });
-    }
-    if !app.run.errors.is_empty() {
-        note(ui, p.warn_bg, p.warn_line, Icon::Alert, p.fg, t.failed_stays);
-    }
-    ui.add_space(4.0);
-    ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
-        let kind = if saved.is_empty() { Kind::Primary } else { Kind::Secondary };
-        let more = theme::icon_button(ui, kind, true, Icon::Book, t.convert_more);
-        app.mark(demo::Target::ConvertMore, more.rect);
-        if more.clicked() {
-            app.back_to_library();
+        } else {
+            let label = if app.run.show_books { t.hide_books.to_string() } else { t.see_books(app.run.asins.len()) };
+            if theme::icon_button(ui, Kind::Quiet, true, Icon::Book, &label).clicked() {
+                app.run.show_books = !app.run.show_books;
+            }
         }
     });
+    if app.run.show_books && saved.len() > 1 {
+        book_list(app, ui, p, t, &saved);
+    }
+}
+
+/// Every book of a finished run, each with its EPUB or what went wrong.
+fn book_list(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings, saved: &[(String, PathBuf)]) {
+    ui.add_space(8.0);
+    for asin in &app.run.asins {
+        let (rule, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 1.0), Sense::hover());
+        ui.painter().rect_filled(rule, 0.0, p.line);
+        ui.horizontal(|ui| {
+            let state = app.run.states.get(asin).copied().unwrap_or(BookState::Locked);
+            let failed = app.run.errors.contains_key(asin);
+            let (cover, _) = ui.allocate_exact_size(egui::vec2(16.0, 22.0), Sense::hover());
+            ui.painter().rect_filled(cover, egui::CornerRadius::same(3), icons::state_fill(state));
+            // The three-stage track of the book: with DRM, unlocked, EPUB.
+            let (track, _) = ui.allocate_exact_size(egui::vec2(icons::TRACK_WIDTH, 16.0), Sense::hover());
+            icons::track(ui.painter(), track.left_center(), state, !failed, p);
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                // Right to left: the action first, then the title takes what is left.
+                match (saved.iter().find(|(a, _)| a == asin), app.run.errors.get(asin)) {
+                    (Some((_, path)), _) => {
+                        if theme::icon_button(ui, Kind::Quiet, true, Icon::External, t.open_epub).clicked() {
+                            open_file(path);
+                        }
+                    }
+                    (None, Some((stage, _))) => {
+                        let text = if *stage == Stage::Unlock { t.failed_unlock } else { t.failed_convert };
+                        ui.label(RichText::new(text).color(p.warn).size(12.0));
+                    }
+                    (None, None) => {
+                        ui.label(theme::muted(p, t.not_started).size(12.0));
+                    }
+                }
+                ui.with_layout(Layout::top_down(Align::Min), |ui| {
+                    ui.add(egui::Label::new(RichText::new(title_of(app, t, asin)).size(13.0)).truncate());
+                });
+            });
+        });
+    }
 }
 
 fn log(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
     if app.run.log.is_empty() {
         return;
     }
-    ui.add_space(4.0);
+    ui.add_space(8.0);
     let label = t.log_toggle(app.run.show_log, app.run.log.len());
     if theme::icon_button(ui, Kind::Quiet, true, Icon::Terminal, &label).clicked() {
         app.run.show_log = !app.run.show_log;
@@ -573,9 +672,11 @@ fn log(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
         });
         egui::ScrollArea::vertical().id_salt("log").max_height(220.0).stick_to_bottom(true).show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 3.0;
-            for line in &app.run.log {
-                ui.label(RichText::new(line.as_str()).monospace().size(12.0));
-            }
+            theme::copyable(ui, |ui| {
+                for line in &app.run.log {
+                    ui.label(RichText::new(line.as_str()).monospace().size(12.0));
+                }
+            });
         });
     });
 }
@@ -634,10 +735,25 @@ mod tests {
     }
 
     #[test]
+    fn saving_runs_between_the_last_book_and_the_end_of_the_run() {
+        let tally = |done, running| Tally { total: 3, done, failed: 0, running };
+        assert_eq!(save_look(tally(2, true), false, 2), Look::Waiting);
+        assert_eq!(save_look(tally(3, false), false, 3), Look::Running, "every book is done, the run not yet");
+        assert_eq!(save_look(tally(3, false), true, 3), Look::Done);
+        assert_eq!(save_look(Tally { total: 3, done: 0, failed: 3, running: false }, true, 0), Look::Skipped);
+    }
+
+    #[test]
     fn the_step_number_is_the_first_step_not_finished() {
-        let line = |look| Line { title: String::new(), detail: String::new(), look };
+        let line = |look| Line { title: String::new(), detail: String::new(), look, part: Part::Preparation, count: None };
         assert_eq!(step_number(&[line(Look::Done), line(Look::Running), line(Look::Waiting)]), 2);
         assert_eq!(step_number(&[line(Look::Done), line(Look::Skipped), line(Look::Waiting)]), 3);
         assert_eq!(step_number(&[line(Look::Done), line(Look::Done)]), 2, "all done: the last one");
+    }
+
+    #[test]
+    fn hundreds_of_books_get_small_tiles() {
+        assert!(tile_size(2).0 > tile_size(12).0);
+        assert!(tile_size(200).0 < tile_size(40).0);
     }
 }

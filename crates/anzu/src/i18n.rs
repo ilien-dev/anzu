@@ -57,6 +57,9 @@ pub struct Strings {
     pub run_books: &'static str,
     pub failure_note: &'static str,
     pub failed_stays: &'static str,
+    /// The last step of a run, while the EPUB files are being written down.
+    pub save_step: &'static str,
+    pub hide_books: &'static str,
     pub select_all: &'static str,
     pub clear_selection: &'static str,
     pub empty_title: &'static str,
@@ -216,6 +219,8 @@ pub const EN: Strings = Strings {
     run_books: "Books in this run",
     failure_note: "If a book fails, it is marked with the reason and the others go on.",
     failed_stays: "A book with an error stays on your shelf: you can try it again whenever you like.",
+    save_step: "Save to your folder",
+    hide_books: "Hide the books",
     select_all: "Select all",
     clear_selection: "Clear the selection",
     empty_title: "No books to convert yet",
@@ -387,6 +392,8 @@ pub const ES: Strings = Strings {
     run_books: "Libros de la tanda",
     failure_note: "Si un libro falla, se marca con el motivo y los demás siguen.",
     failed_stays: "Un libro con error sigue en tu estantería: puedes volver a intentarlo cuando quieras.",
+    save_step: "Guardar en tu carpeta",
+    hide_books: "Ocultar los libros",
     select_all: "Seleccionar todos",
     clear_selection: "Quitar la selección",
     empty_title: "Aún no hay libros que convertir",
@@ -711,6 +718,31 @@ impl Strings {
     /// "Book 2 of 4".
     pub fn book_of(&self, n: usize, total: usize) -> String {
         if self.es() { format!("Libro {n} de {total}") } else { format!("Book {n} of {total}") }
+    }
+
+    /// How many books are converted at the same time: "4 at a time".
+    pub fn at_a_time(&self, n: usize) -> String {
+        match (self.es(), n) {
+            (false, 1) => "One at a time".to_string(),
+            (false, n) => format!("{n} at a time"),
+            (true, 1) => "Uno a uno".to_string(),
+            (true, n) => format!("{n} a la vez"),
+        }
+    }
+
+    /// The EPUB files that got a number because their name was taken.
+    pub fn copies_note(&self, n: usize) -> String {
+        match (self.es(), n) {
+            (false, 1) => "1 was saved with a number at the end: an EPUB with that name was already there.".to_string(),
+            (false, n) => format!("{n} were saved with a number at the end: an EPUB with that name was already there."),
+            (true, 1) => "1 se guardó con un número al final: ya había un EPUB con ese nombre.".to_string(),
+            (true, n) => format!("{n} se guardaron con un número al final: ya había un EPUB con ese nombre."),
+        }
+    }
+
+    /// The link that unfolds the list of books of a finished run.
+    pub fn see_books(&self, n: usize) -> String {
+        if self.es() { format!("Ver los {n} libros") } else { format!("See the {n} books") }
     }
 
     /// The heading of the result: one EPUB or several.

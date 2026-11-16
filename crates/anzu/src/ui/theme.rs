@@ -74,8 +74,7 @@ pub struct Palette {
     /// Soft fills of the three states, for notes and chips.
     pub drm_tint: Color32,
     pub epub_tint: Color32,
-    /// The empty part of a progress bar, and its fill.
-    pub progress_track: Color32,
+    /// The fill of a progress bar.
     pub progress: Color32,
 }
 
@@ -109,7 +108,6 @@ pub const LIGHT: Palette = Palette {
     log_bg: rgb(0xF7F8FA),
     drm_tint: rgb(0xFFE3DB),
     epub_tint: rgb(0xE6F8D4),
-    progress_track: rgb(0xEFE6A0),
     progress: INK,
 };
 
@@ -143,7 +141,6 @@ pub const DARK: Palette = Palette {
     log_bg: rgb(0x0A0B0D),
     drm_tint: rgb(0x3A2620),
     epub_tint: rgb(0x22301B),
-    progress_track: rgb(0x3E3A1C),
     progress: BUTTER,
 };
 
