@@ -1,0 +1,110 @@
+<!doctype html>
+<!-- The README hero: a book moves along the app's three-stage track, from its ASIN with a
+     lock to its real title to Moby-Dick.epub. Option A of the hero canvas.
+     Open it in a browser to watch it; export.mjs renders it to ../hero-*.gif.
+     Query: ?lang=en|es&theme=dark|light -->
+<html lang="en">
+<meta charset="utf-8">
+<title>Anzu hero</title>
+<style>
+@font-face{font-family:"JetBrains Mono";src:url("../../../crates/anzu/assets/fonts/JetBrainsMono-Regular.ttf");font-weight:400}
+@font-face{font-family:"JetBrains Mono";src:url("../../../crates/anzu/assets/fonts/JetBrainsMono-Bold.ttf");font-weight:700}
+html,body{margin:0;background:#888}
+/* The palettes of the app (crates/anzu/src/ui/theme.rs) on GitHub's own grounds. */
+.root{font-family:"JetBrains Mono",ui-monospace,monospace;--gh:#0d1117;--bg:#0e0f0c;--line:#34382b;--fg:#e9e6d6;--muted:#a7a48f;--accent:#ffb000;--ok:#a2d975;--warn:#ff9166}
+.root.light{--gh:#ffffff;--bg:#f3f5f7;--line:#cbd2d9;--fg:#14171a;--muted:#55606b;--accent:#b25e00;--ok:#1f6b3a;--warn:#a63a12}
+.root{width:960px;height:400px;box-sizing:border-box;padding:20px;background:var(--gh)}
+.card{box-sizing:border-box;width:100%;height:100%;border-radius:6px;padding:44px 56px;background:var(--bg);border:1px solid var(--line);color:var(--fg)}
+.stage{display:flex;flex-direction:column;justify-content:space-between;height:100%;animation:stage 8s linear infinite}
+@keyframes stage{0%{opacity:0}4%,92%{opacity:1}100%{opacity:0}}
+.head{display:flex;align-items:center;gap:28px}
+.name{font-size:46px;font-weight:700;letter-spacing:-.035em;line-height:1}
+.tagline{font-size:19px;color:var(--muted);margin-top:6px}
+.tagline b{color:var(--accent)}
+.wing{transform-box:view-box;transform-origin:32px 58px;animation:wing 8s cubic-bezier(.16,1,.3,1) infinite}
+.wl{--tilt:16deg}.wr{--tilt:-16deg}
+@keyframes wing{0%{transform:rotate(var(--tilt)) scaleX(.55);opacity:.2}12%,100%{transform:none;opacity:1}}
+.tab{animation:tab 8s cubic-bezier(.16,1,.3,1) infinite}
+@keyframes tab{0%,5%{transform:translateY(8px);opacity:0}14%,100%{transform:none;opacity:1}}
+.intro{animation:intro 8s cubic-bezier(.16,1,.3,1) infinite}
+@keyframes intro{0%,6%{opacity:0;transform:translateY(6px)}14%,100%{opacity:1;transform:none}}
+.book{display:flex;flex-direction:column;gap:14px}
+.swap{position:relative;height:30px;font-size:22px;font-weight:700}
+.swap>span{position:absolute;left:0;top:0;display:flex;align-items:center;gap:12px;white-space:nowrap}
+.t1{color:var(--muted);animation:t1 8s linear infinite}
+.t2{color:var(--fg);animation:t2 8s linear infinite}
+.t3{color:var(--ok);animation:t3 8s linear infinite}
+@keyframes t1{0%,38%{opacity:1;filter:none}41%,100%{opacity:0;filter:blur(3px)}}
+@keyframes t2{0%,38%{opacity:0;filter:blur(3px)}41%,56%{opacity:1;filter:none}59%,100%{opacity:0;filter:blur(3px)}}
+@keyframes t3{0%,56%{opacity:0;transform:translateX(-8px)}60%,100%{opacity:1;transform:none}}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.seg{height:12px;border-radius:2px;border:1px solid var(--line);overflow:hidden}
+.fill{height:100%;transform-origin:left;transform:scaleX(0)}
+.f1{background:var(--warn);animation:f1 8s cubic-bezier(.65,0,.35,1) infinite}
+.f2{background:var(--accent);animation:f2 8s cubic-bezier(.65,0,.35,1) infinite}
+.f3{background:var(--ok);animation:f3 8s cubic-bezier(.65,0,.35,1) infinite}
+@keyframes f1{0%,15%{transform:scaleX(0)}27%,100%{transform:scaleX(1)}}
+@keyframes f2{0%,33%{transform:scaleX(0)}45%,100%{transform:scaleX(1)}}
+@keyframes f3{0%,51%{transform:scaleX(0)}63%,100%{transform:scaleX(1)}}
+.labels{font-size:15px;font-weight:700}
+.l1{color:var(--warn);animation:l1 8s steps(1) infinite}
+.l2{color:var(--accent);animation:l2 8s steps(1) infinite}
+.l3{color:var(--ok);animation:l3 8s steps(1) infinite}
+@keyframes l1{0%{opacity:.35}20%,100%{opacity:1}}
+@keyframes l2{0%{opacity:.35}39%,100%{opacity:1}}
+@keyframes l3{0%{opacity:.35}57%,100%{opacity:1}}
+</style>
+<body>
+<div class="root" id="hero">
+  <div class="card">
+    <div class="stage">
+      <div class="head">
+        <svg width="92" height="92" viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="14.72" fill="#14171a"/>
+          <g transform="translate(10.88 10.88) scale(0.66)" fill="#ffb000">
+            <polygon class="wing wl" points="32,6 10,58 20,58 32,28"/>
+            <polygon class="wing wr" points="32,6 32,28 44,58 54,58"/>
+            <rect class="tab" x="28.5" y="46" width="7" height="12"/>
+          </g>
+        </svg>
+        <div class="intro">
+          <div class="name">anzu</div>
+          <div class="tagline" data-t="tagline"></div>
+        </div>
+      </div>
+      <div class="book">
+        <div class="swap">
+          <span class="t1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>B07XKQ9R2M</span>
+          <span class="t2">Moby-Dick</span>
+          <span class="t3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/></svg>Moby-Dick.epub</span>
+        </div>
+        <div class="row"><div class="seg"><div class="fill f1"></div></div><div class="seg"><div class="fill f2"></div></div><div class="seg"><div class="fill f3"></div></div></div>
+        <div class="row labels"><span class="l1" data-t="drm"></span><span class="l2" data-t="unlocked"></span><span class="l3">EPUB</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const TEXT = {
+  en: { tagline: "Kindle books to <b>EPUB</b>, on Windows.", drm: "With DRM", unlocked: "Unlocked" },
+  es: { tagline: "Libros de Kindle a <b>EPUB</b>, en Windows.", drm: "Con DRM", unlocked: "Desbloqueado" },
+};
+const DURATION = 8; // seconds, one loop
+function setup(lang, theme) {
+  document.documentElement.lang = lang;
+  document.getElementById("hero").classList.toggle("light", theme === "light");
+  for (const el of document.querySelectorAll("[data-t]")) el.innerHTML = TEXT[lang][el.dataset.t];
+}
+const q = new URLSearchParams(location.search);
+setup(q.get("lang") || "en", q.get("theme") || "dark");
+// export.mjs: freeze every animation at t seconds, so frames do not depend on timing.
+window.anzuHero = {
+  duration: DURATION,
+  setup,
+  frame(t) {
+    for (const a of document.getAnimations()) { a.pause(); a.currentTime = t * 1000; }
+  },
+};
+</script>
+</body>
+</html>
