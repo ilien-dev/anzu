@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.6.1](https://github.com/ilien-dev/anzu/compare/d8c0d9a84a7307a45731f99be040bd922a7cbf42..v0.6.1) - 2026-11-16
+#### Bug Fixes
+- lay out the web demo in the room the page gives it (#9) - ([d8c0d9a](https://github.com/ilien-dev/anzu/commit/d8c0d9a84a7307a45731f99be040bd922a7cbf42)) - ilien
+
+- - -
+
 ## [v0.6.0](https://github.com/ilien-dev/anzu/compare/c91f1b9d9266fa92a79a5b2857a9bc3331a94b48..v0.6.0) - 2026-11-16
 #### Features
 - show a spinner while books unlock or convert (#5) - ([c91f1b9](https://github.com/ilien-dev/anzu/commit/c91f1b9d9266fa92a79a5b2857a9bc3331a94b48)) - ilien
