@@ -41,6 +41,70 @@ pub trait Backend {
     fn unlocked_path(&self, asin: &str) -> PathBuf;
     fn convert(&self, input: &Path, out_dir: &Path, labels: &Labels) -> Result<Converted, anzu_kfx::Error>;
     fn mark_converted(&self, asin: &str, epub: &Path);
+    /// The same backend when it can be shared between threads, so that several books are
+    /// converted at once. The web demo's cannot, and converts one book at a time.
+    fn shared(&self) -> Option<&(dyn Backend + Sync)> {
+        None
+    }
+}
+
+/// The most books converted at the same time.
+pub const MAX_CONVERT_WORKERS: usize = 4;
+
+/// How many books of `books` are converted at the same time: one core is left for the
+/// window, and never more than [`MAX_CONVERT_WORKERS`].
+pub fn convert_workers(books: usize) -> usize {
+    let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
+    cores.saturating_sub(1).clamp(1, MAX_CONVERT_WORKERS).min(books.max(1))
+}
+
+/// What happens to one book of the conversion stage, by its index in the list.
+enum Converting {
+    Started(usize),
+    Done(usize, Result<Converted, anzu_kfx::Error>),
+}
+
+/// Converts every book of `inputs` into `out_dir`, several at a time when the backend can be
+/// shared, and reports each start and end on the calling thread.
+fn convert_all(
+    backend: &dyn Backend,
+    inputs: &[PathBuf],
+    out_dir: &Path,
+    labels: &Labels,
+    report: &mut dyn FnMut(Converting),
+) {
+    let workers = convert_workers(inputs.len());
+    let Some(shared) = backend.shared().filter(|_| workers > 1) else {
+        for (index, input) in inputs.iter().enumerate() {
+            report(Converting::Started(index));
+            report(Converting::Done(index, backend.convert(input, out_dir, labels)));
+        }
+        return;
+    };
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::scope(|scope| {
+        for _ in 0..workers {
+            let (tx, next) = (tx.clone(), &next);
+            scope.spawn(move || {
+                loop {
+                    let index = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let Some(input) = inputs.get(index) else { break };
+                    if tx.send(Converting::Started(index)).is_err() {
+                        break;
+                    }
+                    let result = shared.convert(input, out_dir, labels);
+                    if tx.send(Converting::Done(index, result)).is_err() {
+                        break;
+                    }
+                }
+            });
+        }
+        drop(tx);
+        for event in rx {
+            report(event);
+        }
+    });
 }
 
 /// The preparation: what is done once for the whole run, before any book is unlocked.
@@ -52,7 +116,8 @@ pub enum Step {
 }
 
 /// What is done to each book. The tool unlocks every book of a run in one go, so all the
-/// locked books are in [`Stage::Unlock`] at the same time; they are converted one by one.
+/// locked books are in [`Stage::Unlock`] at the same time; then up to
+/// [`MAX_CONVERT_WORKERS`] are converted at once.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Stage {
     Unlock,
@@ -72,8 +137,9 @@ pub enum Msg {
     /// A book finished a stage and is now in `state`.
     BookProgress { asin: String, state: BookState },
     BookFailed { asin: String, stage: Stage, reason: String },
-    /// Where the EPUB of a book was written.
-    Saved { asin: String, path: PathBuf },
+    /// Where the EPUB of a book was written, and whether its name got a number because it
+    /// was taken.
+    Saved { asin: String, path: PathBuf, renamed: bool },
     Log(String),
     /// The Kindle app is open: ask before closing it.
     NeedCloseKindle,
@@ -111,33 +177,101 @@ impl Timed {
     }
 }
 
+/// The shortest time the conversions of a run are shown, whatever the number of books: a
+/// fast computer converts a few books in a blink, and a list that turns green at once reads
+/// as a fault rather than as work done.
+const BATCH_FLOOR: Duration = Duration::from_millis(1300);
+/// What each book of the run adds to [`BATCH_FLOOR`].
+const BATCH_FLOOR_PER_BOOK: Duration = Duration::from_millis(120);
+/// The floor never grows past this, so a library of hundreds of books is not slowed down.
+const BATCH_FLOOR_MAX: Duration = Duration::from_millis(2600);
+/// The first conversion ends no sooner than this after the batch starts.
+const BATCH_LEAD: Duration = Duration::from_millis(150);
+/// The shortest and longest time one book is shown converting.
+const BOOK_MIN: Duration = Duration::from_millis(40);
+const BOOK_MAX: Duration = Duration::from_millis(350);
+/// How long the run stays with every book done before it says it has finished.
+const FINISH_HOLD: Duration = Duration::from_millis(500);
+/// How fast the ends of the conversions slow down towards the last one: 1 spreads them
+/// evenly, more makes the first ones quick and the last ones settle.
+const BATCH_EASE: f32 = 1.6;
+
+/// The floor of the conversions of a run of `books`.
+fn batch_floor(books: usize) -> Duration {
+    (BATCH_FLOOR + BATCH_FLOOR_PER_BOOK * books as u32).min(BATCH_FLOOR_MAX)
+}
+
 /// The rule of the pacer on any clock: how long a message must wait so that the step or
 /// stage it ends has been shown running for a minimum time. `now` is measured from any
 /// fixed start; the web demo uses the frame time, the app a real clock.
+///
+/// It only ever holds a message back: nothing is shown done before it is.
 pub struct Holds {
     min: Duration,
     started: Vec<(Timed, Duration)>,
+    /// How many books the run converts, 0 when unknown, and how many at the same time.
+    books: usize,
+    workers: usize,
+    /// When the first conversion started, and how many have ended since.
+    batch: Option<(Duration, usize)>,
+    /// When the last conversion is shown ending.
+    last_end: Option<Duration>,
 }
 
 impl Holds {
     pub fn new(min: Duration) -> Self {
-        Holds { min, started: Vec::new() }
+        Holds { min, started: Vec::new(), books: 0, workers: 1, batch: None, last_end: None }
+    }
+
+    /// Spreads the ends of the conversions of a run of `books`, converted `workers` at a
+    /// time, over the floor of the batch.
+    pub fn for_books(mut self, books: usize, workers: usize) -> Self {
+        self.books = books;
+        self.workers = workers.max(1);
+        self
     }
 
     /// Records `message` sent at `now` and returns how long it must be held first.
     pub fn hold(&mut self, message: &Msg, now: Duration) -> Duration {
         if let Some(timed) = Timed::started_by(message) {
+            if matches!(timed, Timed::Book(_, Stage::Convert)) && self.batch.is_none() {
+                self.batch = Some((now, 0));
+            }
             self.started.retain(|(t, _)| *t != timed);
             self.started.push((timed, now));
         } else if let Some(timed) = Timed::ended_by(message)
             && let Some(index) = self.started.iter().position(|(t, _)| *t == timed)
         {
             let (timed, start) = self.started.remove(index);
-            // Conversions are held less, so a library of hundreds of books is not slowed down.
-            let min = if matches!(timed, Timed::Book(_, Stage::Convert)) { self.min / 3 } else { self.min };
-            return min.saturating_sub(now.saturating_sub(start));
+            if !matches!(timed, Timed::Book(_, Stage::Convert)) {
+                return (start + self.min).saturating_sub(now);
+            }
+            let wait = self.conversion_end(start).saturating_sub(now);
+            self.last_end = Some(now + wait);
+            return wait;
+        } else if matches!(message, Msg::Finished { .. })
+            && let Some(end) = self.last_end
+        {
+            return (end + FINISH_HOLD).saturating_sub(now);
         }
         Duration::ZERO
+    }
+
+    /// The earliest moment a conversion that started at `start` may be shown ending.
+    fn conversion_end(&mut self, start: Duration) -> Duration {
+        if self.books == 0 {
+            // No batch to spread over: a short hold of its own.
+            return start + self.min / 3;
+        }
+        let floor = batch_floor(self.books);
+        // Each lane of workers fits its books in half the floor, so the books of one lane,
+        // one after another, never stretch the batch past the curve of the floor.
+        let per_book = (floor * self.workers as u32 / (2 * self.books as u32)).clamp(BOOK_MIN, BOOK_MAX);
+        let (batch_start, ended) = self.batch.get_or_insert((start, 0));
+        *ended += 1;
+        let done = (*ended as f32 / self.books as f32).min(1.0);
+        let planned = *batch_start + BATCH_LEAD + floor.mul_f32(1.0 - (1.0 - done).powf(BATCH_EASE));
+        planned.max(start + per_book)
     }
 }
 
@@ -151,6 +285,12 @@ pub struct Pacer {
 impl Pacer {
     pub fn new(min: Duration) -> Self {
         Pacer { holds: Holds::new(min), origin: Instant::now() }
+    }
+
+    /// See [`Holds::for_books`].
+    pub fn for_books(mut self, books: usize, workers: usize) -> Self {
+        self.holds = self.holds.for_books(books, workers);
+        self
     }
 
     /// Call before sending `message`: it sleeps when a step would end too soon.
@@ -320,9 +460,18 @@ pub fn run(
     let mut converted = 0;
     let labels = t.labels();
     let pending: Vec<&String> = plan.asins.iter().filter(|a| !failed.iter().any(|(f, _)| f == *a)).collect();
-    for asin in pending {
-        send(Msg::BookStarted { asin: asin.clone(), stage: Stage::Convert });
-        match backend.convert(&backend.unlocked_path(asin), out_dir, &labels) {
+    let inputs: Vec<PathBuf> = pending.iter().map(|asin| backend.unlocked_path(asin)).collect();
+    convert_all(backend, &inputs, out_dir, &labels, &mut |event| {
+        let (index, outcome) = match event {
+            Converting::Started(index) => {
+                send(Msg::BookStarted { asin: pending[index].clone(), stage: Stage::Convert });
+                return;
+            }
+            Converting::Done(index, outcome) => (index, outcome),
+        };
+        let asin = pending[index];
+        // Settings are written here, on one thread, never by two conversions at once.
+        match outcome {
             Ok(result) => {
                 backend.mark_converted(asin, &result.path);
                 converted += 1;
@@ -333,7 +482,7 @@ pub fn run(
                     send(Msg::Log(t.more_warnings(result.warnings.len() - MAX_WARNINGS_SHOWN)));
                 }
                 send(Msg::Log(t.epub_saved(&result.path)));
-                send(Msg::Saved { asin: asin.clone(), path: result.path.clone() });
+                send(Msg::Saved { asin: asin.clone(), path: result.path.clone(), renamed: result.renamed });
                 send(Msg::BookProgress { asin: asin.clone(), state: BookState::Converted });
             }
             Err(error) => {
@@ -343,7 +492,7 @@ pub fn run(
                 failed.push((asin.clone(), detail));
             }
         }
-    }
+    });
     // Failures are reported in plan order.
     failed.sort_by_key(|(asin, _)| plan.asins.iter().position(|a| a == asin));
     send(Msg::Finished { converted, failed });
@@ -407,6 +556,10 @@ impl Backend for CoreBackend {
         settings.converted.insert(asin.to_string(), epub.to_path_buf());
         let _ = settings.save(&self.data_dir);
     }
+
+    fn shared(&self) -> Option<&(dyn Backend + Sync)> {
+        Some(self)
+    }
 }
 
 #[cfg(test)]
@@ -428,6 +581,8 @@ mod tests {
         unlock_log: Vec<&'static str>,
         failing_conversions: Vec<&'static str>,
         conversion_warnings: Vec<&'static str>,
+        /// Converts several books at once, like the real system.
+        parallel: bool,
     }
 
     impl Fake {
@@ -443,6 +598,7 @@ mod tests {
                 unlock_log: vec![],
                 failing_conversions: vec![],
                 conversion_warnings: vec![],
+                parallel: false,
             }
         }
 
@@ -539,11 +695,16 @@ mod tests {
                 path: out_dir.join(format!("{asin}.epub")),
                 title: format!("Book {asin}"),
                 warnings: self.conversion_warnings.iter().map(|w| w.to_string()).collect(),
+                renamed: false,
             })
         }
 
         fn mark_converted(&self, asin: &str, epub: &Path) {
             self.note(&format!("mark {asin} {}", epub.file_name().unwrap().to_string_lossy()));
+        }
+
+        fn shared(&self) -> Option<&(dyn Backend + Sync)> {
+            if self.parallel { Some(self) } else { None }
         }
     }
 
@@ -710,7 +871,8 @@ mod tests {
                 "C start Unlock",
                 "A Unlocked",
                 "C Unlocked",
-                // Then they are converted one by one.
+                // Then they are converted: one by one here, several at once on a backend
+                // that can be shared between threads.
                 "A start Convert",
                 "A Converted",
                 "B start Convert",
@@ -792,7 +954,7 @@ mod tests {
     fn the_path_of_each_epub_is_reported() {
         let fake = Fake::ready();
         let messages = run_with(&fake, &plan(&["B"], false), true);
-        assert!(messages.contains(&Msg::Saved { asin: "B".into(), path: Path::new("out").join("B.epub") }), "{messages:?}");
+        assert!(messages.contains(&Msg::Saved { asin: "B".into(), path: Path::new("out").join("B.epub"), renamed: false }), "{messages:?}");
     }
 
     #[test]
@@ -975,5 +1137,83 @@ mod tests {
         let messages = run_with(&fake, &plan(&[], false), true);
         assert!(fake.calls().is_empty());
         assert_eq!(finished(&messages), (0, vec![]));
+    }
+
+    #[test]
+    fn books_converted_at_once_are_each_reported_once() {
+        let fake = Fake { failing_conversions: vec!["C"], parallel: true, ..Fake::ready() };
+        let asins = ["B", "C", "D", "E", "F", "G"];
+        let books: Vec<Book> = asins.iter().map(|a| book(a, BookState::Unlocked)).collect();
+        let mut messages = Vec::new();
+        run(&fake, &plan(&asins, false), &books, Path::new("out"), Language::En, &mut |m| messages.push(m), &mut || true);
+        let seen = events(&messages);
+        for asin in asins {
+            let start = seen.iter().position(|e| *e == format!("{asin} start Convert")).expect("every book starts");
+            let end = seen
+                .iter()
+                .position(|e| *e == format!("{asin} Converted") || *e == format!("{asin} failed Convert"))
+                .expect("every book ends");
+            assert!(start < end, "{seen:?}");
+        }
+        assert_eq!(finished(&messages), (5, vec!["C".to_string()]), "one failure does not stop the others");
+        let marks = fake.calls().iter().filter(|c| c.starts_with("mark ")).count();
+        assert_eq!(marks, 5);
+    }
+
+    /// Holds a conversion that starts at `start` and really ends at `end`, in milliseconds;
+    /// returns when it is shown ending.
+    fn shown_end(holds: &mut Holds, asin: &str, start: u64, end: u64) -> Duration {
+        holds.hold(&Msg::BookStarted { asin: asin.into(), stage: Stage::Convert }, Duration::from_millis(start));
+        let now = Duration::from_millis(end);
+        now + holds.hold(&Msg::BookProgress { asin: asin.into(), state: BookState::Converted }, now)
+    }
+
+    #[test]
+    fn a_quick_batch_is_spread_over_its_floor() {
+        let mut holds = Holds::new(MIN_STEP).for_books(2, 4);
+        let first = shown_end(&mut holds, "A", 0, 10);
+        let second = shown_end(&mut holds, "B", 0, 12);
+        assert!(first > Duration::from_millis(500), "{first:?}");
+        assert!(second >= BATCH_LEAD + batch_floor(2) - Duration::from_millis(1), "{second:?}");
+        assert!(second > first);
+        let finish = holds.hold(&Msg::Finished { converted: 2, failed: vec![] }, second);
+        assert_eq!(finish, FINISH_HOLD, "every book shows done for a moment before the end");
+    }
+
+    #[test]
+    fn a_slow_conversion_is_never_held() {
+        let mut holds = Holds::new(MIN_STEP).for_books(1, 1);
+        let end = shown_end(&mut holds, "A", 0, 9000);
+        assert_eq!(end, Duration::from_millis(9000), "the pacer never shows a book done before it is");
+    }
+
+    #[test]
+    fn a_large_batch_is_not_slowed_down() {
+        let mut holds = Holds::new(MIN_STEP).for_books(200, 4);
+        let mut now = 0;
+        let mut last = Duration::ZERO;
+        // Four at a time, each really taking 5 ms; the pacer sleeps between messages.
+        for i in 0..200u64 {
+            let start = now;
+            last = shown_end(&mut holds, &i.to_string(), start, start + 5);
+            if i % 4 == 3 {
+                now = last.as_millis() as u64;
+            }
+        }
+        // Each round of four waits for its slowest book here, so a little past the floor.
+        assert!(last <= BATCH_LEAD + BATCH_FLOOR_MAX + Duration::from_millis(300), "{last:?}");
+    }
+
+    #[test]
+    fn one_book_at_a_time_still_fits_the_floor() {
+        // A computer with one core to spare, or the web demo: the books go one after another.
+        let mut holds = Holds::new(MIN_STEP).for_books(12, 1);
+        let mut now = 0;
+        for i in 0..12u64 {
+            now = shown_end(&mut holds, &i.to_string(), now, now + 5).as_millis() as u64;
+        }
+        let last = Duration::from_millis(now);
+        assert!(last >= batch_floor(12), "{last:?}");
+        assert!(last <= BATCH_LEAD + batch_floor(12) + Duration::from_millis(200), "{last:?}");
     }
 }

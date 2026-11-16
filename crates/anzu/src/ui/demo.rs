@@ -187,7 +187,8 @@ impl Driver {
         let mut messages = Vec::new();
         pipeline::run(&backend, plan, books, out_dir, lang, &mut |m| messages.push(m), &mut || true);
         self.replay = messages.into();
-        self.holds = Holds::new(STEP);
+        // The demo's backend cannot be shared between threads: one book at a time.
+        self.holds = Holds::new(STEP).for_books(plan.asins.len(), 1);
         self.clock = now;
         self.due = None;
     }

@@ -35,6 +35,8 @@ pub struct Converted {
     pub path: std::path::PathBuf,
     pub title: String,
     pub warnings: Vec<String>,
+    /// The name was taken, so the file got a number: `Title (2).epub`.
+    pub renamed: bool,
 }
 
 /// The few words the converter writes into a book. English by default.
@@ -69,14 +71,29 @@ pub fn convert_with(input: &Path, out_dir: &Path, labels: &Labels) -> Result<Con
     std::fs::create_dir_all(out_dir)?;
 
     let base = epub::safe_file_name(&book.meta.title);
-    let mut path = out_dir.join(format!("{base}.epub"));
-    let mut n = 2;
-    while path.exists() {
-        path = out_dir.join(format!("{base} ({n}).epub"));
-        n += 1;
+    let (path, renamed) = claim_name(out_dir, &base)?;
+    if let Err(error) = epub::write_epub_with(&book, &path, labels) {
+        let _ = std::fs::remove_file(&path);
+        return Err(error);
     }
-    epub::write_epub_with(&book, &path, labels)?;
-    Ok(Converted { path, title: book.meta.title, warnings: book.warnings })
+    Ok(Converted { path, title: book.meta.title, warnings: book.warnings, renamed })
+}
+
+/// Creates an empty `<base>.epub` in `dir`, or `<base> (2).epub`, `<base> (3).epub`... when
+/// the name is taken, and returns its path and whether it got a number. Creating the file
+/// claims the name, so two books with the same title converted at the same time never write
+/// to the same file.
+fn claim_name(dir: &Path, base: &str) -> Result<(std::path::PathBuf, bool), Error> {
+    let mut n = 1;
+    loop {
+        let name = if n == 1 { format!("{base}.epub") } else { format!("{base} ({n}).epub") };
+        let path = dir.join(name);
+        match std::fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+            Ok(_) => return Ok((path, n > 1)),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => n += 1,
+            Err(error) => return Err(error.into()),
+        }
+    }
 }
 
 /// The title of a DRM-free KFX, or `None` if it cannot be read or the book declares none.

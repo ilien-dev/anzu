@@ -76,6 +76,10 @@ struct Run {
     saved: Vec<(String, PathBuf)>,
     log: Vec<String>,
     show_log: bool,
+    /// How many saved files got a number because their name was taken.
+    renamed: usize,
+    /// The list of books of a finished run is unfolded.
+    show_books: bool,
     result: Option<(usize, Vec<(String, String)>)>,
 }
 
@@ -313,7 +317,8 @@ impl AnzuApp {
         let out_dir = self.settings.output_dir.clone();
         let language = self.settings.language;
         std::thread::spawn(move || {
-            let mut pacer = pipeline::Pacer::new(pipeline::MIN_STEP);
+            let count = plan.asins.len();
+            let mut pacer = pipeline::Pacer::new(pipeline::MIN_STEP).for_books(count, pipeline::convert_workers(count));
             pipeline::run(
                 &backend,
                 &plan,
@@ -361,7 +366,10 @@ impl AnzuApp {
                 self.run.active.remove(&asin);
                 self.run.errors.insert(asin, (stage, reason));
             }
-            Msg::Saved { asin, path } => self.run.saved.push((asin, path)),
+            Msg::Saved { asin, path, renamed } => {
+                self.run.renamed += usize::from(renamed);
+                self.run.saved.push((asin, path));
+            }
             Msg::Log(line) => self.run.log.push(line),
             Msg::NeedCloseKindle => self.asking_to_close = true,
             Msg::Finished { converted, failed } => {

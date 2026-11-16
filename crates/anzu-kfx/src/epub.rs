@@ -964,6 +964,7 @@ mod tests {
             assert_eq!(second.path, tmp.path().join("Libro (2).epub"));
             assert_eq!(third.path, tmp.path().join("Libro (3).epub"));
             assert!(first.path.is_file() && second.path.is_file() && third.path.is_file());
+            assert!(!first.renamed && second.renamed && third.renamed);
         }
 
         #[test]

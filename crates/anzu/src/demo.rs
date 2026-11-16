@@ -199,7 +199,7 @@ impl Backend for DemoBackend {
     fn convert(&self, input: &Path, out_dir: &Path, labels: &Labels) -> Result<Converted, anzu_kfx::Error> {
         let asin = input.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
         let title = self.system.title_of(&asin).map_or_else(|| labels.untitled.clone(), str::to_string);
-        Ok(Converted { path: epub_path(out_dir, &title), title, warnings: Vec::new() })
+        Ok(Converted { path: epub_path(out_dir, &title), title, warnings: Vec::new(), renamed: false })
     }
 
     fn mark_converted(&self, asin: &str, _epub: &Path) {
@@ -259,6 +259,7 @@ mod tests {
         assert!(messages.contains(&Msg::Saved {
             asin: "B0DEMO0001".into(),
             path: Path::new(OUTPUT_DIR).join("Moby-Dick.epub"),
+            renamed: false,
         }));
         assert!(system.scan().iter().all(|b| b.state == BookState::Converted));
         // Nothing the tool said reaches the log unless the filter lets it through.
