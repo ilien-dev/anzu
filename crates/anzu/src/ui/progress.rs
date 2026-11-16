@@ -267,6 +267,18 @@ pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui) {
                             ui.set_width(width);
                             run_card(app, ui, p, t);
                             log(app, ui, p, t);
+                            // When the run ends, what it leaves (the folder, the books, the
+                            // way back) can be below the window: it is scrolled into view,
+                            // asked again each frame until it is seen, as a single request
+                            // can land on a frame that does not show. After the log, whose
+                            // own scroll area would take the request.
+                            if app.run.result.is_some() && !app.run.revealed {
+                                if ui.cursor().top() <= ui.clip_rect().bottom() {
+                                    app.run.revealed = true;
+                                } else {
+                                    ui.scroll_to_cursor(Some(Align::Max));
+                                }
+                            }
                         });
                     });
                 });

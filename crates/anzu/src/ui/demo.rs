@@ -439,6 +439,38 @@ mod tests {
         assert!(seen_finished);
     }
 
+    /// In a window too short for the finished run, the run scrolls down to its way back
+    /// before the script clicks it.
+    #[test]
+    fn a_finished_run_scrolls_its_way_back_into_view() {
+        use eframe::App;
+        let ctx = egui::Context::default();
+        super::super::theme::install(&ctx);
+        let mut app = super::super::AnzuApp::demo(&ctx, RemoteHandle::default(), Language::En, ThemeChoice::Dark, Pos2::ZERO);
+        let mut frame = eframe::Frame::_new_kittest();
+        let screen = Rect::from_min_size(Pos2::ZERO, egui::vec2(860.0, 520.0));
+        let mut finished_at = None;
+        for n in 0..(30.0 * 60.0) as u64 {
+            let now = n as f64 / 60.0;
+            let mut raw = egui::RawInput { time: Some(now), screen_rect: Some(screen), ..Default::default() };
+            app.raw_input_hook(&ctx, &mut raw);
+            let mut output = ctx.run_ui(raw, |ui| {
+                app.logic(ui.ctx(), &mut frame);
+                app.ui(ui, &mut frame);
+            });
+            output.textures_delta.clear();
+            if app.run.result.is_some() && finished_at.is_none() {
+                finished_at = Some(now);
+            }
+            if finished_at.is_some_and(|at| now - at > 1.5) {
+                let rect = app.demo.as_ref().and_then(|d| d.rect_of(&Target::ConvertMore)).expect("the way back is drawn");
+                assert!(rect.bottom() <= screen.bottom(), "{rect:?} is below the window");
+                return;
+            }
+        }
+        panic!("the run did not finish");
+    }
+
     #[test]
     fn the_script_waits_for_widgets_that_are_not_drawn() {
         let mut driver = Driver::new(RemoteHandle::default(), Pos2::ZERO);

@@ -81,6 +81,8 @@ struct Run {
     /// The list of books of a finished run is unfolded.
     show_books: bool,
     result: Option<(usize, Vec<(String, String)>)>,
+    /// The way back of a finished run has been scrolled into view.
+    revealed: bool,
 }
 
 pub struct AnzuApp {
