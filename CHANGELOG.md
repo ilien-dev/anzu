@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.6.0](https://github.com/ilien-dev/anzu/compare/c91f1b9d9266fa92a79a5b2857a9bc3331a94b48..v0.6.0) - 2026-11-16
+#### Features
+- show a spinner while books unlock or convert (#5) - ([c91f1b9](https://github.com/ilien-dev/anzu/commit/c91f1b9d9266fa92a79a5b2857a9bc3331a94b48)) - ilien
+#### Documentation
+- plain-language README with animated hero and responsible use (#8) - ([90b14e5](https://github.com/ilien-dev/anzu/commit/90b14e579cef3cfc75a3f95569aeffafc3b71c58)) - ilien
+#### Miscellaneous Chores
+- rename the contributing skill to uncontributing (#6) - ([d15491a](https://github.com/ilien-dev/anzu/commit/d15491a499daede81a212c2f3a4745b9ba5dd3b7)) - ilien
+
+- - -
+
 ## [v0.5.0](https://github.com/ilien-dev/anzu/compare/8c22781d94bae4bae680a721fe155df578959679..v0.5.0) - 2026-11-16
 #### Features
 - web demo build of the interface (#7) - ([699be91](https://github.com/ilien-dev/anzu/commit/699be91a745f5ef81af7e1ce728406f18a794f52)) - ilien
