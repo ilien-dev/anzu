@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/anzu-core", "crates/anzu-kfx", "crates/anzu"]
+members = ["crates/anzu-core", "crates/anzu-kfx", "crates/anzu", "crates/anzu-web"]
 
 [workspace.package]
 version = "0.4.0"
@@ -11,3 +11,10 @@ license = "GPL-3.0-or-later"
 lto = true
 codegen-units = 1
 strip = true
+
+# The web demo (`site/scripts/build-demo.ts`): the release build, kept unstripped so
+# wasm-bindgen can read its features, and optimised for size.
+[profile.web]
+inherits = "release"
+strip = false
+opt-level = "s"

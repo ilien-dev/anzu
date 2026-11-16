@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use crate::releases::{self, Release};
 use crate::Error;
 
+#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
 const MAX_ZIP_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_EXE_BYTES: u64 = 32 * 1024 * 1024;
 const OK_MARKER: &str = ".ok";
@@ -132,6 +133,12 @@ pub fn ensure_tool(release: &Release, cache: &Path) -> Result<Tool, Error> {
     install_from_zip(&bytes, expected, &release.tag, cache)
 }
 
+#[cfg(target_arch = "wasm32")]
+fn download(_url: &str) -> Result<Vec<u8>, Error> {
+    Err(releases::offline())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn download(url: &str) -> Result<Vec<u8>, Error> {
     let net = |e: ureq::Error| Error::Network(e.to_string());
     let mut resp = releases::agent().get(url).call().map_err(net)?;

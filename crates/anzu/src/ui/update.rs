@@ -79,6 +79,12 @@ impl Updates {
         Updates { state: State::Unknown, dismissed: None, data_dir: data_dir.to_path_buf(), tx, rx }
     }
 
+    /// No watch at all: for the web demo, which never goes online.
+    pub fn none() -> Updates {
+        let (tx, rx) = mpsc::channel();
+        Updates { state: State::Unknown, dismissed: None, data_dir: PathBuf::new(), tx, rx }
+    }
+
     /// Takes in what the background threads found.
     pub fn poll(&mut self) {
         while let Ok(event) = self.rx.try_recv() {

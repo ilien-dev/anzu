@@ -38,6 +38,7 @@ pub fn tasklist_shows_kindle(stdout: &str) -> bool {
 
 /// A child process that opens no console window.
 pub(crate) fn quiet_command(program: &str) -> Command {
+    #[cfg_attr(not(windows), allow(unused_mut))]
     let mut cmd = Command::new(program);
     #[cfg(windows)]
     {

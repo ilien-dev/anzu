@@ -3,16 +3,10 @@
 // The release build is a windowed program: it opens no console.
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
-mod app;
-mod cli;
-mod i18n;
-mod pipeline;
-mod setup;
-mod ui;
-
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use anzu::{cli, i18n, setup, ui};
 use anzu_core::install;
 use anzu_core::settings::{self, Settings};
 
@@ -32,6 +26,11 @@ fn main() -> ExitCode {
         // Published as `…-setup.exe`, the same program is the installer.
         let is_setup = std::env::current_exe().is_ok_and(|exe| install::is_setup_name(&exe));
         return window(if is_setup { ui::launch_installer() } else { ui::launch() });
+    }
+    // Debug builds only: the web demo in a native window, to compare the two pixel by pixel.
+    #[cfg(debug_assertions)]
+    if args.first().map(String::as_str) == Some("--demo") {
+        return window(ui::launch_demo());
     }
     // These run without a console: they come from the app, the installer or Windows.
     match cli::parse(&args) {
