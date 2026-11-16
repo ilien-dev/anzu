@@ -304,16 +304,20 @@ pub fn update(painter: &egui::Painter, rect: Rect, color: Color32) {
     ));
 }
 
-/// A selection box.
-pub fn checkbox(painter: &egui::Painter, rect: Rect, checked: bool, enabled: bool, p: Palette) {
+/// A selection box, `checked` of the way from empty (0) to ticked (1): while it changes, the
+/// fill grows from the centre and the tick fades in.
+pub fn checkbox(painter: &egui::Painter, rect: Rect, checked: f32, enabled: bool, p: Palette) {
     let radius = CornerRadius::same(5);
-    if checked {
-        painter.rect_filled(rect, radius, p.check);
-        check(painter, rect.shrink(2.5), p.on_check);
-    } else {
+    let checked = checked.clamp(0.0, 1.0);
+    if checked < 1.0 {
         let line = if enabled { p.muted } else { p.line };
         painter.rect_filled(rect, radius, p.panel);
         painter.rect_stroke(rect, radius, Stroke::new(1.5, line), StrokeKind::Inside);
+    }
+    if checked > 0.0 {
+        let grown = Rect::from_center_size(rect.center(), rect.size() * (0.6 + 0.4 * checked));
+        painter.rect_filled(grown, radius, p.check.gamma_multiply(checked));
+        check(painter, rect.shrink(2.5), p.on_check.gamma_multiply(checked));
     }
 }
 

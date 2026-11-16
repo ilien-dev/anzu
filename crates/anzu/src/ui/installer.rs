@@ -20,6 +20,8 @@ const WIDTH: f32 = 720.0;
 const HEIGHT: f32 = 480.0;
 /// How long to wait for a copy of Anzu that is still closing.
 const COPY_WAIT: Duration = Duration::from_secs(5);
+/// How long a stage of the header track takes to fill, in seconds.
+const TRACK_TIME: f32 = 0.3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Page {
@@ -187,19 +189,23 @@ impl eframe::App for Installer {
             let top = ui.max_rect().top() - 14.0;
             let line = egui::Rect::from_min_max(egui::pos2(ui.ctx().content_rect().left(), top), egui::pos2(ui.ctx().content_rect().right(), top + 1.0));
             ui.painter().rect_filled(line, 0.0, p.line);
-            footer(self, ui, p, t);
+            let page = self.page as u64;
+            theme::entrance(ui, egui::Id::unique(("setup-page", false)), page, theme::by_order, false, |ui| footer(self, ui, p, t));
         });
         egui::CentralPanel::default().frame(egui::Frame::new().fill(p.bg).inner_margin(egui::Margin::symmetric(40, 30))).show(
             ui,
             |ui| {
                 ui.spacing_mut().item_spacing.y = 10.0;
-                match self.page {
+                // Each page comes in from the side it lies on: the next one from the right,
+                // "Back" from the left.
+                let page = self.page as u64;
+                theme::entrance(ui, egui::Id::unique(("setup-page", true)), page, theme::by_order, true, |ui| match self.page {
                     Page::Language => language_page(self, ui, p, t),
                     Page::Folder => folder_page(self, ui, p, t),
                     Page::Installing => installing_page(self, ui, p, t),
                     Page::Done => done_page(self, ui, p, t),
                     Page::Failed => failed_page(self, ui, p, t),
-                }
+                });
             },
         );
     }
@@ -219,14 +225,19 @@ fn header(app: &Installer, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) {
             };
             ui.label(RichText::new(label).color(p.on_shell).size(theme::SMALL));
             // The same three-stage track as the books: one stage per step.
-            let (rect, _) = ui.allocate_exact_size(egui::vec2(3.0 * 18.0 + 2.0 * 4.0, 6.0), Sense::hover());
+            let (rect, response) = ui.allocate_exact_size(egui::vec2(3.0 * 18.0 + 2.0 * 4.0, 6.0), Sense::hover());
+            // The stage of a new step fills from the left, as the page comes in.
+            let filled = ui.ctx().animate_value_with_time(response.id.with("filled"), filled as f32, TRACK_TIME);
             for i in 0..3 {
                 let x = rect.left() + i as f32 * 22.0;
                 let stage = egui::Rect::from_min_size(egui::pos2(x, rect.top()), egui::vec2(18.0, 6.0));
-                if i < filled {
-                    ui.painter().rect_filled(stage, 0.0, color);
-                } else {
+                let part = (filled - i as f32).clamp(0.0, 1.0);
+                if part < 1.0 {
                     ui.painter().rect_stroke(stage, 0.0, Stroke::new(1.0, p.shell_line), egui::StrokeKind::Inside);
+                }
+                if part > 0.0 {
+                    let fill = egui::Rect::from_min_size(stage.min, egui::vec2(stage.width() * part, stage.height()));
+                    ui.painter().rect_filled(fill, 0.0, color);
                 }
             }
         });
@@ -252,7 +263,7 @@ fn language_page(app: &mut Installer, ui: &mut egui::Ui, p: theme::Palette, t: &
         ui.scope(|ui| {
             ui.set_max_width(320.0);
             let options = [(Icon::Globe, t.language_en), (Icon::Globe, t.language_es)];
-            if let Some(i) = settings_menu::segmented(ui, p, &options, current) {
+            if let Some(i) = settings_menu::segmented(ui, p, "setup-language", &options, current) {
                 app.language = languages[i];
                 let title = app.t().setup_window_title.to_string();
                 ui.ctx().send_viewport_cmd(egui::ViewportCommand::Title(title));
@@ -279,11 +290,11 @@ fn folder_page(app: &mut Installer, ui: &mut egui::Ui, p: theme::Palette, t: &St
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         icons::show(ui, Icon::Monitor, 16.0, p.muted);
-        ui.checkbox(&mut app.desktop, t.setup_desktop);
+        ui.checkbox(&mut app.desktop, t.setup_desktop).on_hover_cursor(egui::CursorIcon::PointingHand);
     });
     ui.horizontal(|ui| {
         icons::show(ui, Icon::Book, 16.0, p.muted);
-        ui.checkbox(&mut app.start_menu, t.setup_start_menu);
+        ui.checkbox(&mut app.start_menu, t.setup_start_menu).on_hover_cursor(egui::CursorIcon::PointingHand);
     });
 }
 
