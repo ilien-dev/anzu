@@ -320,8 +320,41 @@ impl Driver {
     pub fn end_frame(&mut self, ctx: &egui::Context) {
         self.targets = std::mem::take(&mut self.seen);
         let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Debug, egui::Id::unique("demo-pointer")));
-        paint_pointer(&painter, self.pointer, if self.pressed { 0.9 } else { 1.0 });
+        let scale = if self.pressed { 0.9 } else { 1.0 };
+        // Over something that can be clicked the widgets ask for a hand, as in the app. The
+        // visitor's own cursor stays an arrow: the demo does not answer to it.
+        if ctx.output(|o| o.cursor_icon) == egui::CursorIcon::PointingHand {
+            paint_hand(&painter, self.pointer, scale);
+        } else {
+            paint_pointer(&painter, self.pointer, scale);
+        }
+        ctx.set_cursor_icon(egui::CursorIcon::Default);
         ctx.request_repaint();
+    }
+}
+
+/// The hand pointer, drawn white with a dark edge as on Windows. `tip` is the tip of the
+/// pointing finger.
+fn paint_hand(painter: &egui::Painter, tip: Pos2, scale: f32) {
+    // (left, top, right, bottom, radius), with the fingertip at (6, 0).
+    const PARTS: [(f32, f32, f32, f32, f32); 6] = [
+        (4.0, 0.0, 8.0, 12.0, 2.0),     // pointing finger
+        (8.0, 6.5, 11.4, 13.0, 1.7),    // middle finger
+        (11.4, 7.5, 14.6, 13.0, 1.6),   // ring finger
+        (14.6, 9.0, 17.4, 14.0, 1.4),   // little finger
+        (0.0, 10.5, 5.0, 16.0, 2.5),    // thumb
+        (3.0, 11.0, 17.4, 21.0, 3.5),   // palm
+    ];
+    let rect = |(l, t, r, b, _): (f32, f32, f32, f32, f32)| {
+        egui::Rect::from_min_max(tip + egui::vec2(l - 6.0, t) * scale, tip + egui::vec2(r - 6.0, b) * scale)
+    };
+    // The edge is every part grown by a pixel, under the white of every part, so the
+    // parts join without lines between them.
+    for part in PARTS {
+        painter.rect_filled(rect(part).expand(1.0), part.4 * scale + 1.0, Color32::from_rgb(0x14, 0x17, 0x1A));
+    }
+    for part in PARTS {
+        painter.rect_filled(rect(part), part.4 * scale, Color32::WHITE);
     }
 }
 
