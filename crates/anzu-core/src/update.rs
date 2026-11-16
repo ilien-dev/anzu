@@ -151,6 +151,13 @@ pub fn offer_in(json: &str, current: AppVersion) -> Result<Option<Offer>, Error>
 }
 
 /// Asks GitHub whether there is a newer release than this build.
+#[cfg(target_arch = "wasm32")]
+pub fn check() -> Result<Option<Offer>, Error> {
+    Err(releases::offline())
+}
+
+/// Asks GitHub whether there is a newer release than this build.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn check() -> Result<Option<Offer>, Error> {
     let net = |e: ureq::Error| Error::Network(e.to_string());
     let mut resp = releases::agent()
@@ -176,6 +183,8 @@ pub fn updates_dir(data_dir: &Path) -> PathBuf {
 
 /// Copies `reader` to `dir/<offer.name>`, reporting the bytes written so far, and keeps
 /// the file only if its SHA-256 is the published one.
+// On the web build a file holds nothing to close, but the drop is what closes it on Windows.
+#[cfg_attr(target_arch = "wasm32", allow(clippy::drop_non_drop))]
 pub fn save_verified(
     offer: &Offer,
     reader: &mut dyn Read,
@@ -222,6 +231,13 @@ pub fn save_verified(
 }
 
 /// Downloads the installer of `offer` into `dir` and verifies it.
+#[cfg(target_arch = "wasm32")]
+pub fn download(_offer: &Offer, _dir: &Path, _progress: &mut dyn FnMut(u64)) -> Result<PathBuf, Error> {
+    Err(releases::offline())
+}
+
+/// Downloads the installer of `offer` into `dir` and verifies it.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn download(offer: &Offer, dir: &Path, progress: &mut dyn FnMut(u64)) -> Result<PathBuf, Error> {
     let net = |e: ureq::Error| Error::Network(e.to_string());
     let mut resp = releases::agent().get(&offer.url).call().map_err(net)?;

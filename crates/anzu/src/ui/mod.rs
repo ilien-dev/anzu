@@ -1,7 +1,9 @@
 //! The interface: window state, worker threads and the split between screens.
 
 mod blocked;
+pub mod demo;
 mod icons;
+#[cfg(not(target_arch = "wasm32"))]
 mod installer;
 mod library;
 mod logo;
@@ -101,6 +103,8 @@ pub struct AnzuApp {
     run: Run,
     /// New versions of Anzu itself.
     updates: update::Updates,
+    /// The script that plays the window on the web page, instead of a person.
+    demo: Option<Box<demo::Driver>>,
 }
 
 impl AnzuApp {
@@ -128,10 +132,59 @@ impl AnzuApp {
             asking_to_close: false,
             run: Run::default(),
             updates,
+            demo: None,
         };
         app.refresh_books();
         app.start_check(ctx);
         app
+    }
+
+    /// The window of the web demo: in memory only, played by [`demo::Driver`].
+    fn demo(
+        ctx: &egui::Context,
+        remote: demo::RemoteHandle,
+        language: Language,
+        theme: ThemeChoice,
+        pointer: egui::Pos2,
+    ) -> Self {
+        theme::set_choice(ctx, theme);
+        let (tx, rx) = mpsc::channel();
+        let settings = Settings {
+            output_dir: PathBuf::from(crate::demo::OUTPUT_DIR),
+            converted: Default::default(),
+            titles: Default::default(),
+            theme,
+            language,
+        };
+        let mut app = AnzuApp {
+            data_dir: PathBuf::from(crate::demo::DATA_DIR),
+            content_dir: PathBuf::from(crate::demo::CONTENT_DIR),
+            settings,
+            health: Health::Checking,
+            books: Vec::new(),
+            selected: Vec::new(),
+            filter: Filter::All,
+            sort: Sort { column: Column::Title, ascending: true },
+            refreshed: None,
+            screen: Screen::Library,
+            tx,
+            rx,
+            close_tx: None,
+            asking_to_close: false,
+            run: Run::default(),
+            updates: update::Updates::none(),
+            demo: Some(Box::new(demo::Driver::new(remote, pointer))),
+        };
+        app.refresh_books();
+        app.start_check(ctx);
+        app
+    }
+
+    /// Records where a widget the demo script clicks was drawn. Does nothing outside the demo.
+    fn mark(&mut self, target: demo::Target, rect: egui::Rect) {
+        if let Some(demo) = &mut self.demo {
+            demo.mark(target, rect);
+        }
     }
 
     /// The text of the language in use.
@@ -140,6 +193,12 @@ impl AnzuApp {
     }
 
     fn refresh_books(&mut self) {
+        if let Some(demo) = &self.demo {
+            self.books = demo.system.scan();
+            let ready = self.ready();
+            self.selected.retain(|asin| self.books.iter().any(|b| &b.asin == asin && app::selectable(b.state, ready)));
+            return;
+        }
         // What the user chose in this window wins over what is on disk.
         let (theme, language) = (self.settings.theme, self.settings.language);
         self.settings = Settings::load(&self.data_dir);
@@ -193,18 +252,26 @@ impl AnzuApp {
 
     fn set_theme(&mut self, ctx: &egui::Context, choice: ThemeChoice) {
         self.settings.theme = choice;
-        let _ = self.settings.save(&self.data_dir);
+        if self.demo.is_none() {
+            let _ = self.settings.save(&self.data_dir);
+        }
         theme::set_choice(ctx, choice);
     }
 
     fn set_language(&mut self, ctx: &egui::Context, language: Language) {
         self.settings.language = language;
-        let _ = self.settings.save(&self.data_dir);
+        if self.demo.is_none() {
+            let _ = self.settings.save(&self.data_dir);
+        }
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(self.t().window_title.to_string()));
     }
 
     fn start_check(&mut self, ctx: &egui::Context) {
         self.health = Health::Checking;
+        if let Some(demo) = &mut self.demo {
+            demo.start_check(ctx.input(|i| i.time));
+            return;
+        }
         let (tx, ctx) = (self.tx.clone(), ctx.clone());
         let backend = CoreBackend { data_dir: self.data_dir.clone() };
         std::thread::spawn(move || {
@@ -225,6 +292,11 @@ impl AnzuApp {
         }
         self.screen = Screen::Progress;
         self.refreshed = None;
+        if let Some(demo) = &mut self.demo {
+            let now = ctx.input(|i| i.time);
+            demo.start_run(now, &plan, &self.books, &self.settings.output_dir, self.settings.language);
+            return;
+        }
 
         let (close_tx, close_rx) = mpsc::channel::<bool>();
         self.close_tx = Some(close_tx);
@@ -251,8 +323,11 @@ impl AnzuApp {
         });
     }
 
-    fn answer_close(&mut self, close: bool) {
+    fn answer_close(&mut self, ctx: &egui::Context, close: bool) {
         self.asking_to_close = false;
+        if let Some(demo) = &mut self.demo {
+            demo.answered(ctx.input(|i| i.time));
+        }
         if let Some(tx) = &self.close_tx {
             let _ = tx.send(close);
         }
@@ -304,7 +379,14 @@ impl AnzuApp {
         self.screen = Screen::Library;
     }
 
+    #[cfg(target_arch = "wasm32")]
+    fn pick_output_dir(&mut self) {}
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn pick_output_dir(&mut self) {
+        if self.demo.is_some() {
+            return;
+        }
         let mut dialog = rfd::FileDialog::new().set_title(self.t().folder_dialog);
         if self.settings.output_dir.is_dir() {
             dialog = dialog.set_directory(&self.settings.output_dir);
@@ -331,7 +413,9 @@ impl AnzuApp {
             ui.label(t.close_body);
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                if theme::button(ui, theme::Surface::Page, true, theme::primary_button(p, t.close_confirm)).clicked() {
+                let confirm = theme::button(ui, theme::Surface::Page, true, theme::primary_button(p, t.close_confirm));
+                self.mark(demo::Target::CloseConfirm, confirm.rect);
+                if confirm.clicked() {
                     answer = Some(true);
                 }
                 if theme::button(ui, theme::Surface::Page, true, egui::Button::new(t.cancel)).clicked() {
@@ -343,7 +427,7 @@ impl AnzuApp {
             answer = answer.or(Some(false));
         }
         if let Some(close) = answer {
-            self.answer_close(close);
+            self.answer_close(ctx, close);
         }
     }
 
@@ -383,11 +467,37 @@ fn open_file(path: &Path) {
 }
 
 impl eframe::App for AnzuApp {
-    fn logic(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if let Some(demo) = &mut self.demo {
+            demo.deliver(ctx.input(|i| i.time), &self.tx);
+            let (language, theme) = {
+                let mut remote = demo.remote.borrow_mut();
+                (remote.language.take(), remote.theme.take())
+            };
+            if demo.restart {
+                let (remote, pointer) = (demo.remote.clone(), demo.pointer());
+                let language = language.unwrap_or(self.settings.language);
+                let theme = theme.unwrap_or(self.settings.theme);
+                *self = AnzuApp::demo(ctx, remote, language, theme, pointer);
+                return;
+            }
+            if let Some(language) = language {
+                self.set_language(ctx, language);
+            }
+            if let Some(theme) = theme {
+                self.set_theme(ctx, theme);
+            }
+        }
         while let Ok(message) = self.rx.try_recv() {
             self.handle(message);
         }
         self.updates.poll();
+    }
+
+    fn raw_input_hook(&mut self, _ctx: &egui::Context, raw_input: &mut egui::RawInput) {
+        if let Some(demo) = &mut self.demo {
+            demo.drive(raw_input);
+        }
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
@@ -402,10 +512,14 @@ impl eframe::App for AnzuApp {
             let (t, busy) = (self.t(), self.busy());
             update::card(&mut self.updates, &ctx, t, busy);
         }
+        if let Some(demo) = &mut self.demo {
+            demo.end_frame(&ctx);
+        }
     }
 }
 
 /// The logo for the title bar and the taskbar.
+#[cfg(not(target_arch = "wasm32"))]
 fn window_icon() -> egui::IconData {
     const ICON_SIZE: u32 = 128;
     egui::IconData {
@@ -416,17 +530,56 @@ fn window_icon() -> egui::IconData {
 }
 
 /// Opens the installer window. Does not return until it is closed.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn launch_installer() -> Result<(), String> {
     installer::launch(window_icon())
 }
 
+/// The size the window opens at, which the web demo reproduces.
+pub const WINDOW_WIDTH: f32 = 1180.0;
+pub const WINDOW_HEIGHT: f32 = 760.0;
+
+/// The window of the web demo, played by a script. `remote` carries the page's language
+/// and theme in, and the demo's events out.
+pub fn demo_app(
+    ctx: &egui::Context,
+    remote: demo::RemoteHandle,
+    language: Language,
+    theme_choice: ThemeChoice,
+) -> Box<dyn eframe::App> {
+    theme::install(ctx);
+    let rest = egui::pos2(WINDOW_WIDTH * 0.72, WINDOW_HEIGHT * 0.82);
+    Box::new(AnzuApp::demo(ctx, remote, language, theme_choice, rest))
+}
+
+/// The web demo in a native window, in English and dark, for comparing it with the web
+/// build. Not in release builds.
+#[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+pub fn launch_demo() -> Result<(), String> {
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_title(i18n::EN.window_title)
+            .with_inner_size([WINDOW_WIDTH, WINDOW_HEIGHT])
+            .with_resizable(false)
+            .with_icon(window_icon()),
+        ..Default::default()
+    };
+    eframe::run_native(
+        "Anzu demo",
+        options,
+        Box::new(|cc| Ok(demo_app(&cc.egui_ctx, demo::RemoteHandle::default(), Language::En, ThemeChoice::Dark))),
+    )
+    .map_err(|e| e.to_string())
+}
+
 /// Opens the app window. Does not return until it is closed.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn launch() -> Result<(), String> {
     let language = Settings::load(&settings::prepare_data_dir()).language;
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title(i18n::strings(language).window_title)
-            .with_inner_size([1180.0, 760.0])
+            .with_inner_size([WINDOW_WIDTH, WINDOW_HEIGHT])
             .with_min_inner_size([820.0, 500.0])
             .with_icon(window_icon()),
         ..Default::default()

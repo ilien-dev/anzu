@@ -3,7 +3,7 @@
 use anzu_core::library::{Book, BookState};
 use eframe::egui::{self, Align, Align2, Layout, Pos2, Rect, RichText, Sense, Stroke};
 
-use super::{AnzuApp, Column, Filter, Sort, blocked, icons, settings_menu, theme};
+use super::{AnzuApp, Column, Filter, Sort, blocked, demo, icons, settings_menu, theme};
 use crate::app::{self, Health};
 use crate::i18n::Strings;
 
@@ -177,7 +177,9 @@ fn toolbar(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings)
 /// "Refresh list": shows the books downloaded in Kindle since the window opened.
 fn refresh_button(app: &mut AnzuApp, ui: &mut egui::Ui, t: &Strings) {
     let enabled = !app.busy();
-    if theme::button(ui, theme::Surface::Page, enabled, egui::Button::new(t.refresh)).on_hover_text(t.refresh_hint).clicked() {
+    let response = theme::button(ui, theme::Surface::Page, enabled, egui::Button::new(t.refresh)).on_hover_text(t.refresh_hint);
+    app.mark(demo::Target::Refresh, response.rect);
+    if response.clicked() {
         app.refresh_by_hand();
     }
 }
@@ -360,6 +362,9 @@ fn table_row(
     }
 
     let response = response.on_hover_cursor(if can_select { egui::CursorIcon::PointingHand } else { egui::CursorIcon::Default });
+    if let Some(asin) = demo::BOOKS.iter().find(|a| **a == row.asin) {
+        app.mark(demo::Target::Book(asin), Rect::from_center_size(c.check.center(), egui::vec2(16.0, 16.0)));
+    }
     if response.clicked() {
         if selected {
             app.selected.retain(|a| a != &row.asin);
@@ -432,7 +437,9 @@ fn footer(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) 
                 let plan = app.plan();
                 let enabled = !plan.asins.is_empty() && !app.busy();
                 let label = t.run_button(plan.needs_unlock, plan.asins.len(), chosen_converted(app).len());
-                if theme::button(ui, theme::Surface::Page, enabled, theme::primary_button(p, &label)).clicked() {
+                let run = theme::button(ui, theme::Surface::Page, enabled, theme::primary_button(p, &label));
+                app.mark(demo::Target::Run, run.rect);
+                if run.clicked() {
                     let ctx = ui.ctx().clone();
                     app.start_run(&ctx);
                 }

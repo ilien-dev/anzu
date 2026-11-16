@@ -111,33 +111,53 @@ impl Timed {
     }
 }
 
-/// Holds back the end of each step, and of each stage of a book, until it has been shown
-/// running for a minimum time.
-pub struct Pacer {
+/// The rule of the pacer on any clock: how long a message must wait so that the step or
+/// stage it ends has been shown running for a minimum time. `now` is measured from any
+/// fixed start; the web demo uses the frame time, the app a real clock.
+pub struct Holds {
     min: Duration,
-    started: Vec<(Timed, Instant)>,
+    started: Vec<(Timed, Duration)>,
 }
 
-impl Pacer {
+impl Holds {
     pub fn new(min: Duration) -> Self {
-        Pacer { min, started: Vec::new() }
+        Holds { min, started: Vec::new() }
     }
 
-    /// Call before sending `message`: it sleeps when a step would end too soon.
-    pub fn wait_before(&mut self, message: &Msg) {
+    /// Records `message` sent at `now` and returns how long it must be held first.
+    pub fn hold(&mut self, message: &Msg, now: Duration) -> Duration {
         if let Some(timed) = Timed::started_by(message) {
             self.started.retain(|(t, _)| *t != timed);
-            self.started.push((timed, Instant::now()));
+            self.started.push((timed, now));
         } else if let Some(timed) = Timed::ended_by(message)
             && let Some(index) = self.started.iter().position(|(t, _)| *t == timed)
         {
             let (timed, start) = self.started.remove(index);
             // Conversions are held less, so a library of hundreds of books is not slowed down.
             let min = if matches!(timed, Timed::Book(_, Stage::Convert)) { self.min / 3 } else { self.min };
-            let left = min.saturating_sub(start.elapsed());
-            if !left.is_zero() {
-                std::thread::sleep(left);
-            }
+            return min.saturating_sub(now.saturating_sub(start));
+        }
+        Duration::ZERO
+    }
+}
+
+/// Holds back the end of each step, and of each stage of a book, until it has been shown
+/// running for a minimum time.
+pub struct Pacer {
+    holds: Holds,
+    origin: Instant,
+}
+
+impl Pacer {
+    pub fn new(min: Duration) -> Self {
+        Pacer { holds: Holds::new(min), origin: Instant::now() }
+    }
+
+    /// Call before sending `message`: it sleeps when a step would end too soon.
+    pub fn wait_before(&mut self, message: &Msg) {
+        let left = self.holds.hold(message, self.origin.elapsed());
+        if !left.is_zero() {
+            std::thread::sleep(left);
         }
     }
 }

@@ -3,6 +3,7 @@
 //! Every release in the repository is marked as `prerelease`, so `/releases/latest`
 //! returns nothing useful: the list is requested and the first one is used.
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -95,6 +96,7 @@ pub fn fetch_latest() -> Result<Release, Error> {
     parse_releases(&body)?.into_iter().next().ok_or(Error::NoRelease)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn agent() -> ureq::Agent {
     ureq::Agent::config_builder()
         .timeout_global(Some(Duration::from_secs(15)))
@@ -104,6 +106,18 @@ pub(crate) fn agent() -> ureq::Agent {
         .into()
 }
 
+/// The web build has no network access of its own.
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn offline() -> Error {
+    Error::Network("the web build does not go online".into())
+}
+
+#[cfg(target_arch = "wasm32")]
+fn http_get_string(_url: &str) -> Result<String, Error> {
+    Err(offline())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn http_get_string(url: &str) -> Result<String, Error> {
     let mut resp = agent()
         .get(url)

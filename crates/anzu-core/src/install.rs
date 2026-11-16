@@ -14,6 +14,7 @@ use crate::Error;
 /// The executable in the installation folder.
 pub const EXE_NAME: &str = "anzu.exe";
 /// The name of the shortcuts, on the desktop and in the Start menu.
+#[cfg_attr(not(windows), allow(dead_code))]
 const SHORTCUT_NAME: &str = "Anzu.lnk";
 /// Where Windows lists the apps of the current user that can be uninstalled.
 #[cfg(windows)]

@@ -4,7 +4,7 @@
 use anzu_core::library::BookState;
 use eframe::egui::{self, Align, CornerRadius, Layout, Pos2, Rect, RichText, Sense, Stroke, StrokeKind};
 
-use super::{AnzuApp, StepState, icons, open_file, show_in_folder, theme};
+use super::{AnzuApp, StepState, demo, icons, open_file, show_in_folder, theme};
 use crate::i18n::Strings;
 use crate::pipeline::{Stage, Step};
 
@@ -403,7 +403,9 @@ fn result(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings) 
     }
     ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
         let button = if saved.is_empty() { theme::primary_button(p, t.convert_more) } else { egui::Button::new(t.convert_more) };
-        if theme::button(ui, theme::Surface::Page, true, button).clicked() {
+        let more = theme::button(ui, theme::Surface::Page, true, button);
+        app.mark(demo::Target::ConvertMore, more.rect);
+        if more.clicked() {
             app.back_to_library();
         }
     });
