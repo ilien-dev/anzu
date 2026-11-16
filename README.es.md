@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/motion/hero-es-dark.gif">
-    <img src="assets/motion/hero-es-light.gif" width="820"
+    <source media="(prefers-color-scheme: dark)" srcset="assets/motion/anzu-hero-es-dark.gif">
+    <img src="assets/motion/anzu-hero-es-light.gif" width="820"
          alt="El logo de Anzu abre sus alas sobre el texto: Libros de Kindle a EPUB, en Windows. Debajo, un libro de Kindle avanza por una pista de tres etapas: primero un código con candado (Con DRM), luego su título, Moby-Dick (Desbloqueado), y al final el archivo Moby-Dick.epub (EPUB).">
   </picture>
 </p>

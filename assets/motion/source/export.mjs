@@ -1,4 +1,4 @@
-// Renders hero.html to the README GIFs in assets/motion/: one per language (en, es) and
+// Renders hero.html to the README GIFs in assets/motion/ (anzu-hero-*.gif): one per language (en, es) and
 // theme (dark, light), on GitHub's own dark and light grounds.
 //
 //   npm install
@@ -30,7 +30,7 @@ for (const lang of ["en", "es"]) {
     await page.evaluate(() => document.fonts.ready);
     const duration = await page.evaluate(() => window.anzuHero.duration);
 
-    const name = `hero-${lang}-${theme}`;
+    const name = `anzu-hero-${lang}-${theme}`;
     const dir = join(here, "frames", name);
     rmSync(dir, { recursive: true, force: true });
     mkdirSync(dir, { recursive: true });
