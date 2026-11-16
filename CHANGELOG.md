@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.5.0](https://github.com/ilien-dev/anzu/compare/8c22781d94bae4bae680a721fe155df578959679..v0.5.0) - 2026-11-16
+#### Features
+- web demo build of the interface (#7) - ([699be91](https://github.com/ilien-dev/anzu/commit/699be91a745f5ef81af7e1ce728406f18a794f52)) - ilien
+#### Documentation
+- contribution guidelines and pull request rules (#4) - ([8c22781](https://github.com/ilien-dev/anzu/commit/8c22781d94bae4bae680a721fe155df578959679)) - ilien
+
+- - -
+
 ## [v0.4.0](https://github.com/ilien-dev/anzu/compare/377b4184d73fb8e69d1ed061311fdb032b21ed33..v0.4.0) - 2026-11-15
 #### Features
 - refresh the book list without restarting (#3) - ([377b418](https://github.com/ilien-dev/anzu/commit/377b4184d73fb8e69d1ed061311fdb032b21ed33)) - ilien
