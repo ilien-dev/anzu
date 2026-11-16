@@ -1,5 +1,5 @@
 ---
-name: contributing
+name: uncontributing
 description: Use before opening an issue, creating a branch, committing for a pull request, or writing a pull request title or description in the Anzu repository. Walks through CONTRIBUTING.md (one change per PR, feature/ branch names, Conventional Commit titles, the description format with character limits, evidence) and checks the result with .github/scripts/check-pr.js.
 ---
 

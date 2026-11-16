@@ -112,4 +112,4 @@ earlier approval. Answer review comments in the PR; keep extra changes for anoth
 ## Working with an AI agent
 
 The rules are the same. Agents that read `.claude/skills` or `.agents/skills` have a
-`contributing` skill that walks through them step by step.
+`uncontributing` skill that walks through them step by step.
