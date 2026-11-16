@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.8.2](https://github.com/ilien-dev/anzu/compare/28120011de150b0ec72da6dcc7594af91f52a167..v0.8.2) - 2026-11-16
+#### Bug Fixes
+- keep books in EPUB while any of their EPUBs remains (#16) - ([3587893](https://github.com/ilien-dev/anzu/commit/358789309bda23af4f4b6ea21a7cebec5715a098)) - ilien
+- centre the ready line of the status panel (#17) - ([b011aca](https://github.com/ilien-dev/anzu/commit/b011acabe019881290b90e484f19d21cc491cb21)) - ilien
+- scroll a finished run down to its last buttons (#18) - ([2812001](https://github.com/ilien-dev/anzu/commit/28120011de150b0ec72da6dcc7594af91f52a167)) - ilien
+
+- - -
+
 ## [v0.8.1](https://github.com/ilien-dev/anzu/compare/da747920456fc34ba9770ddcf92dc36a3753d0c6..v0.8.1) - 2026-11-16
 #### Bug Fixes
 - show a hand pointer over buttons in the web demo (#19) - ([da74792](https://github.com/ilien-dev/anzu/commit/da747920456fc34ba9770ddcf92dc36a3753d0c6)) - ilien
