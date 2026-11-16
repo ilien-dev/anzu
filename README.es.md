@@ -16,10 +16,10 @@
 </p>
 
 <p align="center">
-  <a href="https://anzu.ilien.dev/es/"><img alt="Sitio web: anzu.ilien.dev" src="https://img.shields.io/badge/sitio%20web-anzu.ilien.dev-ffb000?style=flat-square&labelColor=14171a"></a>
-  <a href="https://github.com/ilien-dev/anzu/releases/latest"><img alt="Última versión" src="https://img.shields.io/github/v/release/ilien-dev/anzu?style=flat-square&color=ffb000&labelColor=14171a&label=descargar"></a>
-  <img alt="Windows 10 y 11" src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-14171a?style=flat-square">
-  <a href="LICENSE"><img alt="Licencia: GPL-3.0-or-later" src="https://img.shields.io/badge/licencia-GPL--3.0-14171a?style=flat-square"></a>
+  <a href="https://anzu.ilien.dev/es/"><img alt="Sitio web: anzu.ilien.dev" src="https://img.shields.io/badge/sitio%20web-anzu.ilien.dev-fff27a?style=flat-square&labelColor=15161a"></a>
+  <a href="https://github.com/ilien-dev/anzu/releases/latest"><img alt="Última versión" src="https://img.shields.io/github/v/release/ilien-dev/anzu?style=flat-square&color=fff27a&labelColor=15161a&label=descargar"></a>
+  <img alt="Windows 10 y 11" src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-15161a?style=flat-square">
+  <a href="LICENSE"><img alt="Licencia: GPL-3.0-or-later" src="https://img.shields.io/badge/licencia-GPL--3.0-15161a?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -100,9 +100,11 @@ cualquier otro programa.
 ## Cómo se usa
 
 1. **Descarga tus libros** en la app de Kindle, como siempre.
-2. **Abre Anzu.** Encuentra la app de Kindle y muestra tus libros. Hasta que un libro se
+2. **Abre Anzu.** Encuentra la app de Kindle y pone tus libros en estantes según lo que
+   les falta: por desbloquear, listos para EPUB o ya en EPUB. Hasta que un libro se
    desbloquea ves un código en lugar del título; el título real aparece al desbloquearlo.
-3. **Marca los libros que quieras** y elige la carpeta donde irán los EPUB
+3. **Marca los libros que quieras.** El panel lateral los lista con lo que se hará con
+   cada uno. Elige la carpeta donde irán los EPUB
    (`Documents\EPUB` por defecto).
 4. **Pulsa el botón.** Siempre dice lo que va a pasar, por ejemplo «Desbloquear y
    convertir 2 libros». La app de Kindle tiene que estar cerrada para desbloquear, así que
@@ -164,7 +166,9 @@ desbloqueados se pueden seguir convirtiendo.
 
 **¿De dónde viene el nombre?**
 En la mitología mesopotámica, Anzu es el ave que robó a los dioses la Tablilla de los
-Destinos. El logo es una A formada por dos alas abiertas sobre una tablilla.
+Destinos. El logo es una A formada por dos alas abiertas sobre una tablilla: un ala lila,
+un ala melocotón y una tablilla amarilla, los colores que la app da a un libro mientras
+pasa de DRM a EPUB.
 
 ## Para quien quiera saber más
 
@@ -177,8 +181,8 @@ lee [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - **Satsuoni**, por la herramienta de desbloqueo.
 - **John Howell** (jhowell), cuyo complemento KFX Input es la referencia del formato KFX.
-- **JetBrains Mono**, la tipografía de la interfaz, con licencia SIL Open Font License 1.1
-  (`crates/anzu/assets/fonts/OFL.txt`).
+- **Inter** y **Space Grotesk**, las tipografías de la interfaz, con licencia SIL Open Font
+  License 1.1 (`crates/anzu/assets/fonts/Inter-OFL.txt` y `SpaceGrotesk-OFL.txt`).
 
 ## Licencia
 

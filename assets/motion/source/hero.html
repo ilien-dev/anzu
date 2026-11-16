@@ -1,26 +1,29 @@
 <!doctype html>
 <!-- The README hero: a book moves along the app's three-stage track, from its ASIN with a
-     lock to its real title to Moby-Dick.epub. Option A of the hero canvas.
+     lock to its real title to Moby-Dick.epub, its cover taking the pastel of each stage.
      Open it in a browser to watch it; export.mjs renders it to ../hero-*.gif.
      Query: ?lang=en|es&theme=dark|light -->
 <html lang="en">
 <meta charset="utf-8">
 <title>Anzu hero</title>
 <style>
-@font-face{font-family:"JetBrains Mono";src:url("../../../crates/anzu/assets/fonts/JetBrainsMono-Regular.ttf");font-weight:400}
-@font-face{font-family:"JetBrains Mono";src:url("../../../crates/anzu/assets/fonts/JetBrainsMono-Bold.ttf");font-weight:700}
+@font-face{font-family:"Inter";src:url("../../../crates/anzu/assets/fonts/Inter-Regular.otf");font-weight:400}
+@font-face{font-family:"Inter";src:url("../../../crates/anzu/assets/fonts/Inter-SemiBold.otf");font-weight:600}
+@font-face{font-family:"Space Grotesk";src:url("../../../crates/anzu/assets/fonts/SpaceGrotesk-Bold.ttf");font-weight:700}
 html,body{margin:0;background:#888}
-/* The palettes of the app (crates/anzu/src/ui/theme.rs) on GitHub's own grounds. */
-.root{font-family:"JetBrains Mono",ui-monospace,monospace;--gh:#0d1117;--bg:#0e0f0c;--line:#34382b;--fg:#e9e6d6;--muted:#a7a48f;--accent:#ffb000;--ok:#a2d975;--warn:#ff9166}
-.root.light{--gh:#ffffff;--bg:#f3f5f7;--line:#cbd2d9;--fg:#14171a;--muted:#55606b;--accent:#b25e00;--ok:#1f6b3a;--warn:#a63a12}
+/* The palettes of the app (crates/anzu/src/ui/theme.rs) on GitHub's own grounds. Pastels
+   are fills; text on them is ink. */
+.root{font-family:"Inter",sans-serif;--ink:#15161a;--drm:#ffb4a2;--unl:#c9b8ff;--epub:#c8f0a0;--butter:#fff27a;
+  --gh:#0d1117;--bg:#16171b;--line:#2a2c33;--fg:#ecedef;--muted:#a3a7b0;--quiet:#1e2025;--tile:#26282e}
+.root.light{--gh:#ffffff;--bg:#f4f5f7;--line:#e4e7ec;--fg:#15161a;--muted:#565a64;--quiet:#e4e7ec;--tile:#15161a}
 .root{width:960px;height:400px;box-sizing:border-box;padding:20px;background:var(--gh)}
-.card{box-sizing:border-box;width:100%;height:100%;border-radius:6px;padding:44px 56px;background:var(--bg);border:1px solid var(--line);color:var(--fg)}
+.card{box-sizing:border-box;width:100%;height:100%;border-radius:22px;padding:40px 52px;background:var(--bg);border:1px solid var(--line);color:var(--fg)}
 .stage{display:flex;flex-direction:column;justify-content:space-between;height:100%;animation:stage 8s linear infinite}
 @keyframes stage{0%{opacity:0}4%,92%{opacity:1}100%{opacity:0}}
-.head{display:flex;align-items:center;gap:28px}
-.name{font-size:46px;font-weight:700;letter-spacing:-.035em;line-height:1}
-.tagline{font-size:19px;color:var(--muted);margin-top:6px}
-.tagline b{color:var(--accent)}
+.head{display:flex;align-items:center;gap:26px}
+.name{font-family:"Space Grotesk",sans-serif;font-size:52px;font-weight:700;letter-spacing:-.045em;line-height:1}
+.tagline{font-size:20px;color:var(--muted);margin-top:8px}
+.tagline b{font-weight:600;color:var(--ink);background:var(--epub);border-radius:7px;padding:1px 7px}
 .wing{transform-box:view-box;transform-origin:32px 58px;animation:wing 8s cubic-bezier(.16,1,.3,1) infinite}
 .wl{--tilt:16deg}.wr{--tilt:-16deg}
 @keyframes wing{0%{transform:rotate(var(--tilt)) scaleX(.55);opacity:.2}12%,100%{transform:none;opacity:1}}
@@ -28,28 +31,34 @@ html,body{margin:0;background:#888}
 @keyframes tab{0%,5%{transform:translateY(8px);opacity:0}14%,100%{transform:none;opacity:1}}
 .intro{animation:intro 8s cubic-bezier(.16,1,.3,1) infinite}
 @keyframes intro{0%,6%{opacity:0;transform:translateY(6px)}14%,100%{opacity:1;transform:none}}
-.book{display:flex;flex-direction:column;gap:14px}
-.swap{position:relative;height:30px;font-size:22px;font-weight:700}
-.swap>span{position:absolute;left:0;top:0;display:flex;align-items:center;gap:12px;white-space:nowrap}
+.book{display:flex;align-items:center;gap:22px}
+.cover{position:relative;flex:none;width:58px;height:78px;border-radius:9px;background:var(--drm);animation:cover 8s linear infinite}
+@keyframes cover{0%,38%{background:var(--drm)}41%,56%{background:var(--unl)}59%,100%{background:var(--epub)}}
+.cover svg{position:absolute;inset:0;margin:auto;color:var(--ink)}
+.ic1{animation:t1 8s linear infinite}.ic2{animation:t2 8s linear infinite}.ic3{animation:t3b 8s linear infinite}
+.track{flex:1;display:flex;flex-direction:column;gap:12px}
+.swap{position:relative;height:30px;font-size:23px;font-weight:600}
+.swap>span{position:absolute;left:0;top:0;white-space:nowrap}
 .t1{color:var(--muted);animation:t1 8s linear infinite}
 .t2{color:var(--fg);animation:t2 8s linear infinite}
-.t3{color:var(--ok);animation:t3 8s linear infinite}
+.t3{color:var(--fg);animation:t3 8s linear infinite}
 @keyframes t1{0%,38%{opacity:1;filter:none}41%,100%{opacity:0;filter:blur(3px)}}
 @keyframes t2{0%,38%{opacity:0;filter:blur(3px)}41%,56%{opacity:1;filter:none}59%,100%{opacity:0;filter:blur(3px)}}
 @keyframes t3{0%,56%{opacity:0;transform:translateX(-8px)}60%,100%{opacity:1;transform:none}}
+@keyframes t3b{0%,56%{opacity:0}60%,100%{opacity:1}}
 .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.seg{height:12px;border-radius:2px;border:1px solid var(--line);overflow:hidden}
-.fill{height:100%;transform-origin:left;transform:scaleX(0)}
-.f1{background:var(--warn);animation:f1 8s cubic-bezier(.65,0,.35,1) infinite}
-.f2{background:var(--accent);animation:f2 8s cubic-bezier(.65,0,.35,1) infinite}
-.f3{background:var(--ok);animation:f3 8s cubic-bezier(.65,0,.35,1) infinite}
+.seg{height:12px;border-radius:6px;background:var(--quiet);overflow:hidden}
+.fill{height:100%;border-radius:6px;transform-origin:left;transform:scaleX(0)}
+.f1{background:var(--drm);animation:f1 8s cubic-bezier(.65,0,.35,1) infinite}
+.f2{background:var(--unl);animation:f2 8s cubic-bezier(.65,0,.35,1) infinite}
+.f3{background:var(--epub);animation:f3 8s cubic-bezier(.65,0,.35,1) infinite}
 @keyframes f1{0%,15%{transform:scaleX(0)}27%,100%{transform:scaleX(1)}}
 @keyframes f2{0%,33%{transform:scaleX(0)}45%,100%{transform:scaleX(1)}}
 @keyframes f3{0%,51%{transform:scaleX(0)}63%,100%{transform:scaleX(1)}}
-.labels{font-size:15px;font-weight:700}
-.l1{color:var(--warn);animation:l1 8s steps(1) infinite}
-.l2{color:var(--accent);animation:l2 8s steps(1) infinite}
-.l3{color:var(--ok);animation:l3 8s steps(1) infinite}
+.labels{font-size:15px;font-weight:600}
+.labels span{display:flex;align-items:center;gap:8px}
+.labels span::before{content:"";width:12px;height:12px;border-radius:4px;background:var(--c)}
+.l1{animation:l1 8s steps(1) infinite}.l2{animation:l2 8s steps(1) infinite}.l3{animation:l3 8s steps(1) infinite}
 @keyframes l1{0%{opacity:.35}20%,100%{opacity:1}}
 @keyframes l2{0%{opacity:.35}39%,100%{opacity:1}}
 @keyframes l3{0%{opacity:.35}57%,100%{opacity:1}}
@@ -59,27 +68,34 @@ html,body{margin:0;background:#888}
   <div class="card">
     <div class="stage">
       <div class="head">
-        <svg width="92" height="92" viewBox="0 0 64 64" aria-hidden="true">
-          <rect width="64" height="64" rx="14.72" fill="#14171a"/>
-          <g transform="translate(10.88 10.88) scale(0.66)" fill="#ffb000">
-            <polygon class="wing wl" points="32,6 10,58 20,58 32,28"/>
-            <polygon class="wing wr" points="32,6 32,28 44,58 54,58"/>
-            <rect class="tab" x="28.5" y="46" width="7" height="12"/>
+        <svg width="96" height="96" viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="18" style="fill:var(--tile)"/>
+          <g transform="translate(10.88 10.88) scale(0.66)">
+            <polygon class="wing wl" points="32,6 10,58 20,58 32,28" fill="#c9b8ff"/>
+            <polygon class="wing wr" points="32,6 32,28 44,58 54,58" fill="#ffb4a2"/>
+            <rect class="tab" x="27" y="44" width="10" height="14" rx="2" fill="#fff27a"/>
           </g>
         </svg>
         <div class="intro">
-          <div class="name">anzu</div>
+          <div class="name">Anzu</div>
           <div class="tagline" data-t="tagline"></div>
         </div>
       </div>
       <div class="book">
-        <div class="swap">
-          <span class="t1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>B07XKQ9R2M</span>
-          <span class="t2">Moby-Dick</span>
-          <span class="t3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/></svg>Moby-Dick.epub</span>
+        <div class="cover">
+          <svg class="ic1" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          <svg class="ic2" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v-1"/></svg>
+          <svg class="ic3" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/><path d="M9 13h7M9 17h7"/></svg>
         </div>
-        <div class="row"><div class="seg"><div class="fill f1"></div></div><div class="seg"><div class="fill f2"></div></div><div class="seg"><div class="fill f3"></div></div></div>
-        <div class="row labels"><span class="l1" data-t="drm"></span><span class="l2" data-t="unlocked"></span><span class="l3">EPUB</span></div>
+        <div class="track">
+          <div class="swap">
+            <span class="t1">B07XKQ9R2M</span>
+            <span class="t2">Moby-Dick</span>
+            <span class="t3">Moby-Dick.epub</span>
+          </div>
+          <div class="row"><div class="seg"><div class="fill f1"></div></div><div class="seg"><div class="fill f2"></div></div><div class="seg"><div class="fill f3"></div></div></div>
+          <div class="row labels"><span class="l1" style="--c:var(--drm)" data-t="drm"></span><span class="l2" style="--c:var(--unl)" data-t="unlocked"></span><span class="l3" style="--c:var(--epub)">EPUB</span></div>
+        </div>
       </div>
     </div>
   </div>

@@ -16,10 +16,10 @@
 </p>
 
 <p align="center">
-  <a href="https://anzu.ilien.dev/"><img alt="Website: anzu.ilien.dev" src="https://img.shields.io/badge/website-anzu.ilien.dev-ffb000?style=flat-square&labelColor=14171a"></a>
-  <a href="https://github.com/ilien-dev/anzu/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ilien-dev/anzu?style=flat-square&color=ffb000&labelColor=14171a&label=download"></a>
-  <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-14171a?style=flat-square">
-  <a href="LICENSE"><img alt="License: GPL-3.0-or-later" src="https://img.shields.io/badge/license-GPL--3.0-14171a?style=flat-square"></a>
+  <a href="https://anzu.ilien.dev/"><img alt="Website: anzu.ilien.dev" src="https://img.shields.io/badge/website-anzu.ilien.dev-fff27a?style=flat-square&labelColor=15161a"></a>
+  <a href="https://github.com/ilien-dev/anzu/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ilien-dev/anzu?style=flat-square&color=fff27a&labelColor=15161a&label=download"></a>
+  <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-15161a?style=flat-square">
+  <a href="LICENSE"><img alt="License: GPL-3.0-or-later" src="https://img.shields.io/badge/license-GPL--3.0-15161a?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -98,9 +98,11 @@ say so. To remove it, uninstall Anzu from Settings › Apps like any other progr
 ## How to use it
 
 1. **Download your books** in the Kindle app, as you normally do.
-2. **Open Anzu.** It finds the Kindle app and lists your books. Until a book is unlocked
+2. **Open Anzu.** It finds the Kindle app and puts your books on shelves by what they still
+   need: to unlock, ready for EPUB, or already in EPUB. Until a book is unlocked
    you see a code instead of its title; the real title appears once it is unlocked.
-3. **Tick the books you want** and choose the folder where the EPUB files will go
+3. **Tick the books you want.** The side panel lists them with what will be done to each.
+   Choose the folder where the EPUB files will go
    (`Documents\EPUB` by default).
 4. **Press the button.** It always says what is about to happen, for example
    “Unlock and convert 2 books”. The Kindle app has to be closed for the unlock, so Anzu
@@ -160,7 +162,8 @@ can still be converted.
 
 **Where does the name come from?**
 In Mesopotamian myth, Anzu is the bird that stole the Tablet of Destinies from the gods.
-The logo is an A made of two open wings over a tablet.
+The logo is an A made of two open wings over a tablet: a lilac wing, a peach wing and a
+butter tablet, the colours the app gives a book as it moves from DRM to EPUB.
 
 ## For the curious
 
@@ -173,8 +176,8 @@ command line, the known limitations and how to build it from source are all in t
 
 - **Satsuoni**, for the unlock tool.
 - **John Howell** (jhowell), whose KFX Input plugin is the reference for the KFX format.
-- **JetBrains Mono**, the interface typeface, under the SIL Open Font License 1.1
-  (`crates/anzu/assets/fonts/OFL.txt`).
+- **Inter** and **Space Grotesk**, the interface typefaces, under the SIL Open Font License
+  1.1 (`crates/anzu/assets/fonts/Inter-OFL.txt` and `SpaceGrotesk-OFL.txt`).
 
 ## License
 

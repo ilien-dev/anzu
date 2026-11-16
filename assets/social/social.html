@@ -5,37 +5,44 @@
 <meta charset="utf-8">
 <title>Anzu social preview</title>
 <style>
-  @font-face { font-family: "JetBrains Mono"; src: url("../../crates/anzu/assets/fonts/JetBrainsMono-Regular.ttf"); font-weight: 400; }
-  @font-face { font-family: "JetBrains Mono"; src: url("../../crates/anzu/assets/fonts/JetBrainsMono-Bold.ttf"); font-weight: 700; }
+  @font-face { font-family: "Inter"; src: url("../../crates/anzu/assets/fonts/Inter-Regular.otf"); font-weight: 400; }
+  @font-face { font-family: "Inter"; src: url("../../crates/anzu/assets/fonts/Inter-SemiBold.otf"); font-weight: 600; }
+  @font-face { font-family: "Space Grotesk"; src: url("../../crates/anzu/assets/fonts/SpaceGrotesk-Bold.ttf"); font-weight: 700; }
   html, body { margin: 0; width: 1280px; height: 640px; overflow: hidden; }
-  body { background: #0e0f0c; color: #e9e6d6; font-family: "JetBrains Mono", monospace; box-sizing: border-box; padding: 72px 88px; display: flex; flex-direction: column; justify-content: space-between; }
+  body { background: #0e0f12; color: #ecedef; font-family: "Inter", sans-serif; box-sizing: border-box; padding: 72px 88px; display: flex; flex-direction: column; justify-content: space-between; }
   .head { display: flex; align-items: center; gap: 32px; }
-  .mark { width: 128px; height: 128px; }
-  .name { font-size: 84px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
-  .tag { font-size: 30px; color: #a7a48f; margin-top: 10px; }
-  .tag b { color: #ffb000; }
-  .book { display: flex; flex-direction: column; gap: 16px; }
-  .file { display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 700; color: #a2d975; }
+  .mark { width: 132px; height: 132px; }
+  .name { font-family: "Space Grotesk", sans-serif; font-size: 92px; font-weight: 700; letter-spacing: -0.045em; line-height: 1; }
+  .tag { font-size: 30px; color: #a3a7b0; margin-top: 12px; }
+  .tag b { font-weight: 600; color: #15161a; background: #c8f0a0; border-radius: 10px; padding: 0 10px; }
+  .book { display: flex; align-items: center; gap: 26px; }
+  .cover { flex: none; width: 66px; height: 88px; border-radius: 10px; background: #c8f0a0; display: grid; place-items: center; color: #15161a; }
+  .track { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .file { font-size: 30px; font-weight: 600; }
   .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .row span.bar { height: 14px; border-radius: 2px; }
-  .labels { font-size: 20px; font-weight: 700; }
-  .foot { display: flex; justify-content: space-between; font-size: 22px; color: #a7a48f; border-top: 1px solid #34382b; padding-top: 24px; }
+  .row span.bar { height: 14px; border-radius: 7px; }
+  .labels { font-size: 20px; font-weight: 600; }
+  .labels span::before { content: ""; display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 10px; vertical-align: -1px; background: var(--c); }
+  .foot { display: flex; justify-content: space-between; font-size: 22px; color: #a3a7b0; border-top: 1px solid #2a2c33; padding-top: 24px; }
 </style>
 <body>
   <div class="head">
     <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
-      <rect width="64" height="64" rx="14.72" fill="#ffb000"/>
-      <g transform="translate(10.88 10.88) scale(0.66)" fill="#14171a"><polygon points="32,6 10,58 20,58 32,28"/><polygon points="32,6 32,28 44,58 54,58"/><rect x="28.5" y="46" width="7" height="12"/></g>
+      <rect width="64" height="64" rx="18" fill="#26282e"/>
+      <g transform="translate(10.88 10.88) scale(0.66)"><polygon points="32,6 10,58 20,58 32,28" fill="#c9b8ff"/><polygon points="32,6 32,28 44,58 54,58" fill="#ffb4a2"/><rect x="27" y="44" width="10" height="14" rx="2" fill="#fff27a"/></g>
     </svg>
     <div>
-      <div class="name">anzu</div>
+      <div class="name">Anzu</div>
       <div class="tag">Kindle books to <b>EPUB</b>, on Windows.</div>
     </div>
   </div>
   <div class="book">
-    <div class="file"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/></svg>Moby-Dick.epub</div>
-    <div class="row"><span class="bar" style="background:#ff9166"></span><span class="bar" style="background:#ffb000"></span><span class="bar" style="background:#a2d975"></span></div>
-    <div class="row labels"><span style="color:#ff9166">With DRM</span><span style="color:#ffb000">Unlocked</span><span style="color:#a2d975">EPUB</span></div>
+    <div class="cover"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/><path d="M9 13h7M9 17h7"/></svg></div>
+    <div class="track">
+      <div class="file">Moby-Dick.epub</div>
+      <div class="row"><span class="bar" style="background:#ffb4a2"></span><span class="bar" style="background:#c9b8ff"></span><span class="bar" style="background:#c8f0a0"></span></div>
+      <div class="row labels"><span style="--c:#ffb4a2">With DRM</span><span style="--c:#c9b8ff">Unlocked</span><span style="--c:#c8f0a0">EPUB</span></div>
+    </div>
   </div>
   <div class="foot"><span>Free · open source · GPL-3.0 · written in Rust</span><span>anzu.ilien.dev</span></div>
 </body>
