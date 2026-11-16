@@ -552,8 +552,12 @@ impl Backend for CoreBackend {
     }
 
     fn mark_converted(&self, asin: &str, epub: &Path) {
+        // Books converted at once finish at once: without the lock, two threads read the same
+        // file, each adds its book and the second save drops the first one.
+        static SETTINGS_FILE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _guard = SETTINGS_FILE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut settings = anzu_core::settings::Settings::load(&self.data_dir);
-        settings.converted.insert(asin.to_string(), epub.to_path_buf());
+        settings.record_epub(asin, epub);
         let _ = settings.save(&self.data_dir);
     }
 
@@ -567,6 +571,24 @@ mod tests {
     use super::*;
     use crate::app::BlockReason;
     use anzu_core::releases::Asset;
+
+    #[test]
+    fn books_converted_at_once_are_all_remembered() {
+        let tmp = tempfile::tempdir().unwrap();
+        let backend = CoreBackend { data_dir: tmp.path().to_path_buf() };
+        let asins: Vec<String> = (0..16).map(|i| format!("B{i:04}")).collect();
+        std::thread::scope(|scope| {
+            for asin in &asins {
+                let backend = &backend;
+                let epub = tmp.path().join(format!("{asin}.epub"));
+                scope.spawn(move || backend.mark_converted(asin, &epub));
+            }
+        });
+        let settings = anzu_core::settings::Settings::load(tmp.path());
+        for asin in &asins {
+            assert!(settings.converted.contains_key(asin), "{asin} was lost: {:?}", settings.converted.keys());
+        }
+    }
     use std::sync::Mutex;
 
     /// A simulated system that records every operation it is asked for.
