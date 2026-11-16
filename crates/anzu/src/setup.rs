@@ -38,6 +38,7 @@ pub fn update(dir: &Path) -> Result<(), String> {
     match result {
         Ok(exe) => {
             let _ = install::register(dir, env!("CARGO_PKG_VERSION"));
+            install::refresh_icons(&exe);
             std::process::Command::new(exe).spawn().map(|_| ()).map_err(|e| e.to_string())
         }
         Err(error) => {
