@@ -19,7 +19,8 @@ pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui, reason: &BlockReason) {
             icons::tile(ui, Icon::Alert, 30.0, theme::DRM, theme::INK);
             ui.add(egui::Label::new(theme::display(title).size(17.0)).wrap());
         });
-        ui.label(body);
+        // The reason names versions the user may want to paste into a report.
+        theme::copyable(ui, |ui| ui.label(body));
         ui.add_space(2.0);
         ui.horizontal_wrapped(|ui| {
             if theme::icon_button(ui, Kind::Secondary, true, Icon::Refresh, t.recheck).clicked() {

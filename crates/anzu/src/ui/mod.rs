@@ -451,6 +451,13 @@ impl AnzuApp {
     }
 }
 
+/// Shows a part of `screen` (the header band, or the body with `slide`) so that it comes in
+/// when the window moves from one screen to the other: forward to the run from the right,
+/// back to the books from the left.
+fn enter<R>(ui: &mut egui::Ui, screen: Screen, slide: bool, add: impl FnOnce(&mut egui::Ui) -> R) -> R {
+    theme::entrance(ui, egui::Id::unique(("screen", slide)), screen as u64, theme::by_order, slide, add)
+}
+
 /// Opens Explorer on the folder of `path`, with the file selected.
 fn show_in_folder(path: &Path) {
     let mut command = std::process::Command::new("explorer");

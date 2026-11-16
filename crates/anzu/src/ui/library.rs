@@ -6,13 +6,16 @@ use eframe::egui::{self, Align, Align2, Layout, Pos2, Rect, Sense, Stroke};
 
 use super::icons::{self, Icon};
 use super::theme::{self, Kind};
-use super::{AnzuApp, Column, Sort, blocked, demo, settings_menu};
+use super::{AnzuApp, Column, Screen, Sort, blocked, demo, settings_menu};
 use crate::app::{self, Health};
 use crate::i18n::Strings;
 
 const CARD_HEIGHT: f32 = 74.0;
 const CARD_MIN_WIDTH: f32 = 250.0;
 const CARD_GAP: f32 = 10.0;
+/// How long a card takes to show the pointer over it, and to become chosen, in seconds.
+const CARD_HOVER_TIME: f32 = 0.12;
+const CARD_SELECT_TIME: f32 = 0.16;
 const ASIDE_WIDTH: f32 = 320.0;
 const GAP: f32 = 20.0;
 /// The chosen books listed by name in the side panel before "and n more".
@@ -82,10 +85,10 @@ pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui) {
     let p = theme::Palette::of(ui.ctx());
     let t = app.t();
     egui::Panel::top("header").frame(theme::band(p.shell, 10)).show_separator_line(false).show(ui, |ui| {
-        theme::centered(ui, |ui| header(app, ui, p, t));
+        super::enter(ui, Screen::Library, false, |ui| theme::centered(ui, |ui| header(app, ui, p, t)));
     });
     egui::CentralPanel::default().frame(theme::band(p.bg, 18)).show(ui, |ui| {
-        theme::centered(ui, |ui| {
+        super::enter(ui, Screen::Library, true, |ui| theme::centered(ui, |ui| {
             let area = ui.available_rect_before_wrap();
             let aside_width = ASIDE_WIDTH.min((area.width() * 0.37).max(260.0));
             let main = Rect::from_min_max(area.min, Pos2::new(area.right() - aside_width - GAP, area.bottom()));
@@ -103,7 +106,7 @@ pub fn show(app: &mut AnzuApp, ui: &mut egui::Ui) {
             });
             ui.scope_builder(egui::UiBuilder::new().max_rect(aside), |ui| side_panel(app, ui, p, t));
             ui.allocate_rect(area, Sense::hover());
-        });
+        }));
     });
 }
 
@@ -163,6 +166,9 @@ fn ready_line(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strin
     ui.horizontal_top(|ui| {
         ui.allocate_ui_with_layout(egui::vec2(facts_width, 0.0), Layout::left_to_right(Align::Center).with_main_wrap(true), |ui| {
             ui.spacing_mut().item_spacing = egui::vec2(6.0, 6.0);
+            // A wrapping row centres each item on the row height known when it is placed;
+            // set it to the chips' height so the text lines up with them.
+            ui.set_row_height(28.0);
             icons::tile(ui, Icon::Shield, 26.0, theme::EPUB, theme::INK);
             ui.label(theme::bold(t.ready));
             ui.add_space(6.0);
@@ -190,30 +196,69 @@ fn toolbar(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings)
             }
         });
     });
+    // What the shelves are sorted by, as pills to pick one, and apart from them the
+    // direction, said in words, on a button that reverses it.
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 4.0;
+        ui.spacing_mut().item_spacing.x = 6.0;
         ui.label(theme::muted(p, t.sort_by).size(theme::SMALL));
-        ui.add_space(4.0);
+        ui.add_space(2.0);
         for (column, label) in [(Column::Title, t.sort_title), (Column::Asin, t.sort_asin), (Column::Size, t.sort_size)] {
-            sort_chip(app, ui, p, t, column, label);
+            if sort_pill(ui, p, app.sort.column == column, label).clicked() {
+                app.sort = Sort { column, ascending: true };
+            }
+        }
+        ui.add_space(4.0);
+        let (divider, _) = ui.allocate_exact_size(egui::vec2(1.0, 22.0), Sense::hover());
+        ui.painter().rect_filled(divider, 0.0, p.line_strong);
+        ui.add_space(4.0);
+        let ascending = app.sort.ascending;
+        let arrow = if ascending { Icon::ArrowUp } else { Icon::ArrowDown };
+        let word = match (app.sort.column, ascending) {
+            (Column::Size, true) => t.sort_smallest,
+            (Column::Size, false) => t.sort_largest,
+            (_, true) => t.sort_a_to_z,
+            (_, false) => t.sort_z_to_a,
+        };
+        if theme::icon_button(ui, Kind::Secondary, true, arrow, word).on_hover_text(t.sort_reverse).clicked() {
+            app.sort.ascending = !ascending;
         }
     });
 }
 
-/// One of the orders of the shelves. The active one shows its direction; clicking it again
-/// reverses it.
-fn sort_chip(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings, column: Column, label: &str) {
-    let active = app.sort.column == column;
-    let response = if active {
-        let arrow = if app.sort.ascending { Icon::ArrowUp } else { Icon::ArrowDown };
-        theme::icon_button(ui, Kind::Secondary, true, arrow, label).on_hover_text(t.sort_hint)
-    } else {
-        let text = theme::bold(label).size(13.0).color(p.muted);
-        theme::button(ui, theme::Surface::Page, true, egui::Button::new(text).frame(false).min_size(egui::vec2(0.0, 34.0)))
-    };
-    if response.clicked() {
-        app.sort = Sort { column, ascending: if active { !app.sort.ascending } else { true } };
+/// One of the fields the shelves can be sorted by: an outlined pill, filled with ink and
+/// ticked when it is the one in use.
+fn sort_pill(ui: &mut egui::Ui, p: theme::Palette, active: bool, label: &str) -> egui::Response {
+    const HEIGHT: f32 = 32.0;
+    const CHECK: f32 = 14.0;
+    let ink = if active { p.bg } else { p.fg };
+    let galley = ui.painter().layout_no_wrap(label.to_string(), theme::bold_font(13.0), ink);
+    let content = galley.size().x + if active { CHECK + 6.0 } else { 0.0 };
+    let (rect, response) = ui.allocate_exact_size(egui::vec2(14.0 + content + 14.0, HEIGHT), Sense::click());
+    response.widget_info(|| egui::WidgetInfo::selected(egui::Role::RadioButton, true, active, label));
+    theme::pointer(&response, true);
+    if ui.is_rect_visible(rect) {
+        let painter = ui.painter();
+        let radius = egui::CornerRadius::same((HEIGHT / 2.0) as u8);
+        if active {
+            painter.rect_filled(rect, radius, p.fg);
+        } else {
+            painter.rect_stroke(rect, radius, egui::Stroke::new(1.0, p.line_strong), egui::StrokeKind::Inside);
+        }
+        let mut x = rect.left() + 14.0;
+        if active {
+            let check = egui::Rect::from_min_size(egui::pos2(x, rect.center().y - CHECK / 2.0), egui::vec2(CHECK, CHECK));
+            icons::paint(painter, Icon::Check, check, ink);
+            x += CHECK + 6.0;
+        }
+        painter.galley(egui::pos2(x, rect.center().y - galley.size().y / 2.0), galley, ink);
+        if !active {
+            let hover = ui.ctx().animate_bool_with_time(response.id.with("hover"), response.hovered(), 0.12);
+            if hover > 0.0 {
+                painter.rect_filled(rect, radius, p.fg.gamma_multiply(0.06 * hover));
+            }
+        }
     }
+    response
 }
 
 /// "Refresh list": shows the books downloaded in Kindle since the window opened.
@@ -369,17 +414,18 @@ fn card(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings, ro
     let sense = if can_select { Sense::click() } else { Sense::hover() };
     let response = ui.interact(rect, ui.scope_id().with(("card", &row.asin)), sense);
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, can_select, selected, &row.title));
+    theme::pointer(&response, can_select);
     let painter = ui.painter().clone();
 
-    let (fill, stroke) = if selected {
-        (p.select_bg, Stroke::new(2.0, p.select_line))
-    } else if can_select && response.hovered() {
-        (p.hover_bg, Stroke::new(1.0, p.line_strong))
-    } else {
-        (p.panel, Stroke::new(1.0, p.line))
-    };
+    // Hover and selection blend in rather than snap: the card warms up under the pointer and
+    // takes the butter of what is chosen in a short fade.
+    let ctx = ui.ctx();
+    let hover = ctx.animate_bool_with_time(response.id.with("hover"), can_select && response.hovered(), CARD_HOVER_TIME);
+    let chosen = ctx.animate_bool_with_time(response.id.with("chosen"), selected, CARD_SELECT_TIME);
+    let fill = theme::blend(theme::blend(p.panel, p.hover_bg, hover), p.select_bg, chosen);
+    let edge = theme::blend(theme::blend(p.line, p.line_strong, hover), p.select_line, chosen);
     painter.rect_filled(rect, theme::CARD_RADIUS, fill);
-    painter.rect_stroke(rect, theme::CARD_RADIUS, stroke, egui::StrokeKind::Inside);
+    painter.rect_stroke(rect, theme::CARD_RADIUS, Stroke::new(1.0 + chosen, edge), egui::StrokeKind::Inside);
     let dim = |c: egui::Color32| if can_select || row.state != BookState::Locked { c } else { c.gamma_multiply(0.55) };
 
     // The cover: the pastel of the state, with a lock or the initials of the title.
@@ -392,7 +438,7 @@ fn card(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings, ro
     }
 
     let check = Rect::from_center_size(Pos2::new(rect.right() - 22.0, rect.center().y), egui::vec2(20.0, 20.0));
-    icons::checkbox(&painter, check, selected, can_select, p);
+    icons::checkbox(&painter, check, chosen, can_select, p);
 
     let text_left = cover.right() + 12.0;
     let text_width = check.left() - 10.0 - text_left;
@@ -527,7 +573,8 @@ fn destination(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Stri
     ui.label(theme::muted(p, t.save_in).size(12.0));
     ui.horizontal_top(|ui| {
         icons::show(ui, Icon::Folder, 18.0, p.fg);
-        ui.add(egui::Label::new(theme::bold(app.settings.output_dir.display().to_string()).size(13.0)).wrap());
+        let folder = theme::bold(app.settings.output_dir.display().to_string()).size(13.0);
+        theme::copyable(ui, |ui| ui.add(egui::Label::new(folder).wrap()));
     });
     if theme::icon_button(ui, Kind::Secondary, !app.busy(), Icon::Folder, t.change_folder).clicked() {
         app.pick_output_dir();

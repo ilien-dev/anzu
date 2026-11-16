@@ -210,6 +210,9 @@ pub fn install(ctx: &egui::Context) {
         style.spacing.item_spacing = egui::vec2(8.0, 8.0);
         style.spacing.button_padding = egui::vec2(14.0, 8.0);
         style.spacing.interact_size.y = 34.0;
+        // Headings and labels are not text to copy: over them the pointer stays an arrow, not
+        // a text cursor. The log and the error messages turn it back on with [`copyable`].
+        style.interaction.selectable_labels = false;
         for (text_style, size) in [
             (egui::TextStyle::Body, BODY),
             (egui::TextStyle::Button, BODY),
@@ -301,6 +304,7 @@ pub fn feedback(ui: &egui::Ui, surface: Surface, response: &egui::Response) {
         Surface::Shell => (p.on_shell, p.shell_accent),
     };
     let ctx = ui.ctx();
+    pointer(response, response.enabled());
     let hover = ctx.animate_bool_with_time(response.id.with("hover"), response.hovered(), HOVER_TIME);
     let press = ctx.animate_bool_with_time(response.id.with("press"), response.is_pointer_button_down_on(), PRESS_TIME);
     if hover <= 0.0 && press <= 0.0 {
@@ -413,8 +417,121 @@ fn draw_icon_button(
     if enabled {
         let surface = if kind == Kind::Shell { Surface::Shell } else { Surface::Page };
         feedback(ui, surface, &response);
+    } else {
+        pointer(&response, false);
     }
     response
+}
+
+/// Sets the pointer over a control: the hand while it can be clicked, the "not allowed"
+/// sign while it cannot. Every clickable thing of the interface goes through here, since
+/// egui only gives the hand to its own buttons.
+pub fn pointer(response: &egui::Response, enabled: bool) {
+    if enabled {
+        if response.hovered() {
+            response.ctx.set_cursor_icon(egui::CursorIcon::PointingHand);
+        }
+    } else if response.contains_pointer() {
+        response.ctx.set_cursor_icon(egui::CursorIcon::NotAllowed);
+    }
+}
+
+/// Lets the text added by `add` be selected and copied, with the text cursor over it: for
+/// the log and the error messages, which the user may want to paste somewhere.
+pub fn copyable<R>(ui: &mut egui::Ui, add: impl FnOnce(&mut egui::Ui) -> R) -> R {
+    ui.scope(|ui| {
+        ui.style_mut().interaction.selectable_labels = true;
+        add(ui)
+    })
+    .inner
+}
+
+/// How long a screen takes to come in, in seconds, and how far it slides while it does.
+const ENTRANCE_TIME: f32 = 0.24;
+const ENTRANCE_SLIDE: f32 = 12.0;
+
+/// Whether Windows asks for animations: off when the user turned off "Animation effects"
+/// in its accessibility settings. Then screens only fade, without moving. Read once.
+pub fn motion_allowed() -> bool {
+    static ALLOWED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ALLOWED.get_or_init(system_animations)
+}
+
+#[cfg(windows)]
+fn system_animations() -> bool {
+    #[link(name = "user32")]
+    unsafe extern "system" {
+        fn SystemParametersInfoW(action: u32, param: u32, value: *mut std::ffi::c_void, flags: u32) -> i32;
+    }
+    const SPI_GETCLIENTAREAANIMATION: u32 = 0x1042;
+    let mut on: i32 = 1;
+    // SAFETY: the action writes one BOOL to the pointer it is given, which lives until it returns.
+    let read = unsafe { SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, (&raw mut on).cast(), 0) };
+    read == 0 || on != 0
+}
+
+#[cfg(not(windows))]
+fn system_animations() -> bool {
+    true
+}
+
+/// The ease of every entrance: quick at first, settling softly.
+fn ease_out(x: f32) -> f32 {
+    1.0 - (1.0 - x).powi(4)
+}
+
+/// Where an entrance comes from: what was shown, when the new one came, from which side.
+#[derive(Debug, Clone, Copy)]
+struct Entering {
+    key: u64,
+    since: f64,
+    side: f32,
+}
+
+/// Shows `add` as what is in place `id` right now, the screen or page `key`. When `key`
+/// changes, the content fades in and slides the last few pixels from the side `side` gives
+/// for the change (`-1.0` from the left, `1.0` from the right, `0.0` in place); `slide`
+/// false keeps it in place, for the header band. What shows first does not come in: the
+/// window opens on it.
+pub fn entrance<R>(
+    ui: &mut egui::Ui,
+    id: egui::Id,
+    key: u64,
+    side: impl FnOnce(u64, u64) -> f32,
+    slide: bool,
+    add: impl FnOnce(&mut egui::Ui) -> R,
+) -> R {
+    let ctx = ui.ctx().clone();
+    let now = ctx.input(|i| i.time);
+    let mut entering = ctx.data(|d| d.get_temp::<Entering>(id)).unwrap_or(Entering { key, since: f64::NEG_INFINITY, side: 0.0 });
+    if entering.key != key {
+        entering = Entering { key, since: now, side: side(entering.key, key) };
+    }
+    ctx.data_mut(|d| d.insert_temp(id, entering));
+    let x = (((now - entering.since) as f32) / ENTRANCE_TIME).clamp(0.0, 1.0);
+    if x >= 1.0 {
+        return add(ui);
+    }
+    ctx.request_repaint();
+    let eased = ease_out(x);
+    let offset = if slide && motion_allowed() { entering.side * ENTRANCE_SLIDE * (1.0 - eased) } else { 0.0 };
+    ui.scope(|ui| {
+        ui.multiply_opacity(eased);
+        let shift = egui::emath::TSTransform::from_translation(egui::vec2(offset, 0.0));
+        ui.with_visual_transform(shift, add).inner
+    })
+    .inner
+}
+
+/// The side a screen comes from when moving along an ordered list of them: a later one from
+/// the right, an earlier one from the left.
+pub fn by_order(old: u64, new: u64) -> f32 {
+    if new > old { 1.0 } else { -1.0 }
+}
+
+/// A colour on its way from `from` to `to`, `amount` of the way.
+pub fn blend(from: Color32, to: Color32, amount: f32) -> Color32 {
+    from.lerp_to_gamma(to, amount.clamp(0.0, 1.0))
 }
 
 /// A small chip: an icon and a short text on a quiet fill.
@@ -451,4 +568,109 @@ pub fn centered<R>(ui: &mut egui::Ui, add: impl FnOnce(&mut egui::Ui) -> R) -> R
         .inner
     })
     .inner
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Draws `add` twice with the pointer at the point it returns, and gives the pointer
+    /// egui asked for on the second frame.
+    fn cursor_over(add: impl Fn(&mut egui::Ui) -> egui::Pos2) -> egui::CursorIcon {
+        let ctx = egui::Context::default();
+        install(&ctx);
+        let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(500.0, 300.0));
+        let mut target = egui::Pos2::ZERO;
+        let mut cursor = egui::CursorIcon::Default;
+        for frame in 0..3 {
+            let events = if frame > 0 { vec![egui::Event::PointerMoved(target)] } else { Vec::new() };
+            let raw = egui::RawInput { time: Some(frame as f64 / 60.0), screen_rect: Some(screen), events, ..Default::default() };
+            let mut output = ctx.run_ui(raw, |ui| target = add(ui));
+            output.textures_delta.clear();
+            cursor = output.platform_output.cursor_icon;
+        }
+        cursor
+    }
+
+    #[test]
+    fn a_button_that_can_be_clicked_shows_the_hand() {
+        let cursor = cursor_over(|ui| icon_button(ui, Kind::Secondary, true, Icon::Refresh, "Refresh").rect.center());
+        assert_eq!(cursor, egui::CursorIcon::PointingHand);
+        let cursor = cursor_over(|ui| icon_button(ui, Kind::Primary, true, Icon::ArrowRight, "Go").rect.center());
+        assert_eq!(cursor, egui::CursorIcon::PointingHand);
+        let cursor = cursor_over(|ui| button(ui, Surface::Page, true, egui::Button::new("Plain")).rect.center());
+        assert_eq!(cursor, egui::CursorIcon::PointingHand);
+    }
+
+    #[test]
+    fn a_button_that_cannot_be_clicked_says_so() {
+        let cursor = cursor_over(|ui| icon_button(ui, Kind::Primary, false, Icon::ArrowRight, "Go").rect.center());
+        assert_eq!(cursor, egui::CursorIcon::NotAllowed);
+        // The screens claim their whole area after their content, as `library::show` does.
+        let cursor = cursor_over(|ui| {
+            let at = icon_button(ui, Kind::Primary, false, Icon::ArrowRight, "Go").rect.center();
+            ui.allocate_rect(ui.max_rect(), egui::Sense::hover());
+            at
+        });
+        assert_eq!(cursor, egui::CursorIcon::NotAllowed, "under the area of the screen");
+        let cursor = cursor_over(|ui| button(ui, Surface::Page, false, egui::Button::new("Plain")).rect.center());
+        assert_eq!(cursor, egui::CursorIcon::NotAllowed);
+    }
+
+    #[test]
+    fn plain_text_keeps_the_arrow_and_copyable_text_the_text_cursor() {
+        let cursor = cursor_over(|ui| ui.label("Your shelf").rect.center());
+        assert_eq!(cursor, egui::CursorIcon::Default);
+        let cursor = cursor_over(|ui| copyable(ui, |ui| ui.label("tool output line").rect.center()));
+        assert_eq!(cursor, egui::CursorIcon::Text);
+    }
+
+    #[test]
+    fn of_a_row_of_options_only_the_others_show_the_hand() {
+        let options = [(Icon::Sun, "Light"), (Icon::Moon, "Dark")];
+        let at = |fraction: f32| {
+            move |ui: &mut egui::Ui| {
+                let p = Palette::of(ui.ctx());
+                let top = ui.next_widget_position();
+                super::super::settings_menu::segmented(ui, p, "row", &options, 0);
+                egui::pos2(top.x + ui.min_rect().width() * fraction, top.y + 19.0)
+            }
+        };
+        assert_eq!(cursor_over(at(0.25)), egui::CursorIcon::Default, "the one chosen");
+        assert_eq!(cursor_over(at(0.75)), egui::CursorIcon::PointingHand, "the other one");
+    }
+
+    /// The opacity the content of an entrance has at each of `times`, with the key changing
+    /// from 0 to 1 at the second frame.
+    fn entrance_opacity(times: &[f64]) -> Vec<f32> {
+        let ctx = egui::Context::default();
+        let id = egui::Id::unique("test-entrance");
+        times
+            .iter()
+            .enumerate()
+            .map(|(frame, time)| {
+                let raw = egui::RawInput { time: Some(*time), ..Default::default() };
+                let mut opacity = 0.0;
+                let key = u64::from(frame > 0);
+                let mut output = ctx.run_ui(raw, |ui| opacity = entrance(ui, id, key, by_order, true, |ui| ui.opacity()));
+                output.textures_delta.clear();
+                opacity
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_first_screen_shows_at_once_and_the_next_one_fades_in() {
+        let seen = entrance_opacity(&[0.0, 1.0, 1.0 + f64::from(ENTRANCE_TIME) / 2.0, 1.0 + f64::from(ENTRANCE_TIME)]);
+        assert_eq!(seen[0], 1.0, "the window opens on its first screen");
+        assert_eq!(seen[1], 0.0, "the next screen starts hidden");
+        assert!(seen[2] > 0.5 && seen[2] < 1.0, "halfway it is mostly in: {}", seen[2]);
+        assert_eq!(seen[3], 1.0, "and then it is fully there");
+    }
+
+    #[test]
+    fn screens_further_along_come_from_the_right() {
+        assert_eq!(by_order(0, 1), 1.0);
+        assert_eq!(by_order(1, 0), -1.0);
+    }
 }

@@ -291,7 +291,7 @@ pub fn card(updates: &mut Updates, ctx: &egui::Context, t: &Strings, busy: bool)
                             icons::tile(ui, Icon::Alert, 28.0, theme::DRM, theme::INK);
                             ui.label(theme::display(t.update_new).size(16.0));
                         });
-                        ui.label(RichText::new(message).color(p.warn).size(12.0));
+                        theme::copyable(ui, |ui| ui.label(RichText::new(message).color(p.warn).size(12.0)));
                         ui.horizontal(|ui| {
                             if theme::icon_button(ui, Kind::Primary, true, Icon::Refresh, t.update_retry).clicked() {
                                 updates.download(ui.ctx());
