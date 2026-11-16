@@ -469,6 +469,7 @@ fn open_file(path: &Path) {
 impl eframe::App for AnzuApp {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if let Some(demo) = &mut self.demo {
+            fit_demo(ctx);
             demo.deliver(ctx.input(|i| i.time), &self.tx);
             let (language, theme) = {
                 let mut remote = demo.remote.borrow_mut();
@@ -538,6 +539,25 @@ pub fn launch_installer() -> Result<(), String> {
 /// The size the window opens at, which the web demo reproduces.
 pub const WINDOW_WIDTH: f32 = 1180.0;
 pub const WINDOW_HEIGHT: f32 = 760.0;
+/// The smallest the window can be made.
+pub const MIN_WIDTH: f32 = 820.0;
+pub const MIN_HEIGHT: f32 = 500.0;
+
+/// The zoom that lays the demo out in `size` (in pixels at zoom 1): at its real size
+/// when there is room, and never smaller than the window can be made, scaled down instead.
+fn demo_zoom(size: egui::Vec2) -> f32 {
+    (size.x / MIN_WIDTH).min(size.y / MIN_HEIGHT).clamp(0.1, 1.0)
+}
+
+/// Keeps the demo's layout at least as large as the smallest window, whatever room the
+/// page gives it. Converges in one frame, since the size at zoom 1 does not depend on it.
+fn fit_demo(ctx: &egui::Context) {
+    let zoom = ctx.zoom_factor();
+    let target = demo_zoom(ctx.content_rect().size() * zoom);
+    if (target - zoom).abs() > 1e-3 {
+        ctx.set_zoom_factor(target);
+    }
+}
 
 /// The window of the web demo, played by a script. `remote` carries the page's language
 /// and theme in, and the demo's events out.
@@ -580,7 +600,7 @@ pub fn launch() -> Result<(), String> {
         viewport: egui::ViewportBuilder::default()
             .with_title(i18n::strings(language).window_title)
             .with_inner_size([WINDOW_WIDTH, WINDOW_HEIGHT])
-            .with_min_inner_size([820.0, 500.0])
+            .with_min_inner_size([MIN_WIDTH, MIN_HEIGHT])
             .with_icon(window_icon()),
         ..Default::default()
     };
@@ -593,4 +613,23 @@ pub fn launch() -> Result<(), String> {
         }),
     )
     .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_demo_keeps_its_real_size_when_there_is_room() {
+        assert_eq!(demo_zoom(egui::vec2(WINDOW_WIDTH, WINDOW_HEIGHT)), 1.0);
+        assert_eq!(demo_zoom(egui::vec2(MIN_WIDTH, MIN_HEIGHT)), 1.0);
+    }
+
+    #[test]
+    fn the_demo_scales_down_below_the_smallest_window() {
+        let zoom = demo_zoom(egui::vec2(MIN_WIDTH / 2.0, 900.0));
+        assert!((zoom - 0.5).abs() < 1e-6);
+        let zoom = demo_zoom(egui::vec2(2000.0, MIN_HEIGHT / 4.0));
+        assert!((zoom - 0.25).abs() < 1e-6);
+    }
 }
