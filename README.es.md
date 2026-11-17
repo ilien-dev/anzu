@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-    <img src="assets/hero-light.svg" alt="Anzu: tus libros de Kindle, abiertos en cualquier lector. Los libros bloqueados salen de la app de Kindle como códigos con candado, pasan bajo el logo de Anzu, salen con sus títulos (Moby-Dick, Pride and Prejudice, Walden) y llegan a un lector electrónico, un teléfono y una tableta." width="100%">
+    <img src="assets/hero-light.svg" alt="Anzu, una app gratuita para Windows: tus libros de Kindle, en EPUB. Tres libros con candado salen uno a uno de la app de Kindle, pasan por Anzu, donde cada uno va de con DRM a desbloqueado y a EPUB listo, y llegan como archivos EPUB a Documentos\EPUB, listos para abrir en cualquier lector." width="100%">
   </picture>
 </p>
 
