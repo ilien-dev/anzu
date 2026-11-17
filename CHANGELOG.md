@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.8.3](https://github.com/ilien-dev/anzu/compare/40b327d1d7e5470104faa33b862cf9d160ab3f76..v0.8.3) - 2026-11-17
+#### Bug Fixes
+- show the catalog title of locked books on the shelf (#21) - ([00a1d36](https://github.com/ilien-dev/anzu/commit/00a1d3685824a0fd7ce1a009e0afc2f0f3afe395)) - ilien
+#### Documentation
+- animated svg readme hero with the anzu wings (#20) - ([40b327d](https://github.com/ilien-dev/anzu/commit/40b327d1d7e5470104faa33b862cf9d160ab3f76)) - ilien
+
+- - -
+
 ## [v0.8.2](https://github.com/ilien-dev/anzu/compare/28120011de150b0ec72da6dcc7594af91f52a167..v0.8.2) - 2026-11-16
 #### Bug Fixes
 - keep books in EPUB while any of their EPUBs remains (#16) - ([3587893](https://github.com/ilien-dev/anzu/commit/358789309bda23af4f4b6ea21a7cebec5715a098)) - ilien
