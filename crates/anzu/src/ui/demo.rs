@@ -445,7 +445,7 @@ mod tests {
     /// As in the app, a book's real title appears only once the run has finished and the
     /// window reads the library again, never ahead of what has been shown.
     #[test]
-    fn titles_appear_when_the_run_is_shown_finished() {
+    fn books_show_their_titles_before_and_after_the_run() {
         use eframe::App;
         let ctx = egui::Context::default();
         super::super::theme::install(&ctx);
@@ -461,12 +461,12 @@ mod tests {
                 app.ui(ui, &mut frame);
             });
             output.textures_delta.clear();
-            let titled = app.books.iter().filter(|b| b.title.is_some()).count();
-            if app.run.result.is_none() {
-                assert_eq!(titled, 1, "only Walden has a title before the run ends (frame {n})");
-            } else {
+            // As in the app, which reads titles from the Kindle catalog: every book shows its
+            // title, locked or not.
+            assert!(app.books.iter().all(|b| b.title.is_some()), "a book without its title (frame {n})");
+            if app.run.result.is_some() {
                 seen_finished = true;
-                assert_eq!(titled, 3);
+                assert_eq!(app.books.len(), 3);
             }
         }
         assert!(seen_finished);

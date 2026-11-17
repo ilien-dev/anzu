@@ -28,6 +28,9 @@ const SHELVES: [BookState; 3] = [BookState::Locked, BookState::Unlocked, BookSta
 struct Row {
     asin: String,
     title: String,
+    /// Whether the title is the book's own, from the Kindle catalog or the unlocked book,
+    /// rather than a fallback made from the ASIN.
+    named: bool,
     size: u64,
     state: BookState,
 }
@@ -315,7 +318,7 @@ fn shelves(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings)
             .books
             .iter()
             .filter(|b| b.state == state)
-            .map(|b| Row { asin: b.asin.clone(), title: AnzuApp::display_title(b, t), size: b.size, state: b.state })
+            .map(|b| Row { asin: b.asin.clone(), title: AnzuApp::display_title(b, t), named: b.title.is_some(), size: b.size, state: b.state })
             .collect();
         if rows.is_empty() {
             continue;
@@ -451,11 +454,14 @@ fn card(app: &mut AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings, ro
     let text_left = cover.right() + 12.0;
     let text_width = check.left() - 10.0 - text_left;
     let title_color = dim(if row.state == BookState::Locked { p.muted } else { p.fg });
-    let title = if row.state == BookState::Locked { row.asin.clone() } else { row.title.clone() };
+    // A locked book whose title is not known yet shows its ASIN until it is unlocked.
+    let unnamed = row.state == BookState::Locked && !row.named;
+    let title = if unnamed { row.asin.clone() } else { row.title.clone() };
     let title = elided(&painter, &title, theme::bold_font(14.0), title_color, text_width);
-    let detail = match row.state {
-        BookState::Locked => format!("{} · {}", t.human_size(row.size), t.title_after_unlock),
-        _ => format!("{} · {}", row.asin, t.human_size(row.size)),
+    let detail = if unnamed {
+        format!("{} · {}", t.human_size(row.size), t.title_after_unlock)
+    } else {
+        format!("{} · {}", row.asin, t.human_size(row.size))
     };
     let detail = elided(&painter, &detail, theme::regular_font(12.0), dim(p.muted), text_width);
     let top = rect.center().y - (title.size().y + 3.0 + detail.size().y) / 2.0;
@@ -567,7 +573,7 @@ fn chosen_list(app: &AnzuApp, ui: &mut egui::Ui, p: theme::Palette, t: &Strings)
         painter.rect_filled(dot, 3, icons::state_fill(book.state));
         let what = painter.layout_no_wrap(what.to_string(), theme::regular_font(12.0), p.muted);
         let what_left = rect.right() - what.size().x;
-        let name = if book.state == BookState::Locked { book.asin.clone() } else { AnzuApp::display_title(book, t) };
+        let name = if book.state == BookState::Locked && book.title.is_none() { book.asin.clone() } else { AnzuApp::display_title(book, t) };
         let name = elided(painter, &name, theme::regular_font(13.0), p.fg, what_left - 10.0 - (rect.left() + 18.0));
         painter.galley(Pos2::new(rect.left() + 18.0, rect.center().y - name.size().y / 2.0), name, p.fg);
         painter.galley(Pos2::new(what_left, rect.center().y - what.size().y / 2.0), what, p.muted);
@@ -633,7 +639,7 @@ mod tests {
     use super::*;
 
     fn row(asin: &str, title: &str, size: u64, state: BookState) -> Row {
-        Row { asin: asin.into(), title: title.into(), size, state }
+        Row { asin: asin.into(), title: title.into(), named: true, size, state }
     }
 
     fn sample() -> Vec<Row> {

@@ -100,8 +100,9 @@ impl DemoSystem {
             .filter(|b| b.downloaded)
             .map(|b| Book {
                 asin: b.asin.to_string(),
-                // The real title is only known once the book is unlocked.
-                title: (b.state != BookState::Locked).then(|| b.title.to_string()),
+                // As in the app, which reads it from the Kindle app's catalog: the title is
+                // known before the book is unlocked.
+                title: Some(b.title.to_string()),
                 source: Path::new(CONTENT_DIR).join(format!("{}_EBOK", b.asin)).join(format!("{}_EBOK.azw", b.asin)),
                 size: b.size,
                 state: b.state,
@@ -229,7 +230,7 @@ mod tests {
         system.download_all();
         let books = system.scan();
         assert_eq!(books.len(), 3);
-        assert!(books.iter().filter(|b| b.state == BookState::Locked).all(|b| b.title.is_none()));
+        assert!(books.iter().all(|b| b.title.is_some()));
     }
 
     #[test]

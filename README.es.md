@@ -101,8 +101,8 @@ cualquier otro programa.
 
 1. **Descarga tus libros** en la app de Kindle, como siempre.
 2. **Abre Anzu.** Encuentra la app de Kindle y pone tus libros en estantes según lo que
-   les falta: por desbloquear, listos para EPUB o ya en EPUB. Hasta que un libro se
-   desbloquea ves un código en lugar del título; el título real aparece al desbloquearlo.
+   les falta: por desbloquear, listos para EPUB o ya en EPUB. Cada libro muestra el
+   título que tiene en la app de Kindle; si allí no lo tiene, ves su código hasta desbloquearlo.
 3. **Marca los libros que quieras.** El panel lateral los lista con lo que se hará con
    cada uno. Elige la carpeta donde irán los EPUB
    (`Documents\EPUB` por defecto).
