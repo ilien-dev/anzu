@@ -1,0 +1,51 @@
+<!--palette
+bg     #0E0F12 #F4F5F7
+ink    #ECEDEF #15161A
+muted  #A3A7B0 #565A64
+glow   #2A2740 #E3DCFF
+tile   #15161A #15161A
+edge   #2A2C33 #15161A
+lilac  #C9B8FF #C9B8FF
+peach  #FFB4A2 #FFB4A2
+butter #FFF27A #FFF27A
+mint   #C8F0A0 #B9EB8A
+onp    #15161A #15161A
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="Anzu: the logo, two wings over a tablet, opens and closes its wings. Kindle books with a lock flow in from the left and leave on the right as EPUB files. Below: Anzu, Kindle books to EPUB, on Windows.">
+<style>
+.wl{animation:wl 5s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 0}
+.wr{animation:wr 5s ease-in-out infinite;transform-box:fill-box;transform-origin:0 0}
+@keyframes wl{0%,100%{transform:rotate(0deg)}50%{transform:rotate(7deg)}}
+@keyframes wr{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-7deg)}}
+.tab{animation:tab 5s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes tab{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.inflow{animation:inflow 16s linear infinite}
+@keyframes inflow{0%{transform:translateX(-440px)}100%{transform:translateX(0)}}
+.outflow{animation:outflow 16s linear infinite}
+@keyframes outflow{0%{transform:translateX(0)}100%{transform:translateX(440px)}}
+.glow{animation:glow 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes glow{0%,100%{opacity:.45;transform:scale(.9)}50%{opacity:1;transform:scale(1.04)}}
+</style>
+<defs>
+<radialGradient id="g"><stop offset="0" stop-color="$glow"/><stop offset="1" stop-color="$glow" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="470" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".3" stop-color="#fff"/><stop offset=".72" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+<linearGradient id="fr" gradientUnits="userSpaceOnUse" x1="810" y1="0" x2="1280" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".28" stop-color="#fff"/><stop offset=".7" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+<mask id="ml"><rect x="0" y="130" width="470" height="140" fill="url(#fl)"/></mask>
+<mask id="mr"><rect x="810" y="130" width="470" height="140" fill="url(#fr)"/></mask>
+</defs>
+<rect width="1280" height="640" fill="$bg"/>
+<circle class="glow" cx="640" cy="198" r="230" fill="url(#g)"/>
+<g mask="url(#ml)"><g class="inflow"><g transform="translate(0 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(110 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(220 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(330 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(440 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(550 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(660 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(770 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(880 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(990 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g></g></g>
+<g mask="url(#mr)"><g class="outflow"><g transform="translate(370 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(480 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(590 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(700 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(810 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(920 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(1030 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(1140 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(1250 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(1360 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g></g></g>
+<rect x="470.5" y="28.5" width="339" height="339" rx="96" fill="$tile" stroke="$edge"/>
+<g transform="translate(527.8 85.8) scale(3.506)">
+<polygon class="wl" points="32,6 10,58 20,58 32,28" fill="$lilac"/>
+<polygon class="wr" points="32,6 32,28 44,58 54,58" fill="$peach"/>
+<rect class="tab" x="27" y="44" width="10" height="14" rx="2" fill="$butter"/>
+</g>
+<text class="s" x="120" y="296" font-size="16" fill="$muted">With DRM</text>
+<text class="s" x="1160" y="296" font-size="16" fill="$muted" text-anchor="end">EPUB</text>
+<text class="b" x="640" y="478" font-size="76" fill="$ink" text-anchor="middle" letter-spacing="-2">Anzu</text>
+<text class="s" x="640" y="522" font-size="28" fill="$ink" text-anchor="middle">Kindle books to EPUB, on Windows.</text>
+<text class="s" x="640" y="560" font-size="17" fill="$muted" text-anchor="middle">Named after the Mesopotamian bird that stole the Tablet of Destinies.</text>
+</svg>
