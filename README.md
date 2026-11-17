@@ -98,8 +98,8 @@ say so. To remove it, uninstall Anzu from Settings › Apps like any other progr
 
 1. **Download your books** in the Kindle app, as you normally do.
 2. **Open Anzu.** It finds the Kindle app and puts your books on shelves by what they still
-   need: to unlock, ready for EPUB, or already in EPUB. Until a book is unlocked
-   you see a code instead of its title; the real title appears once it is unlocked.
+   need: to unlock, ready for EPUB, or already in EPUB. Each book shows the title
+   the Kindle app has for it; one without a title there shows its code until it is unlocked.
 3. **Tick the books you want.** The side panel lists them with what will be done to each.
    Choose the folder where the EPUB files will go
    (`Documents\EPUB` by default).

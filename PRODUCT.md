@@ -44,8 +44,8 @@ why and does nothing. The KFX to EPUB converter is its own code.
   HTML and no browser: the `web` value under Platform only means that it does not
   follow the iOS or Android guidelines.
 - Book states: with DRM, unlocked, converted.
-- The real title is only known once the book is unlocked; until then its ASIN is
-  shown.
+- A book's title comes from the Kindle app's catalog, or from the book once unlocked;
+  a locked book with no title in the catalog shows its ASIN.
 - Converts text books. Comics, fixed layout and dictionaries are out of scope.
 - The interface is in English by default and also available in Spanish.
 - Light and dark theme: it follows the system or the user sets it.
