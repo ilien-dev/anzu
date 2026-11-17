@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-    <img src="assets/hero-light.svg" alt="Anzu: your Kindle books, open on any reader. Locked books leave the Kindle app as codes with a padlock, pass under the Anzu logo, come out with their titles (Moby-Dick, Pride and Prejudice, Walden) and reach an e-reader, a phone and a tablet." width="100%">
+    <img src="assets/hero-light.svg" alt="Anzu, a free Windows app: your Kindle books, as EPUB. Three books with a lock leave the Kindle app one by one, pass through Anzu where each goes from with DRM to unlocked to EPUB ready, and land as EPUB files in Documents\EPUB, ready to open on any reader." width="100%">
   </picture>
 </p>
 
