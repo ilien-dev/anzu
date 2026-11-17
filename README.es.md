@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-    <img src="assets/hero-light.svg" alt="El logo de Anzu, dos alas sobre una tablilla, abre y cierra las alas. Por la izquierda entran libros de Kindle con candado y por la derecha salen como archivos EPUB. Debajo: Anzu, Kindle books to EPUB, on Windows." width="100%">
+    <img src="assets/hero-light.svg" alt="Anzu: tus libros de Kindle, abiertos en cualquier lector. Los libros bloqueados salen de la app de Kindle como códigos con candado, pasan bajo el logo de Anzu, salen con sus títulos (Moby-Dick, Pride and Prejudice, Walden) y llegan a un lector electrónico, un teléfono y una tableta." width="100%">
   </picture>
 </p>
 
