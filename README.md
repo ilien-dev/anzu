@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-    <img src="assets/hero-light.svg" alt="The Anzu logo, two wings over a tablet, opens and closes its wings. Kindle books with a lock flow in from the left, and on the right they leave as EPUB files. Below: Anzu, Kindle books to EPUB, on Windows." width="100%">
+    <img src="assets/hero-light.svg" alt="Anzu: your Kindle books, open on any reader. Locked books leave the Kindle app as codes with a padlock, pass under the Anzu logo, come out with their titles (Moby-Dick, Pride and Prejudice, Walden) and reach an e-reader, a phone and a tablet." width="100%">
   </picture>
 </p>
 

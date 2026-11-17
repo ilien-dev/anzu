@@ -1,51 +1,138 @@
 <!--palette
 bg     #0E0F12 #F4F5F7
+panel  #16171B #FFFFFF
 ink    #ECEDEF #15161A
+body   #C9CCD3 #3A3D45
 muted  #A3A7B0 #565A64
-glow   #2A2740 #E3DCFF
-tile   #15161A #15161A
-edge   #2A2C33 #15161A
-lilac  #C9B8FF #C9B8FF
-peach  #FFB4A2 #FFB4A2
+accent #FFF27A #15161A
+line   #2A2C33 #E4E7EC
+line2  #3A3D45 #C9CDD5
+quiet  #1E2025 #EDEFF2
+drm    #FFB4A2 #FFB4A2
+epub   #C8F0A0 #C8F0A0
 butter #FFF27A #FFF27A
-mint   #C8F0A0 #B9EB8A
-onp    #15161A #15161A
+on     #15161A #15161A
 -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="Anzu: the logo, two wings over a tablet, opens and closes its wings. Kindle books with a lock flow in from the left and leave on the right as EPUB files. Below: Anzu, Kindle books to EPUB, on Windows.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" role="img" aria-label="Anzu: your Kindle books, open on any reader. Locked books leave the Kindle app as codes with a padlock, pass under the Anzu mark, come out with their titles (Moby-Dick, Pride and Prejudice, Walden) and reach an e-reader, a phone and a tablet.">
 <style>
-.wl{animation:wl 5s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 0}
-.wr{animation:wr 5s ease-in-out infinite;transform-box:fill-box;transform-origin:0 0}
+@keyframes run{to{transform:translateX(660px)}}
+@keyframes belt{to{transform:translateX(44px)}}
+@keyframes rise{to{transform:translateY(-72px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes glow{0%,100%{opacity:.5}50%{opacity:1}}
 @keyframes wl{0%,100%{transform:rotate(0deg)}50%{transform:rotate(7deg)}}
 @keyframes wr{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-7deg)}}
-.tab{animation:tab 5s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
-@keyframes tab{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-.inflow{animation:inflow 16s linear infinite}
-@keyframes inflow{0%{transform:translateX(-440px)}100%{transform:translateX(0)}}
-.outflow{animation:outflow 16s linear infinite}
-@keyframes outflow{0%{transform:translateX(0)}100%{transform:translateX(440px)}}
-.glow{animation:glow 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-@keyframes glow{0%,100%{opacity:.45;transform:scale(.9)}50%{opacity:1;transform:scale(1.04)}}
+.run{animation:run 24s linear infinite}
+.belt{animation:belt 1.6s linear infinite}
+.rise{animation:rise 9s linear infinite}
+.pl{animation:pulse 3.2s ease-in-out infinite}
+.glow{animation:glow 2.8s ease-in-out infinite}
+.wl{animation:wl 4s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 0%}
+.wr{animation:wr 4s ease-in-out infinite;transform-box:fill-box;transform-origin:0% 0%}
 </style>
 <defs>
-<radialGradient id="g"><stop offset="0" stop-color="$glow"/><stop offset="1" stop-color="$glow" stop-opacity="0"/></radialGradient>
-<linearGradient id="fl" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="470" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".3" stop-color="#fff"/><stop offset=".72" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
-<linearGradient id="fr" gradientUnits="userSpaceOnUse" x1="810" y1="0" x2="1280" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".28" stop-color="#fff"/><stop offset=".7" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
-<mask id="ml"><rect x="0" y="130" width="470" height="140" fill="url(#fl)"/></mask>
-<mask id="mr"><rect x="810" y="130" width="470" height="140" fill="url(#fr)"/></mask>
+<g id="lk">
+<rect width="120" height="160" rx="10" fill="$drm"/>
+<rect x="12" width="2" height="160" fill="$on" opacity=".18"/>
+<rect x="32" y="22" width="60" height="8" rx="4" fill="$on" opacity=".28"/>
+<rect x="32" y="38" width="38" height="8" rx="4" fill="$on" opacity=".28"/>
+<rect y="76" width="120" height="12" fill="$on"/>
+<path d="M50 70v-9a12 12 0 0 1 24 0v9" fill="none" stroke="$on" stroke-width="6"/>
+<rect x="42" y="68" width="40" height="32" rx="7" fill="$on"/>
+<circle cx="62" cy="81" r="4.5" fill="$drm"/><rect x="60" y="82" width="4" height="10" rx="2" fill="$drm"/>
+</g>
+<g id="op">
+<rect width="120" height="160" rx="10" fill="$epub"/>
+<rect x="12" width="2" height="160" fill="$on" opacity=".18"/>
+<circle cx="62" cy="120" r="16" fill="$on"/>
+<path d="M54 120l6 6 11-12" fill="none" stroke="$epub" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<pattern id="ln" width="100" height="72" patternUnits="userSpaceOnUse">
+<g fill="$muted" opacity=".7"><rect y="2" width="100" height="5" rx="2.5"/><rect y="14" width="94" height="5" rx="2.5"/><rect y="26" width="100" height="5" rx="2.5"/><rect y="38" width="62" height="5" rx="2.5"/><rect y="50" width="100" height="5" rx="2.5"/><rect y="62" width="86" height="5" rx="2.5"/></g>
+</pattern>
+<linearGradient id="gl" gradientUnits="userSpaceOnUse" x1="250" x2="900"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".077" stop-color="#fff"/><stop offset=".588" stop-color="#fff"/><stop offset=".612" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="go" gradientUnits="userSpaceOnUse" x1="250" x2="900"><stop offset=".588" stop-color="#fff" stop-opacity="0"/><stop offset=".612" stop-color="#fff"/><stop offset=".923" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="gb" gradientUnits="userSpaceOnUse" x1="236" x2="930"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".07" stop-color="#fff"/><stop offset=".93" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="gw" x1="0" x2="1"><stop offset="0" stop-color="$butter" stop-opacity="0"/><stop offset=".5" stop-color="$butter" stop-opacity=".55"/><stop offset="1" stop-color="$butter" stop-opacity="0"/></linearGradient>
+<mask id="ml" maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="640"><rect width="1280" height="640" fill="url(#gl)"/></mask>
+<mask id="mo" maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="640"><rect width="1280" height="640" fill="url(#go)"/></mask>
+<mask id="mb" maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="640"><rect width="1280" height="640" fill="url(#gb)"/></mask>
+<clipPath id="c1"><rect width="100" height="115"/></clipPath>
+<clipPath id="c2"><rect width="100" height="168"/></clipPath>
+<clipPath id="c3"><rect width="100" height="113"/></clipPath>
 </defs>
 <rect width="1280" height="640" fill="$bg"/>
-<circle class="glow" cx="640" cy="198" r="230" fill="url(#g)"/>
-<g mask="url(#ml)"><g class="inflow"><g transform="translate(0 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(110 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(220 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(330 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(440 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(550 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(660 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(770 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(880 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g><g transform="translate(990 152)"><rect width="64" height="92" rx="10" fill="$peach"/><g transform="translate(18.8 32.8) scale(1.1)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></g></g></g>
-<g mask="url(#mr)"><g class="outflow"><g transform="translate(370 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(480 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(590 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(700 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(810 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(920 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(1030 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(1140 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(1250 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g><g transform="translate(1360 152)"><rect width="64" height="92" rx="10" fill="$mint"/><g transform="translate(20 16)" fill="none" stroke="$onp" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></g><text class="m" x="32" y="68" text-anchor="middle" font-size="13" fill="$onp">epub</text></g></g></g>
-<rect x="470.5" y="28.5" width="339" height="339" rx="96" fill="$tile" stroke="$edge"/>
-<g transform="translate(527.8 85.8) scale(3.506)">
-<polygon class="wl" points="32,6 10,58 20,58 32,28" fill="$lilac"/>
-<polygon class="wr" points="32,6 32,28 44,58 54,58" fill="$peach"/>
-<rect class="tab" x="27" y="44" width="10" height="14" rx="2" fill="$butter"/>
-</g>
-<text class="s" x="120" y="296" font-size="16" fill="$muted">With DRM</text>
-<text class="s" x="1160" y="296" font-size="16" fill="$muted" text-anchor="end">EPUB</text>
-<text class="b" x="640" y="478" font-size="76" fill="$ink" text-anchor="middle" letter-spacing="-2">Anzu</text>
-<text class="s" x="640" y="522" font-size="28" fill="$ink" text-anchor="middle">Kindle books to EPUB, on Windows.</text>
-<text class="s" x="640" y="560" font-size="17" fill="$muted" text-anchor="middle">Named after the Mesopotamian bird that stole the Tablet of Destinies.</text>
+
+<text class="b" x="640" y="92" font-size="52" text-anchor="middle" fill="$ink">Anzu</text>
+<text class="s" x="640" y="134" font-size="25" text-anchor="middle" fill="$body">Your Kindle books, open on any reader.</text>
+<text class="s" x="640" y="164" font-size="16" text-anchor="middle" fill="$muted">A free app for Windows</text>
+
+<!-- the Kindle app, where the books start -->
+<rect x="56" y="292" width="180" height="224" rx="14" fill="$panel" stroke="$line2" stroke-width="2"/>
+<circle cx="76" cy="311" r="4" fill="$line2"/><circle cx="90" cy="311" r="4" fill="$line2"/>
+<text class="s" x="146" y="316" font-size="14" text-anchor="middle" fill="$muted">Kindle</text>
+<path d="M57 328h178" stroke="$line2" stroke-width="2"/>
+<g transform="translate(76 340) scale(.5)"><use href="#lk" class="pl"/></g>
+<g transform="translate(156 340) scale(.5)"><use href="#lk" class="pl" style="animation-delay:-0.8s"/></g>
+<g transform="translate(76 428) scale(.5)"><use href="#lk" class="pl" style="animation-delay:-1.6s"/></g>
+<g transform="translate(156 428) scale(.5)"><use href="#lk" class="pl" style="animation-delay:-2.4s"/></g>
+
+<!-- the belt -->
+<rect x="236" y="488" width="694" height="6" rx="3" fill="$line"/>
+<g mask="url(#mb)"><g class="belt" fill="none" stroke="$muted" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M192 486l5 5-5 5M236 486l5 5-5 5M280 486l5 5-5 5M324 486l5 5-5 5M368 486l5 5-5 5M412 486l5 5-5 5M456 486l5 5-5 5M500 486l5 5-5 5M544 486l5 5-5 5M588 486l5 5-5 5M632 486l5 5-5 5M676 486l5 5-5 5M720 486l5 5-5 5M764 486l5 5-5 5M808 486l5 5-5 5M852 486l5 5-5 5M896 486l5 5-5 5"/></g></g>
+
+<!-- locked books travel to the gate -->
+<g mask="url(#ml)"><g class="run">
+<g transform="translate(-520 318)"><use href="#lk"/><text class="m" x="62" y="136" font-size="13" text-anchor="middle" fill="$on">B0DEMO0001</text></g>
+<g transform="translate(-300 318)"><use href="#lk"/><text class="m" x="62" y="136" font-size="13" text-anchor="middle" fill="$on">B0DEMO0002</text></g>
+<g transform="translate(-80 318)"><use href="#lk"/><text class="m" x="62" y="136" font-size="13" text-anchor="middle" fill="$on">B0DEMO0003</text></g>
+<g transform="translate(140 318)"><use href="#lk"/><text class="m" x="62" y="136" font-size="13" text-anchor="middle" fill="$on">B0DEMO0001</text></g>
+<g transform="translate(360 318)"><use href="#lk"/><text class="m" x="62" y="136" font-size="13" text-anchor="middle" fill="$on">B0DEMO0002</text></g>
+<g transform="translate(580 318)"><use href="#lk"/><text class="m" x="62" y="136" font-size="13" text-anchor="middle" fill="$on">B0DEMO0003</text></g>
+<g transform="translate(800 318)"><use href="#lk"/><text class="m" x="62" y="136" font-size="13" text-anchor="middle" fill="$on">B0DEMO0001</text></g>
+</g></g>
+
+<!-- the same books leave it open, with their titles -->
+<g mask="url(#mo)"><g class="run">
+<g transform="translate(-520 318)"><use href="#op"/><text class="b" x="62" y="64" font-size="18" text-anchor="middle" fill="$on">Moby-Dick</text></g>
+<g transform="translate(-300 318)"><use href="#op"/><text class="b" x="62" y="52" font-size="18" text-anchor="middle" fill="$on">Pride and</text><text class="b" x="62" y="74" font-size="18" text-anchor="middle" fill="$on">Prejudice</text></g>
+<g transform="translate(-80 318)"><use href="#op"/><text class="b" x="62" y="64" font-size="18" text-anchor="middle" fill="$on">Walden</text></g>
+<g transform="translate(140 318)"><use href="#op"/><text class="b" x="62" y="64" font-size="18" text-anchor="middle" fill="$on">Moby-Dick</text></g>
+<g transform="translate(360 318)"><use href="#op"/><text class="b" x="62" y="52" font-size="18" text-anchor="middle" fill="$on">Pride and</text><text class="b" x="62" y="74" font-size="18" text-anchor="middle" fill="$on">Prejudice</text></g>
+<g transform="translate(580 318)"><use href="#op"/><text class="b" x="62" y="64" font-size="18" text-anchor="middle" fill="$on">Walden</text></g>
+<g transform="translate(800 318)"><use href="#op"/><text class="b" x="62" y="64" font-size="18" text-anchor="middle" fill="$on">Moby-Dick</text></g>
+</g></g>
+
+<!-- the gate, and the mark over it -->
+<rect class="glow" x="612" y="276" width="56" height="226" fill="url(#gw)"/>
+<rect x="638.5" y="270" width="3" height="232" rx="1.5" fill="$accent"/>
+<g transform="translate(598 186) scale(1.3125)">
+<rect width="64" height="64" rx="18" fill="#15161A" stroke="$line2" stroke-width="1.5"/>
+<g transform="translate(10.88 10.88) scale(0.66)">
+<polygon class="wl" points="32,6 10,58 20,58 32,28" fill="#C9B8FF"/>
+<polygon class="wr" points="32,6 32,28 44,58 54,58" fill="#FFB4A2"/>
+<rect x="27" y="44" width="10" height="14" rx="2" fill="#FFF27A"/>
+</g></g>
+
+<!-- other readers -->
+<rect x="930" y="288" width="150" height="210" rx="14" fill="$quiet" stroke="$line2" stroke-width="2"/>
+<rect x="942" y="300" width="126" height="170" rx="4" fill="$panel"/>
+<rect x="942" y="300" width="126" height="34" rx="4" fill="$epub"/>
+<text class="b" x="1005" y="322" font-size="14" text-anchor="middle" fill="$on">Moby-Dick</text>
+<circle cx="1005" cy="484" r="5" fill="$line2"/>
+<g transform="translate(952 344) scale(1.06)"><g clip-path="url(#c1)"><rect class="rise" width="100" height="200" fill="url(#ln)"/></g></g>
+
+<rect x="1104" y="232" width="84" height="152" rx="14" fill="$quiet" stroke="$line2" stroke-width="2"/>
+<rect x="1110" y="244" width="72" height="128" rx="6" fill="$panel"/>
+<rect x="1110" y="244" width="72" height="20" rx="6" fill="$epub"/>
+<g transform="translate(1118 272) scale(.56)"><g clip-path="url(#c2)"><rect class="rise" style="animation-delay:-3s" width="100" height="250" fill="url(#ln)"/></g></g>
+
+<rect x="1096" y="408" width="148" height="106" rx="12" fill="$quiet" stroke="$line2" stroke-width="2"/>
+<rect x="1106" y="418" width="128" height="86" rx="4" fill="$panel"/>
+<rect x="1114" y="428" width="40" height="58" rx="4" fill="$epub"/>
+<g transform="translate(1164 428) scale(.62)"><g clip-path="url(#c3)"><rect class="rise" style="animation-delay:-6s" width="100" height="200" fill="url(#ln)"/></g></g>
+
+<text class="s" x="146" y="558" font-size="18" text-anchor="middle" fill="$body">Locked to Kindle</text>
+<text class="s" x="640" y="558" font-size="18" text-anchor="middle" fill="$body">Anzu opens them up</text>
+<text class="s" x="1087" y="558" font-size="18" text-anchor="middle" fill="$body">Read them anywhere</text>
 </svg>
