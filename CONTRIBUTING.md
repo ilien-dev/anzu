@@ -49,17 +49,17 @@ will be asked to split, or closed.
 ### Branch name
 
 ```
-feature/<1 to 4 words>
+<type>/<1 to 4 words>
 ```
 
-All lowercase, words of letters and digits joined by single hyphens, at most four words.
-This holds for every kind of change, fixes and docs included.
+`<type>` is the Conventional Commit type the title starts with: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`, `style` or `revert`. Then 1 to 4 words
+of lowercase letters and digits joined by single hyphens.
 
-- `feature/epub-cover-image` ✓
-- `feature/fix-progress-bar` ✓
-- `feature/Cover-Image` ✗ (uppercase)
-- `fix/progress` ✗ (does not start with `feature/`)
-- `feature/add-the-new-cover-image` ✗ (five words)
+- `feat/epub-cover-image` ✓
+- `fix/progress-bar` ✓
+- `feat/Cover-Image` ✗ (uppercase)
+- `feature/epub-cover-image` ✗ (the type is `feat`, not `feature`)
+- `feat/add-the-new-cover-image` ✗ (five words)
 
 ### Title
 
@@ -91,7 +91,7 @@ A CI check verifies the branch name, the title length and the description. You c
 it yourself before opening the PR:
 
 ```
-node .github/scripts/check-pr.js --branch feature/epub-cover-image \
+node .github/scripts/check-pr.js --branch feat/epub-cover-image \
   --title "feat: export the cover image to EPUB" --body-file pr.md
 ```
 

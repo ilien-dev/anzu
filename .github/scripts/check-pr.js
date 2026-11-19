@@ -4,7 +4,7 @@
 // In CI (.github/workflows/pr-rules.yml) they come from the PR_BRANCH, PR_TITLE and
 // PR_BODY environment variables. Locally, before opening a PR:
 //
-//   node .github/scripts/check-pr.js --branch feature/epub-cover-image \
+//   node .github/scripts/check-pr.js --branch feat/epub-cover-image \
 //     --title "feat: export the cover image to EPUB" --body-file pr.md
 //
 // Exits with 1 and lists every problem when something does not follow the rules.
@@ -13,8 +13,10 @@
 
 const fs = require('fs');
 
-// feature/ + 1 to 4 lowercase words (letters and digits) joined by single hyphens.
-const BRANCH = /^feature\/[a-z0-9]+(-[a-z0-9]+){0,3}$/;
+// A Conventional Commit type + / + 1 to 4 lowercase words (letters and digits) joined by
+// single hyphens. The types are the ones pr-title.yml accepts in the title.
+const TYPES = ['feat', 'fix', 'perf', 'refactor', 'docs', 'test', 'build', 'ci', 'chore', 'style', 'revert'];
+const BRANCH = new RegExp(`^(${TYPES.join('|')})/[a-z0-9]+(-[a-z0-9]+){0,3}$`);
 
 // Sections of .github/pull_request_template.md, in order, with their character limits.
 // The limit of Evidence leaves out images, GIFs and links.
@@ -67,8 +69,8 @@ function check({ branch, title, body }) {
 
   if (!BRANCH.test(branch || '')) {
     problems.push(
-      `Branch "${branch}" must be feature/ followed by 1 to 4 lowercase words joined by hyphens, ` +
-        'for example feature/epub-cover-image.',
+      `Branch "${branch}" must be a type (${TYPES.join(', ')}), a slash and 1 to 4 lowercase ` +
+        'words joined by hyphens, for example feat/epub-cover-image.',
     );
   }
 
@@ -117,4 +119,4 @@ if (require.main === module) {
   console.log('Branch name and description follow CONTRIBUTING.md.');
 }
 
-module.exports = { check, BRANCH, SECTIONS };
+module.exports = { check, BRANCH, TYPES, SECTIONS };

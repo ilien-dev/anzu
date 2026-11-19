@@ -1,6 +1,6 @@
 <!--
 Title: a Conventional Commit of at most 72 characters, e.g. "feat: export the cover image to EPUB".
-Branch: feature/ + 1 to 4 lowercase words joined by hyphens, e.g. feature/epub-cover-image.
+Branch: the title's type + / + 1 to 4 lowercase words joined by hyphens, e.g. feat/epub-cover-image.
 One PR = one change. Read CONTRIBUTING.md before opening it.
 Comments like this one are removed before the limits are counted.
 -->
