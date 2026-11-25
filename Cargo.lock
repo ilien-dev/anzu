@@ -199,7 +199,7 @@ dependencies = [
 
 [[package]]
 name = "anzu"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "anzu-core",
  "anzu-kfx",
@@ -211,7 +211,7 @@ dependencies = [
 
 [[package]]
 name = "anzu-core"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "dirs",
  "mslnk",
@@ -228,7 +228,7 @@ dependencies = [
 
 [[package]]
 name = "anzu-kfx"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "roxmltree",
  "tempfile",
@@ -238,7 +238,7 @@ dependencies = [
 
 [[package]]
 name = "anzu-web"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "anzu",
  "anzu-core",

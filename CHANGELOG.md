@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.9.0](https://github.com/ilien-dev/anzu/compare/a41a5918e5f6759b51821a938b593e03f76aa7c1..v0.9.0) - 2026-11-25
+#### Features
+- new logo, a block that turns into lines of text (#26) - ([22129b5](https://github.com/ilien-dev/anzu/commit/22129b546dd6daccc5b3dd2bfbad01ad7f7f23f9)) - ilien
+#### Documentation
+- replace the README hero with an animated poster (#23) - ([af7fac2](https://github.com/ilien-dev/anzu/commit/af7fac220c4ef8f0558038aee8d8a485aa509b74)) - ilien
+- show books reaching their devices in the readme hero (#22) - ([a41a591](https://github.com/ilien-dev/anzu/commit/a41a5918e5f6759b51821a938b593e03f76aa7c1)) - ilien
+#### Continuous Integration
+- name branches after the commit type (#24) - ([071076b](https://github.com/ilien-dev/anzu/commit/071076b0021d084ab6011933f1a297e457e21904)) - ilien
+
+- - -
+
 ## [v0.8.3](https://github.com/ilien-dev/anzu/compare/40b327d1d7e5470104faa33b862cf9d160ab3f76..v0.8.3) - 2026-11-17
 #### Bug Fixes
 - show the catalog title of locked books on the shelf (#21) - ([00a1d36](https://github.com/ilien-dev/anzu/commit/00a1d3685824a0fd7ce1a009e0afc2f0f3afe395)) - ilien
