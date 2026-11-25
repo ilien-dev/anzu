@@ -165,9 +165,9 @@ desbloqueados se pueden seguir convirtiendo.
 
 **¿De dónde viene el nombre?**
 En la mitología mesopotámica, Anzu es el ave que robó a los dioses la Tablilla de los
-Destinos. El logo es una A formada por dos alas abiertas sobre una tablilla: un ala lila,
-un ala melocotón y una tablilla amarilla, los colores que la app da a un libro mientras
-pasa de DRM a EPUB.
+Destinos. El logo es un bloque sólido que se convierte en líneas de texto: un bloque
+melocotón y líneas verde menta, los colores que la app da a un libro con DRM y a un libro
+en EPUB.
 
 ## Para quien quiera saber más
 

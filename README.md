@@ -161,8 +161,8 @@ can still be converted.
 
 **Where does the name come from?**
 In Mesopotamian myth, Anzu is the bird that stole the Tablet of Destinies from the gods.
-The logo is an A made of two open wings over a tablet: a lilac wing, a peach wing and a
-butter tablet, the colours the app gives a book as it moves from DRM to EPUB.
+The logo is a solid block that turns into lines of text: a peach block and mint lines,
+the colours the app gives a book with DRM and a book in EPUB.
 
 ## For the curious
 

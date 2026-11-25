@@ -24,11 +24,14 @@ html,body{margin:0;background:#888}
 .name{font-family:"Space Grotesk",sans-serif;font-size:52px;font-weight:700;letter-spacing:-.045em;line-height:1}
 .tagline{font-size:20px;color:var(--muted);margin-top:8px}
 .tagline b{font-weight:600;color:var(--ink);background:var(--epub);border-radius:7px;padding:1px 7px}
-.wing{transform-box:view-box;transform-origin:32px 58px;animation:wing 8s cubic-bezier(.16,1,.3,1) infinite}
-.wl{--tilt:16deg}.wr{--tilt:-16deg}
-@keyframes wing{0%{transform:rotate(var(--tilt)) scaleX(.55);opacity:.2}12%,100%{transform:none;opacity:1}}
-.tab{animation:tab 8s cubic-bezier(.16,1,.3,1) infinite}
-@keyframes tab{0%,5%{transform:translateY(8px);opacity:0}14%,100%{transform:none;opacity:1}}
+.blk{transform-box:fill-box;transform-origin:0 50%;animation:blk 8s cubic-bezier(.16,1,.3,1) infinite}
+@keyframes blk{0%{transform:scaleX(.4);opacity:.2}10%,100%{transform:none;opacity:1}}
+.ln{transform-box:fill-box;transform-origin:0 50%;animation:ln1 8s cubic-bezier(.16,1,.3,1) infinite}
+.ln2{animation-name:ln2}.ln3{animation-name:ln3}.ln4{animation-name:ln4}
+@keyframes ln1{0%,5%{transform:scaleX(0)}14%,100%{transform:none}}
+@keyframes ln2{0%,7%{transform:scaleX(0)}16%,100%{transform:none}}
+@keyframes ln3{0%,9%{transform:scaleX(0)}18%,100%{transform:none}}
+@keyframes ln4{0%,11%{transform:scaleX(0)}20%,100%{transform:none}}
 .intro{animation:intro 8s cubic-bezier(.16,1,.3,1) infinite}
 @keyframes intro{0%,6%{opacity:0;transform:translateY(6px)}14%,100%{opacity:1;transform:none}}
 .book{display:flex;align-items:center;gap:22px}
@@ -71,9 +74,11 @@ html,body{margin:0;background:#888}
         <svg width="96" height="96" viewBox="0 0 64 64" aria-hidden="true">
           <rect width="64" height="64" rx="18" style="fill:var(--tile)"/>
           <g transform="translate(10.88 10.88) scale(0.66)">
-            <polygon class="wing wl" points="32,6 10,58 20,58 32,28" fill="#c9b8ff"/>
-            <polygon class="wing wr" points="32,6 32,28 44,58 54,58" fill="#ffb4a2"/>
-            <rect class="tab" x="27" y="44" width="10" height="14" rx="2" fill="#fff27a"/>
+            <path class="ln ln1" fill="#c8f0a0" d="M26 14H55A3 3 0 0 1 55 20H26Z"/>
+            <path class="ln ln2" fill="#c8f0a0" d="M26 24H45A3 3 0 0 1 45 30H26Z"/>
+            <path class="ln ln3" fill="#c8f0a0" d="M26 34H51A3 3 0 0 1 51 40H26Z"/>
+            <path class="ln ln4" fill="#c8f0a0" d="M26 44H37A3 3 0 0 1 37 50H26Z"/>
+            <path class="blk" fill="#ffb4a2" d="M13 14H28V20A2 2 0 0 0 28 24V30A2 2 0 0 0 28 34V40A2 2 0 0 0 28 44V50H13A7 7 0 0 1 6 43V21A7 7 0 0 1 13 14Z"/>
           </g>
         </svg>
         <div class="intro">
