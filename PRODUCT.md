@@ -57,8 +57,9 @@ why and does nothing. The KFX to EPUB converter is its own code.
 ## Brand Commitments
 
 - Name: Anzu, after the Mesopotamian bird that stole the Tablet of Destinies.
-- Logo: an A monogram formed by two open wings over a tablet, each part in its own colour:
-  a lilac wing, a peach wing and a butter tablet, on an ink tile.
+- Logo: a solid block that turns into lines of text, a locked book becoming an EPUB: a
+  peach block (the colour of a book with DRM) and mint lines (the colour of a book in
+  EPUB), on an ink tile. Files and rules in `assets/brand/`.
 - Style chosen by the user: “Coloured paper” (proposal 2A of the redesign canvas): ink on
   cool white or light ink on night, four pastels that name the state of a book, Space
   Grotesk headings over Inter text, soft corners and many drawn icons. It replaced “Amber

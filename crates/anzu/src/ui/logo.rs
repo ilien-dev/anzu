@@ -1,35 +1,43 @@
-//! The Anzu logo: an A made of two open wings over a tablet.
+//! The Anzu logo: a solid block that turns into lines of text, a locked book becoming an EPUB.
 //!
 //! The shape is defined once, on a 64 x 64 grid, in [`super::mark`]: the drawing on screen,
 //! the window icon and the icon embedded in the executable all come from it. Each part has
-//! its own colour: a lilac wing, a peach wing and a butter tablet.
+//! its own colour: a peach block and mint lines, the colours of a book with DRM and in EPUB.
 
-use eframe::egui::{self, Color32, CornerRadius, Pos2, Rect, Shape, Stroke};
+use eframe::egui::{self, Color32, CornerRadius, Pos2, Rect};
 
 pub use super::mark::icon_rgba;
-use super::mark::{GRID, LEFT_WING, MarkColors, RIGHT_WING, TABLET};
+use super::mark::{BLOCK_RADIUS, BLOCK_X, MarkColors, Shape};
 
-/// The colours of the logo on screen.
-pub fn colors(mark: MarkColors) -> [Color32; 3] {
+/// The colours of the logo on screen: block, lines.
+pub fn colors(mark: MarkColors) -> [Color32; 2] {
     let c = |rgb: [u8; 3]| Color32::from_rgb(rgb[0], rgb[1], rgb[2]);
-    [c(mark.left_wing), c(mark.right_wing), c(mark.tablet)]
+    [c(mark.block), c(mark.lines)]
 }
 
-/// Draws the logo inside `rect`, each part in its colour: left wing, right wing, tablet.
-pub fn paint(painter: &egui::Painter, rect: Rect, [left, right, tablet_color]: [Color32; 3]) {
-    let scale = rect.width().min(rect.height()) / GRID;
-    let at = |(x, y): (f32, f32)| Pos2::new(rect.min.x + x * scale, rect.min.y + y * scale);
-    for (wing, color) in [(LEFT_WING, left), (RIGHT_WING, right)] {
-        painter.add(Shape::convex_polygon(wing.iter().map(|p| at(*p)).collect(), color, Stroke::NONE));
+/// Draws the logo inside `rect`, each part in its colour: block, lines.
+pub fn paint(painter: &egui::Painter, rect: Rect, [block, lines]: [Color32; 2]) {
+    let side = rect.width().min(rect.height());
+    let shape = Shape::for_size(side);
+    let scale = side / super::mark::GRID;
+    let at = |x: f32, y: f32| Pos2::new(rect.min.x + x * scale, rect.min.y + y * scale);
+    let radius = |r: f32| (r * scale).round() as u8;
+    // The lines first, starting under the block, so no seam shows where the two colours meet.
+    let h = shape.line_height;
+    for &(top, end) in shape.lines {
+        let line = Rect::from_min_max(at(BLOCK_X.1 - 2.0, top), at(end, top + h));
+        let round = radius(h / 2.0);
+        painter.rect_filled(line, CornerRadius { nw: 0, ne: round, sw: 0, se: round }, lines);
     }
-    let (tx, ty, tw, th) = TABLET;
-    let tablet = Rect::from_min_max(at((tx, ty)), at((tx + tw, ty + th)));
-    painter.rect_filled(tablet, CornerRadius::same((2.0 * scale).round() as u8), tablet_color);
+    let (top, bottom) = shape.block_y();
+    let body = Rect::from_min_max(at(BLOCK_X.0, top), at(BLOCK_X.1, bottom));
+    let round = radius(BLOCK_RADIUS);
+    painter.rect_filled(body, CornerRadius { nw: round, ne: 0, sw: round, se: 0 }, block);
 }
 
 /// The logo on a rounded tile, as in the app icon.
 pub fn badge(ui: &mut egui::Ui, size: f32, background: Color32) {
     let (rect, _) = ui.allocate_exact_size(egui::vec2(size, size), egui::Sense::hover());
     ui.painter().rect_filled(rect, CornerRadius::same((size * 0.28) as u8), background);
-    paint(ui.painter(), rect.shrink(size * 0.17), colors(super::mark::ICON_MARK));
+    paint(ui.painter(), rect.shrink(size * super::mark::TILE_INSET), colors(super::mark::ICON_MARK));
 }
