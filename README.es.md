@@ -1,18 +1,15 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-    <img src="assets/hero-light.svg" alt="Anzu, una app gratuita para Windows: tus libros de Kindle, en EPUB. Tres libros con candado salen uno a uno de la app de Kindle, pasan por Anzu, donde cada uno va de con DRM a desbloqueado y a EPUB listo, y llegan como archivos EPUB a Documentos\EPUB, listos para abrir en cualquier lector." width="100%">
+    <img src="assets/hero-light.svg" alt="Anzu, una app gratuita para Windows: los libros que compraste, en cualquier lector. Tres libros con candado salen uno a uno de la app de Kindle, pasan por Anzu, donde cada uno va de con DRM a desbloqueado y a EPUB listo, y llegan como archivos EPUB a Documents\EPUB, listos para abrir en un lector electrónico." width="100%">
   </picture>
 </p>
 
 <p align="center"><a href="README.md">English</a> · <b>Español</b></p>
 
-<h1 align="center">Anzu: convierte libros de Kindle a EPUB en Windows</h1>
+<h1 align="center">Anzu: lee los libros de Kindle que compraste en cualquier lector</h1>
 
-<p align="center">
-  <b>Una app gratuita para Windows que convierte los libros que descargaste con la app de Kindle en archivos EPUB,<br>
-  para que puedas leerlos en otras apps y otros lectores. Sin Calibre y sin línea de comandos.</b>
-</p>
+<p align="center"><b>Una app gratuita para Windows que convierte tus libros de Kindle en archivos EPUB en un solo paso. Sin Calibre y sin línea de comandos.</b></p>
 
 <p align="center">
   <a href="https://anzu.ilien.dev/es/"><img alt="Sitio web: anzu.ilien.dev" src="https://img.shields.io/badge/sitio%20web-anzu.ilien.dev-fff27a?style=flat-square&labelColor=15161a"></a>
@@ -22,168 +19,182 @@
 </p>
 
 <p align="center">
-  <a href="https://anzu.ilien.dev/es/"><b>Sitio web y demo en vivo</b></a> ·
-  <a href="#instalación"><b>Instalación</b></a> ·
-  <a href="#cómo-se-usa"><b>Cómo se usa</b></a> ·
-  <a href="#úsala-con-responsabilidad"><b>Úsala con responsabilidad</b></a> ·
-  <a href="#preguntas"><b>Preguntas</b></a> ·
-  <a href="docs/technical-overview.md"><b>Detalles técnicos (en inglés)</b></a>
+  <a href="#lo-que-obtienes">Lo que obtienes</a> ·
+  <a href="#cómo-funciona">Cómo funciona</a> ·
+  <a href="#instalación">Instalación</a> ·
+  <a href="#tu-cuenta-está-a-salvo">Tu cuenta</a> ·
+  <a href="#preguntas">Preguntas</a> ·
+  <a href="docs/technical-overview.md">Detalles técnicos (en inglés)</a>
 </p>
 
 ---
 
-Los libros que compras en Kindle solo se abren en las apps y los dispositivos de Amazon.
-Están bloqueados con DRM, una protección que ata cada libro a tu cuenta. Si quieres leer
-uno en otra app de lectura, o usarlo en una herramienta tuya, lo necesitas en EPUB, el
-formato abierto que entienden casi todos los demás lectores.
-
-Hacerlo a mano es tedioso. Hay que encontrar una herramienta para quitar el DRM, comprobar
-que su versión funciona con tu versión de la app de Kindle, rebuscar en carpetas ocultas y
-luego pasar el archivo de KFX (el formato de Kindle) a EPUB.
-
-Anzu hace todo eso en una sola ventana. Encuentra los libros que descargaste con la app de
-Kindle para PC, comprueba la herramienta de desbloqueo antes de cada uso, pregunta antes de
-cerrar nada y guarda cada libro como archivo EPUB en la carpeta que elijas. Si algo no
-cuadra, se detiene y te explica por qué en lugar de adivinar.
-
-Puedes ver la app real funcionando, con libros de ejemplo, en el
-**[sitio web](https://anzu.ilien.dev/es/)**.
+**Anzu convierte los libros de Kindle que compraste en archivos EPUB que puedes leer donde
+quieras.** Amazon ata los libros de Kindle a sus propias apps con DRM, una protección
+anticopia. ¿Te pasas a un Kobo o lees en el móvil? Anzu encuentra los libros que
+descargaste con la app de Kindle en tu PC con Windows, quita ese candado y guarda cada uno
+como EPUB, el formato que abre casi cualquier otro lector. Una ventana, un botón, sin
+Calibre. Puedes probar la app real con libros de ejemplo en el
+[sitio web](https://anzu.ilien.dev/es/).
 
 ## Úsala con responsabilidad
 
 > [!WARNING]
-> **Anzu es solo para uso personal, y solo con libros que obtuviste de forma legal.**
+> **Para uso personal, con libros que conseguiste legalmente.**
 >
-> - **Quitar el DRM puede ser ilegal donde vives.** Muchos países, entre ellos Estados
->   Unidos (por la ley DMCA) y los estados de la Unión Europea, prohíben saltarse las
->   protecciones anticopia, y hacerlo puede acarrear multas u otras sanciones. Revisa la
->   ley de tu país antes de usar Anzu.
-> - **Va en contra de las condiciones de Amazon.** Al usar Kindle aceptas las Condiciones
->   de uso de la Tienda Kindle, y esas condiciones no permiten quitar el DRM de tus libros.
-> - **Úsala solo con libros que compraste o que lees con una suscripción que pagas.**
-> - **Nunca compartas los EPUB que obtengas.** No se los envíes a nadie, no los subas ni
->   los publiques en ningún sitio. Compartir un libro al que le quitaste el DRM es
->   piratería, es ilegal y perjudica a quienes lo escribieron.
+> - **Puede ir contra la ley de tu país.** Muchos países, entre ellos Estados Unidos (por
+>   la DMCA) y los miembros de la Unión Europea, prohíben saltarse la protección anticopia.
+>   Revisa antes la ley de tu país.
+> - **Va contra los términos de Amazon.** Las Condiciones de Uso de la Tienda Kindle no
+>   permiten quitar el DRM de tus libros.
+> - **Solo libros que pagaste:** comprados, o leídos con una suscripción que pagas.
+> - **Nunca compartas los archivos EPUB.** Enviar o subir un libro al que le quitaste el
+>   DRM es piratería, es ilegal y perjudica a quienes lo escribieron.
 >
-> Tú eres responsable del uso que hagas de Anzu.
+> Tú eres responsable de cómo usas Anzu.
 
-### Por qué la creé
+## Lo que obtienes
 
-Hice Anzu para mí, para practicar inglés. Tengo otra app,
-[Ogmios](https://github.com/ilien-dev/ogmios), con la que practico inglés, y quería usar los
-libros que leo como material. Con un libro en EPUB puedo separarlo en capítulos y sacar de
-ahí vocabulario en inglés para estudiar. Esa es toda la idea: usar un libro que pagué en
-otra app mía. Anzu nunca tuvo como fin quitarle el DRM a un libro para pasárselo a otras
-personas. Eso es ilegal y no debe hacerse nunca.
+<p align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/es/readme/features-dark.svg">
+  <img src="assets/es/readme/features-light.svg" alt="Cuatro paneles se encienden uno tras otro: un archivo EPUB va a un lector electrónico, un móvil y una tableta; Calibre, los plugins y una app de Kindle antigua aparecen tachados junto al logo de Anzu; se pulsa un botón que dice Desbloquear y convertir 2 y una barra se llena; y la carpeta de Kindle recibe un escudo verde porque nada en ella cambió." width="100%">
+</picture></p>
 
-## Qué necesitas
+- **Tus libros en cualquier lector.** Kobo, PocketBook, un móvil o una tableta: el EPUB se
+  abre casi en todas partes.
+- **Nada extra que instalar.** Ni Calibre, ni plugins, ni buscar una versión vieja de la app
+  de Kindle. Anzu tiene su propio conversor.
+- **Un botón para todo el trabajo.** Siempre dice lo que va a hacer, por ejemplo
+  “Desbloquear y convertir 2 libros”.
+- **Tu biblioteca de Kindle se queda como está.** Anzu solo lee la carpeta de Kindle. Nunca
+  cambia ni borra tus libros allí.
+- **Una respuesta clara si algo no cuadra.** Si la herramienta que quita el DRM todavía no
+  funciona con tu app de Kindle, Anzu se detiene y te dice por qué en vez de adivinar.
 
-- Una computadora con **Windows 10 u 11**.
-- La **app de Kindle de Microsoft Store**, con tu cuenta de Amazon iniciada y los libros
-  que quieras ya descargados.
-- Conexión a internet, para que Anzu compruebe la herramienta de desbloqueo antes de usarla.
+## Cómo funciona
+
+<p align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/es/readme/how-dark.svg">
+  <img src="assets/es/readme/how-light.svg" alt="La ventana de Anzu: un cursor marca Moby-Dick y Orgullo y prejuicio, pulsa Desbloquear y convertir 2, responde Cerrar Kindle y continuar cuando Anzu avisa que la app de Kindle está abierta, y cada libro llena su barra de tres colores. Una lista al lado enciende cada uno de los cuatro pasos." width="100%">
+</picture></p>
+
+Primero descarga tus libros en la app de Kindle, como siempre, y abre Anzu. Los encuentra y
+los pone en estantes: por desbloquear, listos para EPUB o ya en EPUB. Después:
+
+1. **Marca tus libros** y elige dónde van los archivos EPUB (`Documents\EPUB` por defecto).
+2. **Pulsa un botón.** Dice lo que va a hacer, por ejemplo “Desbloquear y convertir 2
+   libros”.
+3. **Deja que cierre Kindle.** La app de Kindle tiene que estar cerrada para desbloquear,
+   así que Anzu pregunta antes.
+4. **Espera el EPUB.** Cada libro llena una barra de tres colores: con DRM, desbloqueado,
+   EPUB listo.
+
+Si un libro falla, los demás siguen. Bueno saberlo: el desbloqueo abre todos los libros
+descargados que aún tienen DRM, como copias fuera de la carpeta de Kindle, y solo los
+marcados se vuelven EPUB. Más en el
+[resumen técnico (en inglés)](docs/technical-overview.md#how-the-parts-fit-together).
 
 ## Instalación
+
+> [!IMPORTANT]
+> **Necesitas Windows 10 u 11** y la app de Kindle de Microsoft Store, con tu sesión
+> iniciada y tus libros ya descargados. Anzu también necesita conexión a internet para
+> revisar la herramienta de desbloqueo antes de usarla.
 
 1. Descarga el archivo cuyo nombre termina en `setup.exe` desde la
    [última versión](https://github.com/ilien-dev/anzu/releases/latest).
 2. Ábrelo y sigue los pasos. No pide permisos de administrador.
-3. La primera vez, Windows puede mostrar un aviso azul («Windows protegió su PC») porque el
-   instalador aún no está firmado. Elige **Más información** y luego **Ejecutar de todas
-   formas**.
+3. La primera vez, Windows puede mostrar “Windows protegió tu PC”, porque el instalador aún
+   no está firmado. Elige “Más información” y luego “Ejecutar de todas formas”.
 
-Mientras está abierta, Anzu busca versiones nuevas por su cuenta y solo instala una cuando
-tú lo pides. Para quitarla, desinstala Anzu desde Configuración › Aplicaciones, como
-cualquier otro programa.
+Anzu te avisa cuando hay una versión nueva y solo la instala cuando tú lo dices. Para
+quitarla, desinstala Anzu desde Configuración › Aplicaciones como cualquier otro programa.
 
-## Cómo se usa
+## Tu cuenta está a salvo
 
-1. **Descarga tus libros** en la app de Kindle, como siempre.
-2. **Abre Anzu.** Encuentra la app de Kindle y pone tus libros en estantes según lo que
-   les falta: por desbloquear, listos para EPUB o ya en EPUB. Cada libro muestra el
-   título que tiene en la app de Kindle; si allí no lo tiene, ves su código hasta desbloquearlo.
-3. **Marca los libros que quieras.** El panel lateral los lista con lo que se hará con
-   cada uno. Elige la carpeta donde irán los EPUB
-   (`Documents\EPUB` por defecto).
-4. **Pulsa el botón.** Siempre dice lo que va a pasar, por ejemplo «Desbloquear y
-   convertir 2 libros». La app de Kindle tiene que estar cerrada para desbloquear, así que
-   Anzu te pide permiso antes de cerrarla.
+<p align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/es/readme/privacy-dark.svg">
+  <img src="assets/es/readme/privacy-light.svg" alt="Una caja que representa tu PC contiene la carpeta de Kindle, Anzu, la carpeta Documents EPUB, las claves de tu cuenta en una caja cerrada y la herramienta de desbloqueo. Lo único que sale del PC es una comprobación de la versión oficial de la herramienta, que vuelve verificada; los libros van de la carpeta de Kindle a la carpeta EPUB pasando por Anzu, y las claves nunca se mueven." width="100%">
+</picture></p>
 
-Cada libro muestra su avance en una pequeña pista de tres pasos: con DRM, desbloqueado,
-EPUB listo. Si un libro falla, los demás siguen. Conviene saberlo: la herramienta
-desbloquea todos los libros descargados que aún tienen DRM, no solo los que marcaste; solo
-los marcados se convierten a EPUB.
+- **Tus claves se quedan en tu PC.** Para desbloquear tus libros, la herramienta necesita
+  claves secretas de tu cuenta de Amazon, y las toma de la app de Kindle de tu PC: nunca
+  escribes tu contraseña de Amazon. Anzu las guarda en tu computadora, nunca las
+  muestra en pantalla y nunca las escribe en su registro. Trata las carpetas que las guardan
+  (`%LOCALAPPDATA%\anzu\keys` y `work`) como una contraseña.
+- **Tus libros se quedan en tu PC.** No se sube nada a ninguna parte.
+- **En línea solo se revisa la herramienta.** El DRM lo quita una herramienta de código
+  abierto muy conocida, [las DeDRM tools de Satsuoni](https://github.com/Satsuoni/DeDRM_tools).
+  Anzu la descarga de sus versiones oficiales, comprueba que el archivo no fue alterado y
+  solo entonces la ejecuta en tu PC.
 
-La ventana está en inglés o en español, con tema claro u oscuro; ambas cosas se eligen en
-el botón de ajustes (el engranaje de arriba).
-
-## Qué libros funcionan
-
-- **Funcionan:** novelas y otros libros que son sobre todo texto, con sus capítulos,
-  títulos, cursivas y negritas, enlaces, imágenes, portada e índice.
-- **En parte:** las listas y las tablas conservan su texto, pero pierden su formato.
-- **No funcionan:** cómics, manga, libros ilustrados infantiles y otros libros de diseño
-  fijo, ni diccionarios.
-
-## Cómo protege tu cuenta
-
-- Para desbloquear tus libros, la herramienta necesita claves secretas de tu cuenta de
-  Amazon. Anzu las guarda en tu computadora, en `%LOCALAPPDATA%\anzu\keys` y
-  `%LOCALAPPDATA%\anzu\work`. **Trata esas dos carpetas como una contraseña: nunca las
-  compartas ni las subas a ningún sitio.**
-- Anzu nunca muestra esos secretos en pantalla ni los escribe en su registro.
-- Anzu nunca cambia nada dentro de la carpeta de la app de Kindle.
-- El DRM lo quita una herramienta aparte, de código abierto y conocida
-  ([las DeDRM tools de Satsuoni](https://github.com/Satsuoni/DeDRM_tools)). Anzu la
-  descarga de sus publicaciones oficiales, comprueba que el archivo no fue alterado y se
-  niega a ejecutarla si algo no coincide. Anzu no contiene código de descifrado.
+Dónde vive cada archivo y qué envía Anzu a GitHub está en el
+[resumen técnico (en inglés)](docs/technical-overview.md#privacy-and-network).
 
 ## Preguntas
 
-**¿Anzu es gratis?**
-Sí. Es libre y de código abierto, con licencia GPL-3.0.
+<details><summary><b>¿Anzu es gratis?</b></summary>
 
-**¿Funciona en Mac o Linux?**
-No. Anzu solo funciona en Windows 10 y 11, con la app de Kindle de Microsoft Store.
+Sí. Es gratuita y de código abierto, con licencia GPL-3.0.
+</details>
 
-**¿Necesito Calibre?**
-No. Anzu tiene su propio conversor de KFX a EPUB, así que no necesitas Calibre ni ningún
-complemento.
+<details><summary><b>¿Qué libros funcionan?</b></summary>
 
-**¿Puedo leer el EPUB en un Kobo, un teléfono o una tableta?**
-Sí, el EPUB funciona en la mayoría de las apps de lectura y lectores electrónicos. Recuerda
-que los archivos son solo para ti: cópialos únicamente a tus propios dispositivos.
+Novelas y otros libros que son sobre todo texto, con sus capítulos, títulos, cursivas y
+negritas, enlaces, imágenes, portada e índice. Las listas y las tablas conservan el texto
+pero pierden su forma. No funcionan los cómics, el manga, los libros ilustrados infantiles y
+otros de diseño fijo, ni los diccionarios.
+</details>
 
-**¿Puede convertir a MOBI, AZW3 o PDF?**
+<details><summary><b>¿Puedo leer el EPUB en un Kobo, un móvil o una tableta?</b></summary>
+
+Sí, el EPUB funciona en la mayoría de las apps de lectura y los lectores electrónicos. Los
+archivos son solo para ti: cópialos únicamente a tus propios dispositivos.
+</details>
+
+<details><summary><b>¿Funciona en Mac o Linux, o con un Kindle?</b></summary>
+
+No. Anzu funciona en Windows 10 y 11 y lee los libros de la app de Kindle de Microsoft
+Store. Los libros que solo están en un Kindle tienen que descargarse primero en esa app.
+</details>
+
+<details><summary><b>¿Necesito Calibre?</b></summary>
+
+No. Anzu tiene su propio conversor del formato de Kindle (KFX) a EPUB, así que no necesitas
+Calibre ni ningún plugin.
+</details>
+
+<details><summary><b>¿Puede crear archivos MOBI, AZW3 o PDF?</b></summary>
+
 No. Anzu solo crea archivos EPUB.
+</details>
 
-**¿Por qué Anzu a veces se niega a desbloquear?**
-Porque no pudo asegurarse de que la herramienta de desbloqueo es segura y compatible: por
-ejemplo, la app de Kindle se actualizó y la herramienta todavía no admite esa versión, o no
-hay conexión para comprobarlo. Anzu te dice el motivo en pantalla. Los libros ya
-desbloqueados se pueden seguir convirtiendo.
+<details><summary><b>¿Por qué Anzu a veces se niega a desbloquear?</b></summary>
 
-**¿De dónde viene el nombre?**
+Porque no pudo asegurarse de que la herramienta de desbloqueo es segura y funciona con tu
+app de Kindle: por ejemplo, la app de Kindle se actualizó y la herramienta todavía no admite
+esa versión, o no hay conexión para comprobarlo. Anzu muestra el motivo en pantalla. Los
+libros que ya están desbloqueados se pueden seguir convirtiendo.
+</details>
+
+Más respuestas, desde dónde guarda Anzu cada archivo hasta qué hace cuando se actualiza la
+app de Kindle, están en el [resumen técnico (en inglés)](docs/technical-overview.md).
+
+## Sobre Anzu
+
 En la mitología mesopotámica, Anzu es el ave que robó a los dioses la Tablilla de los
-Destinos. El logo es un bloque sólido que se convierte en líneas de texto: un bloque
-melocotón y líneas verde menta, los colores que la app da a un libro con DRM y a un libro
-en EPUB.
+Destinos. El logo es un bloque que se convierte en líneas de texto: un libro bloqueado que
+se vuelve EPUB.
 
-## Para quien quiera saber más
+Hice Anzu para mí, para practicar inglés con los libros que leo en
+[Ogmios](https://github.com/ilien-dev/ogmios), otra app mía. Nunca fue pensada para pasar
+libros a nadie más.
 
-Cómo encajan las piezas, cuándo se niega Anzu a desbloquear, dónde guarda cada archivo, la
-línea de comandos, las limitaciones conocidas y cómo compilarla desde el código están en la
-**[descripción técnica](docs/technical-overview.md)**, en inglés. Para proponer un cambio,
-lee [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Créditos
-
-- **Satsuoni**, por la herramienta de desbloqueo.
-- **John Howell** (jhowell), cuyo complemento KFX Input es la referencia del formato KFX.
-- **Inter** y **Space Grotesk**, las tipografías de la interfaz, con licencia SIL Open Font
-  License 1.1 (`crates/anzu/assets/fonts/Inter-OFL.txt` y `SpaceGrotesk-OFL.txt`).
+**Para los curiosos:** cómo está hecha, sus límites conocidos, los créditos y cómo compilarla
+están en el [resumen técnico (en inglés)](docs/technical-overview.md). Gracias a Satsuoni por
+la herramienta de desbloqueo. Para proponer un cambio, lee [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licencia
 
-GPL-3.0-or-later. Anzu es un proyecto independiente: no lo hace, respalda ni apoya Amazon.
-Kindle es una marca de Amazon.com, Inc. o sus filiales.
+GPL-3.0-or-later. Anzu es un proyecto independiente. No está hecho, respaldado ni apoyado por
+Amazon. Kindle es una marca de Amazon.com, Inc. o sus filiales.

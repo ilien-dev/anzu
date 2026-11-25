@@ -1,0 +1,96 @@
+<!--palette
+bg       #0E0F12 #F4F5F7
+dot      #23252C #D5D9E0
+win      #17181D #FFFFFF
+card     #202228 #F4F5F7
+edge     #30333B #D5D9E0
+rim      #454954 #B4BAC5
+aside    #111216 #FAFBFC
+quiet    #2A2D35 #E4E7EC
+ink      #ECEDEF #15161A
+body     #A3A7B0 #565A64
+accent   #FFF27A #6B5E00
+action   #FFF27A #15161A
+onaction #15161A #FFFFFF
+shell    #060708 #15161A
+chip     #1E2025 #2C2F36
+white    #FFFFFF #FFFFFF
+soft     #C9CCD3 #C9CCD3
+drm      #FFB4A2 #FFB4A2
+unl      #C9B8FF #C9B8FF
+epub     #C8F0A0 #C8F0A0
+butter   #FFF27A #FFF27A
+dark     #15161A #15161A
+ok       #A9E57A #A9E57A
+selbg    #2B2912 #FFFBD6
+sel      #FFF27A #15161A
+drmtint  #3A2620 #FFE3DB
+tile     #15161A #15161A
+tilerim  #454954 #15161A
+paper    #F1F2F4 #FFFFFF
+strip    #08090B #15161A
+stripink #ECEDEF #FFFFFF
+stripval #FFF27A #FFF27A
+panel    #17181D #FFFFFF
+line     #30333B #D5D9E0
+muted    #454954 #B4BAC5
+epubink  #C8F0A0 #3D7A1E
+drmink   #FFB4A2 #B3452C
+okink    #A9E57A #3D7A1E
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 448" role="img" aria-label="Your account stays safe: inside a box that stands for your PC sit the Kindle folder, your account keys in a locked box, Anzu and the Documents EPUB folder. The only thing that leaves the PC is a check sent to the official release of the unlock tool, which comes back verified; then a book goes from the Kindle folder through Anzu into the EPUB folder, and the keys never move.">
+<style>
+@keyframes out{0%,6%{transform:translate(0,0);opacity:0}8%{opacity:1}24%{transform:translate(150px,0);opacity:1}26%,100%{transform:translate(150px,0);opacity:0}}
+@keyframes back{0%,32%{transform:translate(0,0);opacity:0}34%{opacity:1}50%{transform:translate(-150px,0);opacity:1}52%,100%{transform:translate(-150px,0);opacity:0}}
+.out{animation:out 12s cubic-bezier(.4,0,.2,1) infinite}.back{animation:back 12s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes ok{0%,26%{opacity:0}29%,88%{opacity:1}94%,100%{opacity:0}}
+.ok{animation:ok 12s ease-out infinite}
+@keyframes flow{to{stroke-dashoffset:-24}}
+.flow{animation:flow 1.2s linear infinite}
+@keyframes book1{0%,54%{transform:translate(0,0);opacity:0}56%{opacity:1}66%{transform:translate(130px,0);opacity:1}68%,100%{transform:translate(130px,0);opacity:0}}
+@keyframes book2{0%,68%{transform:translate(0,0);opacity:0}70%{opacity:1}80%{transform:translate(130px,0);opacity:1}82%,100%{transform:translate(130px,0);opacity:0}}
+.book1{animation:book1 12s cubic-bezier(.4,0,.2,1) infinite}.book2{animation:book2 12s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes got{0%,80%{opacity:0}83%,94%{opacity:1}98%,100%{opacity:0}}
+.got{animation:got 12s ease-out infinite}
+@keyframes glow{0%,100%{opacity:1}50%{opacity:.55}}
+.glow{animation:glow 3s ease-in-out infinite}
+@keyframes row{0%,100%{opacity:.55}50%{opacity:1}}
+.row{animation:row 6s ease-in-out infinite}
+</style>
+<rect width="1280" height="448" fill="$bg"/>
+<g id="backdrop" data-backdrop="chevrons still"><defs><pattern id="bd-chevrons" width="40" height="32" patternUnits="userSpaceOnUse"><path d="M17 11l5 5-5 5" fill="none" stroke="$dot" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></pattern></defs><rect x="-40" y="-32" width="1360" height="512" fill="url(#bd-chevrons)"/></g>
+<text id="eyebrow" class="m" x="48" y="56" font-size="15" letter-spacing="2" fill="$accent">YOUR ACCOUNT</text>
+<text id="title" class="b" x="48" y="104" font-size="36" fill="$ink">Your keys stay with you</text>
+<text id="sub" class="s" x="48" y="142" font-size="19" fill="$body">Online, it only checks the unlock tool.</text>
+<g id="stage">
+<rect x="48" y="188" width="440" height="64" rx="16" fill="$panel" stroke="$line" stroke-width="1.5"/>
+<g data-asset="lucide:key-round" data-icon="account keys" data-size="40" transform="translate(64 200) scale(1.667)" fill="$epubink"><g fill="none" stroke="$epubink" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="$epubink"/></g></g>
+<text class="s" x="122" y="226" font-size="16" fill="$ink">Keys stay on your PC</text>
+<rect x="48" y="264" width="440" height="64" rx="16" fill="$panel" stroke="$line" stroke-width="1.5"/>
+<g data-asset="lucide:book-open" data-icon="your books" data-size="40" transform="translate(64 276) scale(1.667)" fill="$epubink"><path fill="none" stroke="$epubink" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v16m8.001-2A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2a5 5 0 0 1 4-2z"/></g>
+<text class="s" x="122" y="302" font-size="16" fill="$ink">Books stay on your PC</text>
+<rect x="48" y="340" width="440" height="64" rx="16" fill="$panel" stroke="$line" stroke-width="1.5"/>
+<g data-asset="lucide:badge-check" data-icon="the tool check" data-size="40" transform="translate(64 352) scale(1.667)" fill="$accent"><g fill="none" stroke="$accent" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77a4 4 0 0 1 6.74 0a4 4 0 0 1 4.78 4.78a4 4 0 0 1 0 6.74a4 4 0 0 1-4.77 4.78a4 4 0 0 1-6.75 0a4 4 0 0 1-4.78-4.77a4 4 0 0 1 0-6.76"/><path d="m16 9l-5.5 5.5L8 12"/></g></g>
+<text class="s" x="122" y="378" font-size="16" fill="$ink">Online: one tool check</text>
+<rect x="540" y="36" width="456" height="380" rx="22" fill="$panel" stroke="$ink" stroke-width="3"/>
+<text class="b" x="564" y="74" font-size="20" fill="$ink">Your PC</text>
+<rect x="564" y="100" width="128" height="120" rx="14" fill="$card" stroke="$edge" stroke-width="1.5"/><g data-asset="lucide:folder" data-icon="the Kindle folder" data-size="64" transform="translate(596 116) scale(2.667)" fill="$ink"><path fill="none" stroke="$ink" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></g><text class="b" x="628" y="204" font-size="16" fill="$ink" text-anchor="middle">Kindle</text>
+<rect x="704" y="100" width="128" height="120" rx="14" fill="$card" stroke="$edge" stroke-width="1.5"/><g transform="translate(736 116) scale(1)"><rect width="64" height="64" rx="18" fill="$tile" stroke="$tilerim" stroke-width="1.50"/><g transform="translate(10.88 10.88) scale(0.66)"><path fill="$epub" d="M26 14H55A3 3 0 0 1 55 20H26ZM26 24H45A3 3 0 0 1 45 30H26ZM26 34H51A3 3 0 0 1 51 40H26ZM26 44H37A3 3 0 0 1 37 50H26Z"/><path fill="$drm" d="M13 14H28V20A2 2 0 0 0 28 24V30A2 2 0 0 0 28 34V40A2 2 0 0 0 28 44V50H13A7 7 0 0 1 6 43V21A7 7 0 0 1 13 14Z"/></g></g><text class="b" x="768" y="204" font-size="16" fill="$ink" text-anchor="middle">Anzu</text>
+<rect x="844" y="100" width="136" height="120" rx="14" fill="$card" stroke="$edge" stroke-width="1.5"/><g data-asset="lucide:folder-down" data-icon="the EPUB folder" data-size="64" transform="translate(864 116) scale(2.667)" fill="$epubink"><g fill="none" stroke="$epubink" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Zm-8-10v6"/><path d="m15 13l-3 3l-3-3"/></g></g><text class="m" x="912" y="204" font-size="13" fill="$ink" text-anchor="middle">Documents\EPUB</text>
+<g class="got"><rect x="936" y="128" width="28" height="36" rx="5" fill="$epub" stroke="$dark" stroke-width="1.5"/></g>
+<g transform="translate(616 150)"><rect class="book1" opacity="0" width="26" height="32" rx="5" fill="$drm" stroke="$dark" stroke-width="2"/></g>
+<g transform="translate(762 150)"><rect class="book2" opacity="0" width="26" height="32" rx="5" fill="$epub" stroke="$dark" stroke-width="2"/></g>
+<rect x="564" y="244" width="268" height="148" rx="16" fill="$drmtint" stroke="$drm" stroke-width="2"/>
+<g class="glow"><g data-asset="lucide:key-round" data-icon="your account keys" data-size="64" transform="translate(596 280) scale(2.667)" fill="$drmink"><g fill="none" stroke="$drmink" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="$drmink"/></g></g></g>
+<g data-asset="lucide:lock" data-icon="the keys are locked in" data-size="48" transform="translate(692 288) scale(2)" fill="$ink"><g fill="none" stroke="$ink" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g></g>
+<text class="b" x="588" y="372" font-size="16" fill="$ink">Account keys</text>
+<path class="flow" d="M980 318H1056" fill="none" stroke="$body" stroke-width="2.5" stroke-dasharray="8 16"/><path d="M1050 310l9 8-9 8" fill="none" stroke="$body" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M992 310l-9 8 9 8" fill="none" stroke="$body" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="852" y="244" width="128" height="148" rx="16" fill="$card" stroke="$edge" stroke-width="1.5"/><g data-asset="lucide:lock-open" data-icon="the unlock tool" data-size="64" transform="translate(884 264) scale(2.667)" fill="$ink"><g fill="none" stroke="$ink" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></g></g><text class="b" x="916" y="372" font-size="15" fill="$ink" text-anchor="middle">Unlock tool</text>
+<rect x="1068" y="228" width="168" height="180" rx="16" fill="$card" stroke="$edge" stroke-width="1.5"/>
+<g data-asset="lucide:cloud" data-icon="online" data-size="64" transform="translate(1120 248) scale(2.667)" fill="$body"><path fill="none" stroke="$body" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9"/></g>
+<text class="b" x="1152" y="346" font-size="15" fill="$ink" text-anchor="middle">Official release</text>
+<g class="ok"><rect x="1096" y="362" width="112" height="30" rx="15" fill="$ok"/><text class="b" x="1152" y="382" font-size="15" fill="$dark" text-anchor="middle">verified</text></g>
+<g transform="translate(962 300)"><rect class="out" opacity="0" width="36" height="36" rx="10" fill="$accent"/></g>
+<g transform="translate(1112 300)"><circle class="back" opacity="0" cx="18" cy="18" r="18" fill="$ok"/></g>
+</g>
+</svg>

@@ -1,18 +1,15 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-    <img src="assets/hero-light.svg" alt="Anzu, a free Windows app: your Kindle books, as EPUB. Three books with a lock leave the Kindle app one by one, pass through Anzu where each goes from with DRM to unlocked to EPUB ready, and land as EPUB files in Documents\EPUB, ready to open on any reader." width="100%">
+    <img src="assets/hero-light.svg" alt="Anzu, a free Windows app: the books you bought, on any reader. Three books with a lock leave the Kindle app one by one, pass through Anzu where each goes from with DRM to unlocked to EPUB ready, and land as EPUB files in Documents\EPUB, ready to open on an e-reader." width="100%">
   </picture>
 </p>
 
 <p align="center"><b>English</b> · <a href="README.es.md">Español</a></p>
 
-<h1 align="center">Anzu: convert Kindle books to EPUB on Windows</h1>
+<h1 align="center">Anzu: read the Kindle books you bought on any e-reader</h1>
 
-<p align="center">
-  <b>A free Windows app that turns the books you downloaded with the Kindle app into EPUB files,<br>
-  so you can read them in other apps and on other e-readers. No Calibre, no command line.</b>
-</p>
+<p align="center"><b>A free Windows app that turns your Kindle books into EPUB files in one step. No Calibre, no command line.</b></p>
 
 <p align="center">
   <a href="https://anzu.ilien.dev/"><img alt="Website: anzu.ilien.dev" src="https://img.shields.io/badge/website-anzu.ilien.dev-fff27a?style=flat-square&labelColor=15161a"></a>
@@ -22,161 +19,176 @@
 </p>
 
 <p align="center">
-  <a href="https://anzu.ilien.dev/"><b>Website and live demo</b></a> ·
-  <a href="#install"><b>Install</b></a> ·
-  <a href="#how-to-use-it"><b>How to use it</b></a> ·
-  <a href="#use-it-responsibly"><b>Use it responsibly</b></a> ·
-  <a href="#questions"><b>Questions</b></a> ·
-  <a href="docs/technical-overview.md"><b>Technical details</b></a>
+  <a href="#what-you-get">What you get</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#your-account-stays-safe">Your account</a> ·
+  <a href="#questions">Questions</a> ·
+  <a href="docs/technical-overview.md">Technical details</a>
 </p>
 
 ---
 
-Books you buy on Kindle can only be opened in Amazon's apps and devices. They are locked
-with DRM, a protection that ties each book to your account. If you want to read one of
-them in a different reading app, or load it into a tool of your own, you need it as an
-EPUB, the open format almost every other reader understands.
-
-Doing that by hand is tedious. You have to find a DRM removal tool, check that its version
-works with your version of the Kindle app, dig through hidden folders, and then convert
-the file from KFX (Kindle's format) to EPUB.
-
-Anzu does all of that in one window. It finds the books you downloaded with the Kindle app
-for PC, checks the unlock tool before every run, asks before it closes anything, and saves
-each book as an EPUB file in the folder you choose. When something does not look right, it
-stops and tells you why instead of guessing.
-
-You can see the real app running, with sample books, on the
-**[website](https://anzu.ilien.dev/)**.
+**Anzu turns the Kindle books you bought into EPUB files you can read anywhere.** Amazon
+locks Kindle books to its own apps with DRM, a copy protection. Moving to a Kobo, or
+reading on your phone? Anzu finds the books you downloaded with the Kindle app on your
+Windows PC, removes that lock and saves each one as an EPUB, the format almost every other
+e-reader opens. One window, one button, no Calibre. You can try the real app with sample
+books on the [website](https://anzu.ilien.dev/).
 
 ## Use it responsibly
 
 > [!WARNING]
-> **Anzu is for personal use only, and only with books you got legally.**
+> **For personal use, with books you got legally.**
 >
-> - **Removing DRM can be against the law where you live.** Many countries, including the
->   United States (under the DMCA) and the member states of the European Union, forbid
->   getting around copy protection, and breaking that rule can lead to fines or other
->   penalties. Check the law in your country before you use Anzu.
-> - **It goes against Amazon's terms.** When you use Kindle you accept the Kindle Store
->   Terms of Use, and those terms do not allow removing the DRM of your books.
-> - **Only use books you bought or that you read through a subscription you pay for.**
-> - **Never share the EPUB files you make.** Do not send them to anyone, upload them or
->   post them anywhere. Sharing a book whose DRM you removed is piracy, it is illegal, and
->   it hurts the authors who wrote it.
+> - **It may be against your country's law.** Many countries, including the United
+>   States (under the DMCA) and the members of the European Union, forbid getting around
+>   copy protection. Check the law in your country first.
+> - **It goes against Amazon's terms.** The Kindle Store Terms of Use do not allow
+>   removing the DRM of your books.
+> - **Only books you paid for:** bought, or read through a subscription you pay for.
+> - **Never share the EPUB files.** Sending or uploading a book whose DRM you removed is
+>   piracy, it is illegal, and it hurts the authors who wrote it.
 >
 > You are responsible for how you use Anzu.
 
-### Why I built it
+## What you get
 
-I made Anzu for myself, to practise English. I wrote another app,
-[Ogmios](https://github.com/ilien-dev/ogmios), where I practise English, and I wanted to
-use the books I read as material for it. With a book as an EPUB I can split it into
-chapters and pull out English vocabulary to study. That is the whole idea: using a book I
-paid for, in a different app of my own. Anzu was never meant to remove the DRM from a book
-so it can be passed on to other people. That would be illegal, and it should never be done.
+<p align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/features-dark.svg">
+  <img src="assets/readme/features-light.svg" alt="Four panels light up one after another: an EPUB file goes to an e-reader, a phone and a tablet; Calibre, plugins and an old Kindle app are crossed out next to the Anzu logo; a button that says Unlock and convert 2 books is pressed and a bar fills; and the Kindle folder gets a green shield because nothing in it changed." width="100%">
+</picture></p>
 
-## What you need
+- **Your books on any reader.** Kobo, PocketBook, a phone or a tablet: EPUB opens almost
+  everywhere.
+- **No extra tools.** No Calibre, no plugins, no old version of the Kindle app to hunt
+  down. Anzu has its own converter.
+- **One button for the whole job.** It always says what it is about to do, for example
+  “Unlock and convert 2 books”.
+- **Your Kindle library stays as it is.** Anzu only reads the Kindle folder. It never
+  changes or deletes your books there.
+- **A clear answer when something is off.** If the tool that removes the DRM does not
+  support your Kindle app yet, Anzu stops and tells you why instead of guessing.
 
-- A computer with **Windows 10 or 11**.
-- The **Kindle app from the Microsoft Store**, signed in to your Amazon account, with the
-  books you want already downloaded.
-- An internet connection, so Anzu can check the unlock tool before it uses it.
+## How it works
+
+<p align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/how-dark.svg">
+  <img src="assets/readme/how-light.svg" alt="The Anzu window: a cursor ticks Moby-Dick and Pride and Prejudice, presses Unlock and convert 2 books, answers Close Kindle and continue when Anzu says the Kindle app is open, and each book fills its three-colour track. A list beside it lights each of the four steps in turn." width="100%">
+</picture></p>
+
+First download your books in the Kindle app, as you always do, and open Anzu. It finds
+them and puts them on shelves: to unlock, ready for EPUB, or already in EPUB. Then:
+
+1. **Tick your books** and choose where the EPUB files go (`Documents\EPUB` by default).
+2. **Press one button.** It says what it will do, for example “Unlock and convert 2 books”.
+3. **Let it close Kindle.** The Kindle app has to be closed to unlock, so Anzu asks first.
+4. **Wait for the EPUB.** Each book fills a bar of three colours: with DRM, unlocked, EPUB
+   ready.
+
+If one book fails, the others keep going. Good to know: the unlock step unlocks every
+downloaded book that still has DRM, as copies outside the Kindle folder, and only the
+ticked ones become EPUB. More in the
+[technical overview](docs/technical-overview.md#how-the-parts-fit-together).
 
 ## Install
+
+> [!IMPORTANT]
+> **You need Windows 10 or 11** and the Kindle app from the Microsoft Store, signed in, with
+> your books already downloaded. Anzu also needs an internet connection to check the unlock
+> tool before it uses it.
 
 1. Download the file whose name ends in `setup.exe` from the
    [latest release](https://github.com/ilien-dev/anzu/releases/latest).
 2. Open it and follow the steps. It does not ask for administrator rights.
-3. Windows may show a blue “Windows protected your PC” warning the first time, because the
-   installer is not signed yet. Choose **More info**, then **Run anyway**.
+3. Windows may show “Windows protected your PC” the first time, because the installer is
+   not signed yet. Choose “More info”, then “Run anyway”.
 
-Anzu checks for new versions on its own while it is open, and only installs one when you
-say so. To remove it, uninstall Anzu from Settings › Apps like any other program.
+Anzu tells you when there is a new version and installs it only when you say so. To remove
+it, uninstall Anzu from Settings › Apps like any other program.
 
-## How to use it
+## Your account stays safe
 
-1. **Download your books** in the Kindle app, as you normally do.
-2. **Open Anzu.** It finds the Kindle app and puts your books on shelves by what they still
-   need: to unlock, ready for EPUB, or already in EPUB. Each book shows the title
-   the Kindle app has for it; one without a title there shows its code until it is unlocked.
-3. **Tick the books you want.** The side panel lists them with what will be done to each.
-   Choose the folder where the EPUB files will go
-   (`Documents\EPUB` by default).
-4. **Press the button.** It always says what is about to happen, for example
-   “Unlock and convert 2 books”. The Kindle app has to be closed for the unlock, so Anzu
-   asks your permission before it closes it.
+<p align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/privacy-dark.svg">
+  <img src="assets/readme/privacy-light.svg" alt="A box that stands for your PC holds the Kindle folder, Anzu, the Documents EPUB folder, your account keys in a locked box, and the unlock tool. The only thing that leaves the PC is a check of the tool's official release, which comes back verified; books move from the Kindle folder through Anzu to the EPUB folder, and the keys never move." width="100%">
+</picture></p>
 
-Each book shows its progress on a small three-step track: with DRM, unlocked, EPUB ready.
-If one book fails, the others keep going. Good to know: the unlock tool unlocks every
-downloaded book that still has DRM, not only the ones you ticked; only the ticked ones are
-converted to EPUB.
+- **Your keys stay on your PC.** To unlock your books, the unlock tool needs secret keys
+  from your Amazon account, and takes them from the Kindle app on your PC: you never type
+  your Amazon password. Anzu keeps them on your computer, never shows them on screen and
+  never writes them to its log. Treat the folders that hold them
+  (`%LOCALAPPDATA%\anzu\keys` and `work`) like a password.
+- **Your books stay on your PC.** Nothing is uploaded anywhere.
+- **Only the tool is checked online.** The DRM is removed by a well-known open-source tool,
+  [Satsuoni's DeDRM tools](https://github.com/Satsuoni/DeDRM_tools). Anzu downloads it from
+  its official releases, checks that the file was not altered, and only then runs it on
+  your PC.
 
-The window is in English or Spanish, in a light or dark theme, both chosen from the
-settings button (the cog at the top).
-
-## What books work
-
-- **Works:** novels and other books that are mostly text, with their chapters, headings,
-  italics and bold, links, pictures, cover and table of contents.
-- **Partly:** lists and tables keep their text but lose their layout.
-- **Does not work:** comics, manga, children's picture books and other fixed-layout books,
-  and dictionaries.
-
-## Keeping your account safe
-
-- To unlock your books, the unlock tool needs secret keys from your Amazon account. Anzu
-  keeps them on your computer, in `%LOCALAPPDATA%\anzu\keys` and `%LOCALAPPDATA%\anzu\work`.
-  **Treat those two folders like a password: never share them or upload them anywhere.**
-- Anzu never shows those secrets on screen or writes them to its log.
-- Anzu never changes anything inside the Kindle app's own folder.
-- The DRM is removed by a separate, well-known open-source tool
-  ([Satsuoni's DeDRM tools](https://github.com/Satsuoni/DeDRM_tools)). Anzu downloads it
-  from its official releases, checks that the file has not been altered, and refuses to run
-  it if anything does not match. Anzu itself contains no decryption code.
+Where each file lives and what Anzu sends to GitHub are in the
+[technical overview](docs/technical-overview.md#privacy-and-network).
 
 ## Questions
 
-**Is Anzu free?**
+<details><summary><b>Is Anzu free?</b></summary>
+
 Yes. It is free and open source, under the GPL-3.0 license.
+</details>
 
-**Does it work on Mac or Linux?**
-No. Anzu only runs on Windows 10 and 11, with the Kindle app from the Microsoft Store.
+<details><summary><b>Which books work?</b></summary>
 
-**Do I need Calibre?**
-No. Anzu has its own KFX to EPUB converter, so you do not need Calibre or any plugin.
+Novels and other books that are mostly text, with their chapters, headings, italics and
+bold, links, pictures, cover and table of contents. Lists and tables keep their text but
+lose their layout. Comics, manga, children's picture books and other fixed-layout books,
+and dictionaries, do not work.
+</details>
 
-**Can I read the EPUB on a Kobo, a phone or a tablet?**
-Yes, EPUB works in most reading apps and e-readers. Remember that the files are for you
-alone: copy them only to your own devices.
+<details><summary><b>Can I read the EPUB on a Kobo, a phone or a tablet?</b></summary>
 
-**Can it convert to MOBI, AZW3 or PDF?**
-No. Anzu only creates EPUB files.
+Yes, EPUB works in most reading apps and e-readers. The files are for you alone: copy them
+only to your own devices.
+</details>
 
-**Why does Anzu stop and refuse to unlock sometimes?**
-Because it could not make sure the unlock tool is safe and compatible: for example, the
-Kindle app updated and the tool does not support that version yet, or there is no internet
-connection to check. Anzu tells you the reason on screen. Books that are already unlocked
+<details><summary><b>Does it work on Mac or Linux, or with a Kindle device?</b></summary>
+
+No. Anzu runs on Windows 10 and 11 and reads the books of the Kindle app from the Microsoft
+Store. Books that are only on a Kindle e-reader have to be downloaded in that app first.
+</details>
+
+<details><summary><b>Do I need Calibre?</b></summary>
+
+No. Anzu has its own converter from Kindle's format (KFX) to EPUB, so you need no Calibre
+and no plugin.
+</details>
+
+<details><summary><b>Can it make MOBI, AZW3 or PDF files?</b></summary>
+
+No. Anzu only makes EPUB files.
+</details>
+
+<details><summary><b>Why does Anzu sometimes refuse to unlock?</b></summary>
+
+Because it could not make sure the unlock tool is safe and works with your Kindle app: for
+example, the Kindle app updated and the tool does not support that version yet, or there is
+no connection to check. Anzu shows the reason on screen. Books that are already unlocked
 can still be converted.
+</details>
 
-**Where does the name come from?**
+More answers, from where Anzu keeps each file to what it does when the Kindle app updates,
+are in the [technical overview](docs/technical-overview.md).
+
+## About Anzu
+
 In Mesopotamian myth, Anzu is the bird that stole the Tablet of Destinies from the gods.
-The logo is a solid block that turns into lines of text: a peach block and mint lines,
-the colours the app gives a book with DRM and a book in EPUB.
+The logo is a block that turns into lines of text: a locked book becoming an EPUB.
 
-## For the curious
+I made Anzu for myself, to practise English with the books I read in
+[Ogmios](https://github.com/ilien-dev/ogmios), another app of mine. It was never meant to
+pass books on to anyone else.
 
-How the parts fit together, when Anzu refuses to unlock, where it keeps each file, the
-command line, the known limitations and how to build it from source are all in the
-**[technical overview](docs/technical-overview.md)**. To propose a change, read
-[CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Credits
-
-- **Satsuoni**, for the unlock tool.
-- **John Howell** (jhowell), whose KFX Input plugin is the reference for the KFX format.
-- **Inter** and **Space Grotesk**, the interface typefaces, under the SIL Open Font License
-  1.1 (`crates/anzu/assets/fonts/Inter-OFL.txt` and `SpaceGrotesk-OFL.txt`).
+**For the curious:** how it is built, its known limits, the credits and how to build it
+from source are in the [technical overview](docs/technical-overview.md). Thanks to Satsuoni
+for the unlock tool. To propose a change, read [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
