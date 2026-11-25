@@ -39,15 +39,17 @@ its SHA-256 digest, and on “Restart and update” closes, lets the new version
 
 ## The window
 
-- **System status:** whether it is ready to unlock, with the Kindle version and the tool
-  version.
-- **Your books**, in a table that sorts by any column. Each book's status is a three-stage
+- **System status:** whether it is ready to unlock, with the Kindle version, the tool
+  version and whether the checksum was verified.
+- **Your shelf:** the books sit on shelves by what they still need (to unlock, ready for
+  EPUB, in EPUB) and sort by title, ASIN or size. Each book's status is a three-stage
   track: with DRM, unlocked, EPUB ready.
-- **Destination folder** and a button that says what is about to happen, for example
-  “Unlock and convert 2 books”.
+- **Side panel:** the ticked books, the destination folder and a button that says what is
+  about to happen, for example “Unlock and convert 2 books”.
 
-A book's real title is only known once it is unlocked; until then Anzu shows its ASIN. If
-the Kindle app is open, Anzu asks for permission before closing it.
+A locked book shows the title the Kindle app's catalog has for it; one with no title there
+shows its ASIN until it is unlocked. If the Kindle app is open, Anzu asks for permission
+before closing it.
 
 The theme follows the system or is set to light or dark. The interface is in English (the
 default) and Spanish. Both settings are behind the cog in the header, together with the
@@ -104,6 +106,20 @@ everything else with a notice.
 
 Anzu never writes to the Kindle app's folder.
 
+## Privacy and network
+
+Anzu has no account, no telemetry and no ads. It makes three kinds of request, all to
+GitHub:
+
+| Request | When | What it gets |
+|---|---|---|
+| `api.github.com/repos/Satsuoni/DeDRM_tools/releases` | Before each unlock | The latest releases of the unlock tool, to check compatibility |
+| The tool's release asset | When the cached tool is missing or out of date | The tool's archive, verified against its SHA-256 hash |
+| `api.github.com/repos/ilien-dev/anzu/releases/latest` | 30 s after start, then every hour | Whether a new version of Anzu exists |
+
+None of them carries your books, your keys or anything about your library. Converting
+books that are already unlocked needs no connection at all.
+
 ## Known limitations
 
 Recorded at version 0.1.0; see the [changelog](../CHANGELOG.md) for what has changed since.
@@ -118,7 +134,6 @@ Recorded at version 0.1.0; see the [changelog](../CHANGELOG.md) for what has cha
   books that were already unlocked are not redone.
 - The compatibility rule is inferred from the name of the tool's executable. If a future
   release changes that name, Anzu will block until it is updated.
-- The executable does not have its own icon in Explorer yet; the window does.
 
 ## Build
 
@@ -141,3 +156,14 @@ The executable ends up in `target\release\anzu.exe`.
 The website lives in the `site/` submodule ([ilien-dev/anzu-site](https://github.com/ilien-dev/anzu-site)).
 `PRODUCT.md` and `.impeccable/` hold the product context and the design direction of the
 interface. `CONTRIBUTING.md` explains how to propose a change.
+
+The logo is defined once, on a 64 x 64 grid, in `crates/anzu/src/ui/mark.rs`: the window,
+the window icon and the icon embedded in the executable (`crates/anzu/build.rs`) all come
+from it. The brand files and their rules are in `assets/brand/`.
+
+## Credits
+
+- **Satsuoni**, for the [unlock tool](https://github.com/Satsuoni/DeDRM_tools).
+- **John Howell** (jhowell), whose KFX Input plugin is the reference for the KFX format.
+- **Inter** and **Space Grotesk**, the interface typefaces, under the SIL Open Font License
+  1.1 (`crates/anzu/assets/fonts/Inter-OFL.txt` and `SpaceGrotesk-OFL.txt`).

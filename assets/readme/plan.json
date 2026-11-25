@@ -1,0 +1,118 @@
+{
+  "audience": "general",
+  "audience_confirmed": true,
+  "sentence": "People who bought books on Kindle and want to read them on a Kobo, a phone app or any other reader get each book as an EPUB file, from one window on their Windows PC, without hunting for tools or matching versions.",
+  "language": "en",
+  "translations": [
+    "README.es.md"
+  ],
+  "unfinished": [],
+  "captures_agreed": false,
+  "backdrop": "chevrons still",
+  "hero": {
+    "file": "assets/hero.src.svg",
+    "shows": [
+      "Kindle app",
+      "books with a lock",
+      "Anzu",
+      "With DRM",
+      "Unlocked",
+      "EPUB ready",
+      "Documents\\EPUB",
+      "EPUB files",
+      "e-reader"
+    ]
+  },
+  "sections": [
+    {
+      "heading": "Use it responsibly",
+      "role": "limits",
+      "docs": null,
+      "picture": null
+    },
+    {
+      "heading": "What you get",
+      "role": "features",
+      "docs": null,
+      "picture": {
+        "file": "assets/readme/features.src.svg",
+        "type": "drawn",
+        "claim": "Anzu gives four things, one at a time: your books on any reader, no Calibre or plugins, one button for the whole job, and a Kindle library left as it was.",
+        "shows": [
+          "EPUB file going to an e-reader, a phone and a laptop",
+          "Calibre and plugins crossed out",
+          "one button",
+          "Kindle folder with a tick",
+          "card naming the lit feature"
+        ]
+      }
+    },
+    {
+      "heading": "How it works",
+      "role": "how",
+      "docs": "docs/technical-overview.md",
+      "picture": {
+        "file": "assets/readme/how.src.svg",
+        "type": "drawn",
+        "claim": "You tick the books, press one button, let Anzu close the Kindle app, and each ticked book fills its own progress track.",
+        "shows": [
+          "Anzu window",
+          "two ticked books",
+          "Unlock and convert button",
+          "cursor",
+          "Close Kindle and continue dialog",
+          "progress track per book"
+        ]
+      }
+    },
+    {
+      "heading": "Install",
+      "role": "install",
+      "docs": null,
+      "picture": null
+    },
+    {
+      "heading": "Your account stays safe",
+      "role": "privacy",
+      "docs": "docs/technical-overview.md",
+      "picture": {
+        "file": "assets/readme/privacy.src.svg",
+        "type": "drawn",
+        "claim": "Your account keys and your books stay inside your own PC; the only thing that goes out is a check of the unlock tool's official release.",
+        "shows": [
+          "your PC as a room",
+          "account keys",
+          "Kindle folder",
+          "EPUB folder",
+          "official release check",
+          "wall"
+        ]
+      }
+    },
+    {
+      "heading": "Questions",
+      "role": "faq",
+      "docs": "docs/technical-overview.md",
+      "picture": null
+    },
+    {
+      "heading": "About Anzu",
+      "role": "about",
+      "docs": "docs/technical-overview.md",
+      "picture": null
+    },
+    {
+      "heading": "License",
+      "role": "license",
+      "docs": null,
+      "picture": null
+    }
+  ],
+  "assets": {
+    "icons": {
+      "family": "lucide",
+      "variant": null,
+      "why": "The app draws its own 2 px line icons with round caps and soft corners; lucide has the same weight and ends"
+    }
+  }
+}

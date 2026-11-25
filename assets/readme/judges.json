@@ -1,0 +1,134 @@
+{
+  "picture:features.src.svg": {
+    "sha": "71f6800f62cefe99",
+    "pass": true,
+    "answer": "round 4 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent; understood in substance"
+  },
+  "section:What you get": {
+    "sha": "5cedd722f626b50a",
+    "pass": true,
+    "answer": "round 4 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent; understood in substance"
+  },
+  "picture:how.src.svg": {
+    "sha": "fe18715cd9cc850f",
+    "pass": true,
+    "answer": "round 4 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent; understood in substance"
+  },
+  "section:How it works": {
+    "sha": "ce3df006f909e3f5",
+    "pass": true,
+    "answer": "round 4 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent; understood in substance"
+  },
+  "picture:privacy.src.svg": {
+    "sha": "32340470ebb06a3c",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  },
+  "section:Your account stays safe": {
+    "sha": "93bc71eee87238fc",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  },
+  "icon:features.src.svg#1": {
+    "sha": "a0ad59d53f2e4924",
+    "pass": true,
+    "answer": "round 4 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent; understood in substance"
+  },
+  "icon:features.src.svg#2": {
+    "sha": "0bb43594f26ee0bd",
+    "pass": true,
+    "answer": "round 4 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent; understood in substance"
+  },
+  "icon:features.src.svg#3": {
+    "sha": "92fe396a5274fdce",
+    "pass": true,
+    "answer": "round 4 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent; understood in substance"
+  },
+  "icon:features.src.svg#4": {
+    "sha": "d90ada7221f749ba",
+    "pass": true,
+    "answer": "round 4 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent; understood in substance"
+  },
+  "icon:features.src.svg#5": {
+    "sha": "78a478175394d02e",
+    "pass": true,
+    "answer": "round 4 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent; understood in substance"
+  },
+  "icon:features.src.svg#6": {
+    "sha": "c45320da4ba1ef75",
+    "pass": true,
+    "answer": "round 4 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent; understood in substance"
+  },
+  "icon:privacy.src.svg#1": {
+    "sha": "6e1ea24762698355",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  },
+  "icon:privacy.src.svg#2": {
+    "sha": "1b1d4f676fe956ae",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  },
+  "icon:privacy.src.svg#3": {
+    "sha": "ab271a0d4c4d1c50",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  },
+  "icon:privacy.src.svg#4": {
+    "sha": "6c5e25200877f71d",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  },
+  "icon:privacy.src.svg#5": {
+    "sha": "71218aa3638a8c1f",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  },
+  "icon:privacy.src.svg#6": {
+    "sha": "5a15f1e7ffa83091",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  },
+  "icon:privacy.src.svg#7": {
+    "sha": "5d2a1ba89af8f858",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  },
+  "icon:privacy.src.svg#8": {
+    "sha": "7307a95e7bc50403",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  },
+  "icon:privacy.src.svg#9": {
+    "sha": "7f64e5d64226f449",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  },
+  "readme": {
+    "sha": "e1706d7df975a3d5",
+    "pass": true,
+    "answer": "round 7 cold read (blind and reader judges)",
+    "why": "graded by a third fresh agent: understood in substance"
+  }
+}

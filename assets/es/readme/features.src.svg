@@ -1,0 +1,125 @@
+<!--palette
+bg       #0E0F12 #F4F5F7
+dot      #23252C #D5D9E0
+win      #17181D #FFFFFF
+card     #202228 #F4F5F7
+edge     #30333B #D5D9E0
+rim      #454954 #B4BAC5
+aside    #111216 #FAFBFC
+quiet    #2A2D35 #E4E7EC
+ink      #ECEDEF #15161A
+body     #A3A7B0 #565A64
+accent   #FFF27A #6B5E00
+action   #FFF27A #15161A
+onaction #15161A #FFFFFF
+shell    #060708 #15161A
+chip     #1E2025 #2C2F36
+white    #FFFFFF #FFFFFF
+soft     #C9CCD3 #C9CCD3
+drm      #FFB4A2 #FFB4A2
+unl      #C9B8FF #C9B8FF
+epub     #C8F0A0 #C8F0A0
+butter   #FFF27A #FFF27A
+dark     #15161A #15161A
+ok       #A9E57A #A9E57A
+selbg    #2B2912 #FFFBD6
+sel      #FFF27A #15161A
+drmtint  #3A2620 #FFE3DB
+tile     #15161A #15161A
+tilerim  #454954 #15161A
+paper    #F1F2F4 #FFFFFF
+strip    #08090B #15161A
+stripink #ECEDEF #FFFFFF
+stripval #FFF27A #FFF27A
+panel    #17181D #FFFFFF
+line     #30333B #D5D9E0
+muted    #454954 #B4BAC5
+epubink  #C8F0A0 #3D7A1E
+drmink   #FFB4A2 #B3452C
+okink    #A9E57A #3D7A1E
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 448" role="img" aria-label="Lo que obtienes con Anzu, una ventaja cada vez: un archivo EPUB va a un lector electrónico, un móvil y un portátil; Calibre, los plugins y una app de Kindle vieja quedan tachados porque Anzu no necesita ninguno; se pulsa un solo botón, Desbloquear y convertir 2 libros; y la carpeta de Kindle recibe una marca porque Anzu nunca la cambia.">
+<style>
+@keyframes lit{0%,1%{opacity:0}4%,23%{opacity:1}26%,100%{opacity:0}}
+.lit{animation:lit 16s ease-in-out infinite}
+@keyframes say{0%,1%{opacity:0}4%,23%{opacity:1}26%,100%{opacity:0}}
+.say{animation:say 16s ease-in-out infinite}
+@keyframes hop1{0%,3%{transform:translate(0,0);opacity:0}4%{opacity:1}9%{transform:translate(76px,0);opacity:1}10%,100%{transform:translate(76px,0);opacity:0}}
+@keyframes hop2{0%,8%{transform:translate(0,0);opacity:0}9%{opacity:1}14%{transform:translate(130px,0);opacity:1}15%,100%{transform:translate(130px,0);opacity:0}}
+@keyframes hop3{0%,13%{transform:translate(0,0);opacity:0}14%{opacity:1}19%{transform:translate(188px,0);opacity:1}20%,100%{transform:translate(188px,0);opacity:0}}
+.hop1{animation:hop1 16s cubic-bezier(.4,0,.2,1) infinite}.hop2{animation:hop2 16s cubic-bezier(.4,0,.2,1) infinite}.hop3{animation:hop3 16s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes scr1{0%,9%{opacity:0}11%,94%{opacity:1}98%,100%{opacity:0}}
+@keyframes scr2{0%,14%{opacity:0}16%,94%{opacity:1}98%,100%{opacity:0}}
+@keyframes scr3{0%,19%{opacity:0}21%,94%{opacity:1}98%,100%{opacity:0}}
+.scr1{animation:scr1 16s ease-out infinite}.scr2{animation:scr2 16s ease-out infinite}.scr3{animation:scr3 16s ease-out infinite}
+@keyframes strike1{0%,28%{transform:scaleX(0)}32%,94%{transform:scaleX(1)}98%,100%{transform:scaleX(0)}}
+@keyframes strike2{0%,33%{transform:scaleX(0)}37%,94%{transform:scaleX(1)}98%,100%{transform:scaleX(0)}}
+@keyframes strike3{0%,38%{transform:scaleX(0)}42%,94%{transform:scaleX(1)}98%,100%{transform:scaleX(0)}}
+.strike1,.strike2,.strike3{transform-box:fill-box;transform-origin:0 50%}
+.strike1{animation:strike1 16s cubic-bezier(.4,0,.2,1) infinite}.strike2{animation:strike2 16s cubic-bezier(.4,0,.2,1) infinite}.strike3{animation:strike3 16s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes cur{0%,50%{transform:translate(70px,60px);opacity:0}53%{opacity:1}60%,68%{transform:translate(0,0);opacity:1}74%,100%{transform:translate(70px,60px);opacity:0}}
+.cur{animation:cur 16s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes press{0%,61%{transform:scale(1)}63%{transform:scale(.93)}66%,100%{transform:scale(1)}}
+.press{animation:press 16s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes bar{0%,63%{transform:scaleX(0)}72%,94%{transform:scaleX(1)}98%,100%{transform:scaleX(0)}}
+.bar{animation:bar 16s cubic-bezier(.4,0,.2,1) infinite;transform-box:fill-box;transform-origin:0 50%}
+@keyframes seal{0%,77%{transform:scale(.4);opacity:0}81%,94%{transform:scale(1);opacity:1}98%,100%{transform:scale(.4);opacity:0}}
+.seal{animation:seal 16s cubic-bezier(0,0,.2,1) infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pip{0%,1%{transform:scaleX(1)}4%,23%{transform:scaleX(2.4)}26%,100%{transform:scaleX(1)}}
+.pip{animation:pip 16s ease-in-out infinite;transform-box:fill-box;transform-origin:0 50%}
+</style>
+<rect width="1280" height="448" fill="$bg"/>
+<g id="backdrop" data-backdrop="chevrons still"><defs><pattern id="bd-chevrons" width="40" height="32" patternUnits="userSpaceOnUse"><path d="M17 11l5 5-5 5" fill="none" stroke="$dot" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></pattern></defs><rect x="-40" y="-32" width="1360" height="512" fill="url(#bd-chevrons)"/></g>
+<text id="eyebrow" class="m" x="48" y="56" font-size="15" letter-spacing="2" fill="$accent">LO QUE OBTIENES</text>
+<text id="title" class="b" x="48" y="104" font-size="36" fill="$ink">Tus libros, a cualquier lector</text>
+<text id="sub" class="s" x="48" y="142" font-size="19" fill="$body">Sin herramientas extra, y tu biblioteca de Kindle se queda como estaba.</text>
+<g id="stage">
+<rect x="852" y="36" width="380" height="120" rx="16" fill="$panel" stroke="$line" stroke-width="1.5"/>
+<text class="m" x="880" y="70" font-size="14" letter-spacing="2" fill="$body">AHORA</text>
+<text class="b say" opacity="0" style="animation-delay:0s" x="880" y="112" font-size="26" fill="$ink">Kobo, móvil, portátil</text>
+<text class="b say" opacity="0" style="animation-delay:-12s" x="880" y="112" font-size="26" fill="$ink">Solo Anzu</text>
+<text class="b say" opacity="0" style="animation-delay:-8s" x="880" y="112" font-size="26" fill="$ink">Pulsas y esperas</text>
+<text class="b say" style="animation-delay:-4s" x="880" y="112" font-size="26" fill="$ink">Nada cambia</text>
+<g transform="translate(1124 64)"><rect class="pip" style="animation-delay:0s" width="8" height="8" rx="4" fill="$accent"/></g>
+<g transform="translate(1148 64)"><rect class="pip" style="animation-delay:-12s" width="8" height="8" rx="4" fill="$accent"/></g>
+<g transform="translate(1172 64)"><rect class="pip" style="animation-delay:-8s" width="8" height="8" rx="4" fill="$accent"/></g>
+<g transform="translate(1196 64)"><rect class="pip" style="animation-delay:-4s" width="8" height="8" rx="4" fill="$accent"/></g>
+<rect x="48" y="192" width="278" height="224" rx="18" fill="$panel" stroke="$line" stroke-width="1.5"/>
+<rect class="lit" opacity="0" style="animation-delay:0s" x="48" y="192" width="278" height="224" rx="18" fill="none" stroke="$accent" stroke-width="3"/>
+<text class="b" x="72" y="392" font-size="19" fill="$ink">Cualquier lector</text>
+<rect x="350" y="192" width="278" height="224" rx="18" fill="$panel" stroke="$line" stroke-width="1.5"/>
+<rect class="lit" opacity="0" style="animation-delay:-12s" x="350" y="192" width="278" height="224" rx="18" fill="none" stroke="$accent" stroke-width="3"/>
+<text class="b" x="374" y="392" font-size="19" fill="$ink">Nada extra</text>
+<rect x="652" y="192" width="278" height="224" rx="18" fill="$panel" stroke="$line" stroke-width="1.5"/>
+<rect class="lit" opacity="0" style="animation-delay:-8s" x="652" y="192" width="278" height="224" rx="18" fill="none" stroke="$accent" stroke-width="3"/>
+<text class="b" x="676" y="392" font-size="19" fill="$ink">Un botón</text>
+<rect x="954" y="192" width="278" height="224" rx="18" fill="$panel" stroke="$line" stroke-width="1.5"/>
+<rect class="lit" style="animation-delay:-4s" x="954" y="192" width="278" height="224" rx="18" fill="none" stroke="$accent" stroke-width="3"/>
+<text class="b" x="978" y="392" font-size="19" fill="$ink">Kindle intacto</text>
+<g data-icon="an EPUB file"><rect x="70" y="238" width="44" height="58" rx="7" fill="$epub"/><rect x="79" y="252" width="26" height="5" rx="2.5" fill="$dark"/><rect x="79" y="263" width="26" height="5" rx="2.5" fill="$dark"/><rect x="79" y="274" width="16" height="5" rx="2.5" fill="$dark"/></g>
+<g data-icon="an e-reader"><rect x="140" y="218" width="54" height="84" rx="8" fill="$quiet" stroke="$ink" stroke-width="2.5"/></g>
+<rect class="scr1" x="147" y="225" width="40" height="57" rx="3" fill="$epub"/>
+<g data-icon="a phone"><rect x="204" y="236" width="34" height="62" rx="8" fill="$quiet" stroke="$ink" stroke-width="2.5"/></g>
+<rect class="scr2" x="211" y="243" width="20" height="45" rx="3" fill="$epub"/>
+<rect x="261" y="243" width="38" height="24" rx="2" fill="$quiet"/>
+<rect class="scr3" x="261" y="243" width="38" height="24" rx="2" fill="$epub"/>
+<g data-asset="lucide:laptop" data-icon="a laptop" data-size="64" transform="translate(248 228) scale(2.667)" fill="$ink"><path fill="none" stroke="$ink" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2zm2.054 10.987H3.946"/></g>
+<g transform="translate(78 250)"><rect class="hop1" opacity="0" width="26" height="34" rx="5" fill="$epub" stroke="$dark" stroke-width="2"/></g>
+<g transform="translate(78 250)"><rect class="hop2" opacity="0" width="26" height="34" rx="5" fill="$epub" stroke="$dark" stroke-width="2"/></g>
+<g transform="translate(78 250)"><rect class="hop3" opacity="0" width="26" height="34" rx="5" fill="$epub" stroke="$dark" stroke-width="2"/></g>
+<path d="M70 324H306" stroke="$line" stroke-width="2"/>
+<rect x="372" y="218" width="150" height="34" rx="17" fill="$quiet"/><text class="s" x="390" y="241" font-size="16" fill="$body">Calibre</text>
+<rect class="strike1" x="380" y="233" width="134" height="4" rx="2" fill="$drm"/>
+<rect x="372" y="262" width="150" height="34" rx="17" fill="$quiet"/><text class="s" x="390" y="285" font-size="16" fill="$body">plugins</text>
+<rect class="strike2" x="380" y="277" width="134" height="4" rx="2" fill="$drm"/>
+<rect x="372" y="306" width="150" height="34" rx="17" fill="$quiet"/><text class="s" x="390" y="329" font-size="16" fill="$body">Kindle antiguo</text>
+<rect class="strike3" x="380" y="321" width="134" height="4" rx="2" fill="$drm"/>
+<g transform="translate(542 252) scale(0.9)"><rect width="64" height="64" rx="18" fill="$tile" stroke="$tilerim" stroke-width="1.67"/><g transform="translate(10.88 10.88) scale(0.66)"><path fill="$epub" d="M26 14H55A3 3 0 0 1 55 20H26ZM26 24H45A3 3 0 0 1 45 30H26ZM26 34H51A3 3 0 0 1 51 40H26ZM26 44H37A3 3 0 0 1 37 50H26Z"/><path fill="$drm" d="M13 14H28V20A2 2 0 0 0 28 24V30A2 2 0 0 0 28 34V40A2 2 0 0 0 28 44V50H13A7 7 0 0 1 6 43V21A7 7 0 0 1 13 14Z"/></g></g>
+<rect x="674" y="220" width="234" height="10" rx="5" fill="$quiet"/><rect class="bar" x="674" y="220" width="234" height="10" rx="5" fill="$epub"/>
+<g class="press" data-clickable="true"><rect x="674" y="254" width="234" height="48" rx="12" fill="$action"/><text class="b" x="791" y="284" font-size="15" fill="$onaction" text-anchor="middle">Desbloquear y convertir 2</text></g>
+<g transform="translate(840 284)" data-kit="cursor" data-cursor="pointer"><g class="cur" opacity="0"><path d="M0 0l0 30 8-7 6 14 6-3-6-13 11 0z" fill="$ink" stroke="$bg" stroke-width="2"/></g></g>
+<g data-asset="lucide:folder" data-icon="the Kindle folder" data-size="72" transform="translate(976 222) scale(3)" fill="$ink"><path fill="none" stroke="$ink" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></g>
+<text class="s" x="976" y="320" font-size="16" fill="$body">Carpeta de Kindle</text>
+<g transform="translate(1104 226)"><g class="seal"><g data-asset="lucide:shield-check" data-icon="nothing in it was changed" data-size="64" transform="translate(0 0) scale(2.667)" fill="$okink"><g fill="none" stroke="$okink" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12l2 2l4-4"/></g></g></g></g>
+</g>
+</svg>
