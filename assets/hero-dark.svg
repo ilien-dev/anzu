@@ -27,7 +27,6 @@ text{text-rendering:geometricPrecision}.s{font-family:SG,sans-serif}.b{font-fami
 @keyframes s2{0%,44%{opacity:0}48%,66%{opacity:1}70%,100%{opacity:0}}
 @keyframes s3{0%,66%{opacity:0}70%,90%{opacity:1}94%,100%{opacity:0}}
 @keyframes flow{to{stroke-dashoffset:-12}}
-@keyframes wing{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.86)}}
 @keyframes read{0%{transform:translateY(0);opacity:0}6%,22%{transform:translateY(0);opacity:1}28%,46%{transform:translateY(16px);opacity:1}52%,70%{transform:translateY(32px);opacity:1}76%,92%{transform:translateY(48px);opacity:1}100%{transform:translateY(48px);opacity:0}}
 @keyframes page{0%,100%{transform:scaleX(.3)}50%{transform:scaleX(.42)}}
 .j{animation-duration:12s;animation-iteration-count:infinite}
@@ -40,7 +39,6 @@ text{text-rendering:geometricPrecision}.s{font-family:SG,sans-serif}.b{font-fami
 .q{animation-duration:4s;animation-iteration-count:infinite;animation-timing-function:ease-in-out;animation-delay:-1.40s}
 .s1{animation-name:s1}.s2{animation-name:s2}.s3{animation-name:s3}
 .flow{animation:flow 1s linear infinite}
-.wing{animation:wing 2s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0}
 .read{animation:read 8s ease-in-out infinite}
 .page{animation:page 12s ease-in-out infinite;transform-box:fill-box;transform-origin:0 50%}
 @keyframes feat{0%{transform:translateY(30px);opacity:0}3.33%,21.67%{transform:translateY(0);opacity:1}25%,100%{transform:translateY(-30px);opacity:0}}
@@ -56,7 +54,7 @@ text{text-rendering:geometricPrecision}.s{font-family:SG,sans-serif}.b{font-fami
 <rect width="1280" height="640" fill="#0E0F12" />
 <g id="backdrop"><rect class="drift" x="-28" y="-28" width="1336" height="696" fill="url(#grid)" /></g>
 
-<g id="logo"><g transform="translate(56 86) scale(0.875)"><rect width="64" height="64" rx="18" fill="#15161A" stroke="#454954" stroke-width="1.71" /><g transform="translate(10.88 10.88) scale(0.66)"><polygon points="32,6 10,58 20,58 32,28" fill="#C9B8FF" /><polygon points="32,6 32,28 44,58 54,58" fill="#FFB4A2" /><rect class="glow" x="27" y="44" width="10" height="14" rx="2" fill="#FFF27A" /></g></g></g>
+<g id="logo"><g transform="translate(56 86) scale(0.875)"><rect width="64" height="64" rx="18" fill="#15161A" stroke="#454954" stroke-width="1.71" /><g transform="translate(10.88 10.88) scale(0.66)"><path fill="#FFB4A2" d="M13 14H28V20A2 2 0 0 0 28 24V30A2 2 0 0 0 28 34V40A2 2 0 0 0 28 44V50H13A7 7 0 0 1 6 43V21A7 7 0 0 1 13 14Z"/><path class="glow" fill="#C8F0A0" d="M26 14H55A3 3 0 0 1 55 20H26ZM26 24H45A3 3 0 0 1 45 30H26ZM26 34H51A3 3 0 0 1 51 40H26ZM26 44H37A3 3 0 0 1 37 50H26Z"/></g></g></g>
 <text id="name" class="b" x="126" y="128" font-size="40" fill="#ECEDEF">Anzu</text>
 <text id="tagline" class="b" font-size="54" fill="#ECEDEF"><tspan x="56" y="234">Your Kindle books,</tspan><tspan x="56" y="296" fill="#FFF27A">as EPUB.</tspan></text>
 <text id="about" class="s" font-size="21" fill="#A3A7B0"><tspan x="56" y="350">A free Windows app that finds the books in</tspan><tspan x="56" y="379">your Kindle app and saves each as an EPUB.</tspan></text>
@@ -103,7 +101,7 @@ text{text-rendering:geometricPrecision}.s{font-family:SG,sans-serif}.b{font-fami
 <rect x="680" y="401" width="56" height="74" rx="8" fill="#FFB4A2" /><use href="#lock" transform="translate(708 438) scale(1.5)" />
 <circle cx="640" cy="534" r="4" fill="#A3A7B0" /><circle cx="656" cy="534" r="4" fill="#2A2D35" /><circle cx="672" cy="534" r="4" fill="#2A2D35" />
 <rect x="792" y="48" width="160" height="520" rx="16" fill="#17181D" stroke="#454954" stroke-width="1.5" />
-<g transform="translate(840 72) scale(1)"><rect width="64" height="64" rx="18" fill="#15161A" stroke="#454954" stroke-width="1.50" /><g transform="translate(10.88 10.88) scale(0.66)"><polygon class="wing" points="32,6 10,58 20,58 32,28" fill="#C9B8FF" /><polygon class="wing" points="32,6 32,28 44,58 54,58" fill="#FFB4A2" /><rect class="glow" x="27" y="44" width="10" height="14" rx="2" fill="#FFF27A" /></g></g>
+<g transform="translate(840 72) scale(1)"><rect width="64" height="64" rx="18" fill="#15161A" stroke="#454954" stroke-width="1.50" /><g transform="translate(10.88 10.88) scale(0.66)"><path fill="#FFB4A2" d="M13 14H28V20A2 2 0 0 0 28 24V30A2 2 0 0 0 28 34V40A2 2 0 0 0 28 44V50H13A7 7 0 0 1 6 43V21A7 7 0 0 1 13 14Z"/><path class="glow" fill="#C8F0A0" d="M26 14H55A3 3 0 0 1 55 20H26ZM26 24H45A3 3 0 0 1 45 30H26ZM26 34H51A3 3 0 0 1 51 40H26ZM26 44H37A3 3 0 0 1 37 50H26Z"/></g></g>
 <text class="b" x="872" y="164" font-size="16" fill="#ECEDEF" text-anchor="middle">Anzu</text>
 <rect x="812" y="238" width="120" height="128" rx="14" fill="#202228" stroke="#30333B" stroke-width="1.5" /><rect x="840" y="261" width="64" height="82" rx="10" fill="none" stroke="#454954" stroke-width="1.5" stroke-dasharray="6 6" />
 <g class="q s1"><rect x="844" y="265" width="56" height="74" rx="8" fill="#FFB4A2" /><use href="#lock" transform="translate(872 302) scale(1.5)" /></g><g class="q s2"><rect x="844" y="265" width="56" height="74" rx="8" fill="#C9B8FF" /><use href="#open" transform="translate(872 302) scale(1.5)" /></g><g class="q s3"><rect x="844" y="265" width="56" height="74" rx="8" fill="#C8F0A0" /><use href="#tickmark" transform="translate(872 303) scale(1.9)" /></g>

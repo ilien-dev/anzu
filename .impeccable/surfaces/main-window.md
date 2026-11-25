@@ -20,7 +20,7 @@ STORY: The user sees whether the system is ready, recognises their books by titl
 shelves, ticks the ones they want, reads in the side panel what will happen to each, and
 presses a button that says it.
 
-FIRST VIEWPORT: Header band with the tricolour logo and a cog that opens a floating
+FIRST VIEWPORT: Header band with the two-colour logo (peach block, mint lines) and a cog that opens a floating
 settings panel (theme and language as icon segments, version and “Check for updates”).
 Below it, on the left: the status line with the Kindle, tool and checksum facts as chips
 and “Check again” at its end; the heading “Your shelf” with “Refresh list” (offline, it

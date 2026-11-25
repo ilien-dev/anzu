@@ -31,7 +31,9 @@ fn main() {
 /// The icon at `size`, drawn larger and averaged down, as RGBA.
 fn smooth_icon(size: u32) -> Vec<u8> {
     let big = size * SUPERSAMPLE;
-    let src = mark::icon_rgba(big, mark::ICON_BACKGROUND, mark::ICON_MARK);
+    // The cut follows the final size, not the supersampled one, so small icons get the small cut.
+    let shape = mark::Shape::for_size(size as f32 * (1.0 - 2.0 * mark::TILE_INSET));
+    let src = mark::icon_rgba_with(big, shape, mark::ICON_BACKGROUND, mark::ICON_MARK);
     let mut pixels = Vec::with_capacity((size * size * 4) as usize);
     for y in 0..size {
         for x in 0..size {
